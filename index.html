@@ -1,0 +1,5340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>The Explorers</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(ellipse at center, #2d4a1f 0%, #0e1a0a 100%);
+      color: #fff5d6;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Fireflies background — replaces stars */
+    .stars {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      z-index: 0;
+    }
+    .star {
+      position: absolute;
+      background: radial-gradient(circle, #fbbf24, rgba(251, 191, 36, 0));
+      border-radius: 50%;
+      animation: firefly 4s infinite ease-in-out;
+    }
+    @keyframes firefly {
+      0%, 100% { opacity: 0.2; transform: scale(1) translateY(0); }
+      50% { opacity: 1; transform: scale(1.5) translateY(-8px); }
+    }
+
+    .shooting-star {
+      position: absolute;
+      width: 3px;
+      height: 3px;
+      background: #fbbf24;
+      border-radius: 50%;
+      box-shadow: 0 0 12px #fbbf24, 0 0 24px rgba(251, 191, 36, 0.4);
+      animation: shoot 5s linear infinite;
+    }
+    @keyframes shoot {
+      0% { transform: translate(0, 0); opacity: 0; }
+      20% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { transform: translate(180px, -200px); opacity: 0; }
+    }
+
+    .content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 5rem;
+      font-weight: 800;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #fff5d6, #fbbf24, #f59e0b, #fbbf24, #fff5d6);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shine 4s linear infinite, fadeIn 1.5s ease-out;
+      filter: drop-shadow(0 0 18px rgba(251, 191, 36, 0.4));
+      margin-bottom: 0.5rem;
+    }
+    @keyframes shine {
+      to { background-position: 200% center; }
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+      letter-spacing: 0.5em;
+      opacity: 0.6;
+      margin-bottom: 3rem;
+      animation: fadeIn 2s ease-out;
+    }
+
+    /* Progress bar — adventure style */
+    .progress-container {
+      width: 320px;
+      height: 6px;
+      background: rgba(40, 30, 15, 0.8);
+      border: 1px solid #5a4530;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #4d8a35, #fbbf24);
+      border-radius: 4px;
+      box-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
+      transition: width 0.1s linear;
+    }
+
+    .loading-text {
+      font-size: 0.85rem;
+      letter-spacing: 0.2em;
+      opacity: 0.7;
+      margin-bottom: 2.5rem;
+      min-height: 1.2em;
+    }
+
+    /* Skip button */
+    .skip-btn {
+      background: rgba(40, 30, 15, 0.6);
+      border: 2px solid #8b6f47;
+      color: #fff5d6;
+      padding: 0.75rem 2rem;
+      font-size: 0.9rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+      font-family: inherit;
+    }
+    .skip-btn:hover {
+      background: rgba(60, 45, 25, 0.85);
+      border-color: #fbbf24;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(251, 191, 36, 0.3);
+    }
+    .skip-btn:active {
+      transform: translateY(0);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Home screen — adventure map menu */
+    .home-screen {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(ellipse at center, #3a4a1f 0%, #0e1a0a 70%, #050a05 100%);
+      z-index: 10;
+      animation: fadeIn 0.8s ease-out;
+      overflow-y: auto;
+    }
+    .home-screen::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        repeating-linear-gradient(45deg, transparent, transparent 80px, rgba(180, 145, 90, 0.02) 80px, rgba(180, 145, 90, 0.02) 81px),
+        repeating-linear-gradient(-45deg, transparent, transparent 80px, rgba(180, 145, 90, 0.02) 80px, rgba(180, 145, 90, 0.02) 81px);
+      pointer-events: none;
+    }
+
+    .home-content {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      max-width: 560px;
+      padding: 2rem;
+    }
+
+    .home-title-block {
+      margin-bottom: 3.5rem;
+    }
+    .title-icon {
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
+      filter: drop-shadow(0 0 18px rgba(251, 191, 36, 0.5));
+      animation: fadeIn 1.2s ease-out;
+    }
+    .home-title-text {
+      font-family: "Cinzel", "Trajan Pro", "Times New Roman", Georgia, serif;
+      font-size: 4.5rem;
+      font-weight: 900;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      background: linear-gradient(180deg, #fff5d6 0%, #fbbf24 50%, #d97706 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
+      line-height: 1;
+      margin-bottom: 1rem;
+    }
+    .title-divider {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .divider-line {
+      width: 80px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #8b6f47, transparent);
+    }
+    .divider-mark {
+      color: #fbbf24;
+      font-size: 0.9rem;
+    }
+    .home-subtitle {
+      font-family: Georgia, serif;
+      font-size: 0.95rem;
+      letter-spacing: 0.45em;
+      text-transform: uppercase;
+      color: #b89968;
+      opacity: 0.9;
+      font-style: italic;
+    }
+
+    .home-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+      align-items: center;
+      margin-bottom: 2.5rem;
+    }
+    .menu-btn {
+      width: 300px;
+      padding: 1rem 2rem;
+      font-size: 0.95rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      font-weight: 700;
+      font-family: inherit;
+      border-radius: 8px;
+      cursor: pointer;
+      background: linear-gradient(180deg, rgba(80, 55, 30, 0.7), rgba(40, 25, 10, 0.85));
+      border: 2px solid #8b6f47;
+      color: #fff5d6;
+      transition: all 0.2s;
+      backdrop-filter: blur(4px);
+    }
+    .menu-btn:hover {
+      background: linear-gradient(180deg, rgba(120, 85, 50, 0.85), rgba(70, 45, 20, 0.95));
+      border-color: #fbbf24;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(251, 191, 36, 0.3);
+    }
+    .menu-primary {
+      background: linear-gradient(180deg, #fbbf24, #d97706);
+      border-color: #fde68a;
+      color: #1a1408;
+      font-size: 1.05rem;
+      box-shadow: 0 6px 20px rgba(251, 191, 36, 0.4);
+    }
+    .menu-primary:hover {
+      background: linear-gradient(180deg, #fcd34d, #ea8e0c);
+      box-shadow: 0 12px 32px rgba(251, 191, 36, 0.55);
+    }
+
+    .home-tagline {
+      font-family: Georgia, serif;
+      font-style: italic;
+      font-size: 0.85rem;
+      letter-spacing: 0.15em;
+      color: rgba(184, 153, 104, 0.85);
+    }
+
+    /* Credits modal */
+    .credits-modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(5, 10, 5, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 50;
+      animation: fadeIn 0.3s ease-out;
+    }
+    .credits-card {
+      background: linear-gradient(180deg, rgba(60, 45, 25, 0.97), rgba(30, 20, 8, 0.97));
+      border: 2px solid #8b6f47;
+      border-radius: 12px;
+      padding: 2rem 2.5rem 2rem;
+      max-width: 480px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(251, 191, 36, 0.2);
+      position: relative;
+    }
+    .credits-card h3 {
+      font-family: "Cinzel", Georgia, serif;
+      font-size: 1.6rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      background: linear-gradient(180deg, #fff5d6, #fbbf24, #d97706);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 1.2rem;
+    }
+    .credits-tabs {
+      display: flex;
+      gap: 0.4rem;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid #5a4530;
+      padding-bottom: 0.5rem;
+    }
+    .credits-tab {
+      background: transparent;
+      border: 1px solid transparent;
+      color: rgba(184, 153, 104, 0.85);
+      font-family: inherit;
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      font-weight: 700;
+      padding: 0.5rem 0.9rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .credits-tab:hover {
+      color: #fff5d6;
+      background: rgba(80, 55, 30, 0.5);
+    }
+    .credits-tab.active {
+      color: #fbbf24;
+      background: rgba(80, 55, 30, 0.8);
+      border-color: #fbbf24;
+    }
+    .credits-panel {
+      display: none;
+      min-height: 180px;
+    }
+    .credits-panel.active {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      animation: fadeIn 0.3s ease-out;
+    }
+    .credits-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+      margin-bottom: 1.5rem;
+    }
+    .credits-role {
+      font-size: 0.7rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: #b89968;
+      margin-bottom: 0.2rem;
+    }
+    .credits-name {
+      font-family: Georgia, serif;
+      font-size: 1.25rem;
+      color: #fff5d6;
+      font-weight: 600;
+    }
+    .credits-divider {
+      width: 100px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #8b6f47, transparent);
+      margin: 0.3rem auto;
+    }
+    .game-link-card {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      background: linear-gradient(180deg, rgba(80, 55, 30, 0.7), rgba(40, 25, 10, 0.85));
+      border: 2px solid #8b6f47;
+      border-radius: 8px;
+      padding: 0.8rem 1rem;
+      text-decoration: none;
+      color: inherit;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+    }
+    .game-link-card:hover {
+      border-color: #fbbf24;
+      background: linear-gradient(180deg, rgba(120, 85, 50, 0.85), rgba(70, 45, 20, 0.95));
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(251, 191, 36, 0.3);
+    }
+    .game-link-icon {
+      font-size: 1.8rem;
+      flex-shrink: 0;
+    }
+    .game-link-info { flex: 1; min-width: 0; }
+    .game-link-title {
+      font-family: "Cinzel", Georgia, serif;
+      font-size: 1.05rem;
+      color: #fff5d6;
+      letter-spacing: 0.1em;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .game-link-sub {
+      font-size: 0.75rem;
+      color: #b89968;
+      letter-spacing: 0.1em;
+    }
+    .game-link-arrow {
+      color: #fbbf24;
+      font-size: 1.4rem;
+    }
+    .studio-tag {
+      font-family: "Cinzel", Georgia, serif;
+      font-size: 0.85rem;
+      letter-spacing: 0.35em;
+      color: #fbbf24;
+      text-transform: uppercase;
+      margin-bottom: 0.6rem;
+    }
+    .discord-empty {
+      font-family: Georgia, serif;
+      font-style: italic;
+      color: #b89968;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      padding: 1rem;
+    }
+    .credits-close {
+      background: linear-gradient(180deg, rgba(80, 55, 30, 0.7), rgba(40, 25, 10, 0.85));
+      border: 2px solid #8b6f47;
+      color: #fff5d6;
+      padding: 0.7rem 2rem;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .credits-close:hover {
+      border-color: #fbbf24;
+      background: linear-gradient(180deg, rgba(120, 85, 50, 0.85), rgba(70, 45, 20, 0.95));
+    }
+
+    .home-compass {
+      position: absolute;
+      top: 2rem;
+      right: 2rem;
+      animation: compassRotate 60s linear infinite;
+      z-index: 3;
+    }
+    @keyframes compassRotate {
+      to { transform: rotate(360deg); }
+    }
+    .home-map-corner {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      z-index: 3;
+      opacity: 0.6;
+    }
+
+    /* Navbar */
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.5rem 4rem;
+      backdrop-filter: blur(10px);
+      background: rgba(20, 30, 12, 0.7);
+      border-bottom: 2px solid #4d3a20;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo {
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #fff5d6, #fbbf24);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .nav-links {
+      display: flex;
+      gap: 2.5rem;
+      list-style: none;
+    }
+    .nav-links a {
+      color: rgba(255, 245, 214, 0.8);
+      text-decoration: none;
+      font-size: 0.9rem;
+      letter-spacing: 0.15em;
+      transition: color 0.3s;
+    }
+    .nav-links a:hover { color: #fbbf24; }
+    .nav-cta {
+      background: linear-gradient(135deg, #fbbf24, #d97706);
+      color: #1a1408;
+      border: 2px solid #fde68a;
+      padding: 0.55rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 0.85rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      transition: transform 0.3s, box-shadow 0.3s;
+      font-family: inherit;
+    }
+    .nav-cta:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(251, 191, 36, 0.4);
+    }
+
+    /* Hero */
+    .hero {
+      padding: 6rem 4rem 4rem;
+      text-align: center;
+      position: relative;
+    }
+    .hero-badge {
+      display: inline-block;
+      padding: 0.4rem 1rem;
+      background: rgba(251, 191, 36, 0.1);
+      border: 1px solid rgba(251, 191, 36, 0.4);
+      border-radius: 20px;
+      font-size: 0.75rem;
+      letter-spacing: 0.25em;
+      color: #fbbf24;
+      margin-bottom: 1.5rem;
+    }
+    .hero h2 {
+      font-size: 4.5rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      margin-bottom: 1.5rem;
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
+      color: #fff5d6;
+    }
+    .hero h2 .gradient {
+      background: linear-gradient(90deg, #fbbf24, #fde68a, #fbbf24);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: 1.15rem;
+      opacity: 0.75;
+      color: #e8dcc0;
+      max-width: 600px;
+      margin: 0 auto 2.5rem;
+      line-height: 1.6;
+    }
+    .hero-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn-primary, .btn-secondary {
+      padding: 1rem 2rem;
+      border-radius: 30px;
+      font-size: 0.9rem;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-family: inherit;
+      font-weight: 600;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #fbbf24, #d97706);
+      color: #1a1408;
+      border: 2px solid #fde68a;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(251, 191, 36, 0.5);
+    }
+    .btn-secondary {
+      background: rgba(40, 30, 15, 0.6);
+      color: #fff5d6;
+      border: 2px solid #8b6f47;
+    }
+    .btn-secondary:hover {
+      background: rgba(60, 45, 25, 0.85);
+      border-color: #fbbf24;
+    }
+
+    /* Features */
+    .features {
+      padding: 4rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .feature-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 2rem;
+      backdrop-filter: blur(10px);
+      transition: all 0.4s;
+    }
+    .feature-card:hover {
+      transform: translateY(-8px);
+      border-color: rgba(125, 211, 252, 0.4);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+    .feature-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #7dd3fc, #c084fc);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 1.2rem;
+    }
+    .feature-card h3 {
+      font-size: 1.3rem;
+      margin-bottom: 0.6rem;
+    }
+    .feature-card p {
+      opacity: 0.7;
+      line-height: 1.6;
+      font-size: 0.95rem;
+    }
+
+    /* Destinations */
+    .destinations {
+      padding: 4rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .section-title {
+      text-align: center;
+      font-size: 2.5rem;
+      margin-bottom: 3rem;
+      letter-spacing: -0.01em;
+    }
+    .dest-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+    .dest-card {
+      position: relative;
+      height: 320px;
+      border-radius: 16px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.4s;
+    }
+    .dest-card:hover {
+      transform: scale(1.03);
+    }
+    .dest-card .bg {
+      position: absolute;
+      inset: 0;
+      transition: transform 0.6s;
+    }
+    .dest-card:hover .bg {
+      transform: scale(1.1);
+    }
+    .dest-card .overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(10, 14, 39, 0.95) 0%, transparent 60%);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 1.5rem;
+    }
+    .dest-card h4 {
+      font-size: 1.4rem;
+      margin-bottom: 0.3rem;
+    }
+    .dest-card .location {
+      font-size: 0.85rem;
+      opacity: 0.7;
+      letter-spacing: 0.1em;
+    }
+    .bg-1 { background: linear-gradient(135deg, #f59e0b, #ef4444); }
+    .bg-2 { background: linear-gradient(135deg, #10b981, #059669); }
+    .bg-3 { background: linear-gradient(135deg, #3b82f6, #1e40af); }
+    .bg-4 { background: linear-gradient(135deg, #8b5cf6, #6366f1); }
+
+    /* Footer */
+    footer {
+      padding: 3rem 4rem;
+      text-align: center;
+      opacity: 0.5;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      margin-top: 4rem;
+      font-size: 0.85rem;
+      letter-spacing: 0.1em;
+    }
+
+    @media (max-width: 768px) {
+      .navbar { padding: 1rem 1.5rem; }
+      .nav-links { display: none; }
+      .hero { padding: 4rem 1.5rem; }
+      .hero h2 { font-size: 2.8rem; }
+      .features, .destinations { padding: 2rem 1.5rem; }
+    }
+
+    /* Map selection screen */
+    .map-select {
+      position: fixed;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      animation: fadeIn 0.6s ease-out;
+      transition: background 0.8s ease;
+    }
+    .map-select.theme-plains    { background: radial-gradient(ellipse at center, #4a7c3f 0%, #1a3a1a 100%); }
+    .map-select.theme-forest    { background: radial-gradient(ellipse at center, #1f4d2b 0%, #0a1f10 100%); }
+    .map-select.theme-desert    { background: radial-gradient(ellipse at center, #c97f3a 0%, #5c3a1a 100%); }
+    .map-select.theme-mountains { background: radial-gradient(ellipse at center, #6b7d99 0%, #1a2435 100%); }
+    .map-select.theme-ocean     { background: radial-gradient(ellipse at center, #2a6c8a 0%, #0a1f3a 100%); }
+
+    .map-select-header {
+      position: absolute;
+      top: 2rem;
+      left: 2rem;
+      right: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .back-btn {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      padding: 0.6rem 1.2rem;
+      border-radius: 30px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.85rem;
+      letter-spacing: 0.1em;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s;
+    }
+    .back-btn:hover { background: rgba(0, 0, 0, 0.5); }
+
+    .map-title-label {
+      font-family: "Cinzel", Georgia, serif;
+      font-size: 0.85rem;
+      letter-spacing: 0.45em;
+      color: #fbbf24;
+      text-transform: uppercase;
+      filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.4));
+    }
+
+    .map-carousel {
+      display: flex;
+      align-items: center;
+      gap: 3rem;
+      margin-bottom: 3rem;
+    }
+
+    .arrow-btn {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.3);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s;
+      font-family: inherit;
+    }
+    .arrow-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: white;
+      transform: scale(1.1);
+    }
+    .arrow-btn:active { transform: scale(0.95); }
+    .arrow-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      transform: scale(1);
+    }
+
+    .map-card {
+      width: 480px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(60, 45, 25, 0.95), rgba(30, 20, 8, 0.97));
+      backdrop-filter: blur(15px);
+      border: 2px solid #8b6f47;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(251, 191, 36, 0.25);
+      transition: transform 0.4s;
+    }
+    /* Decorative corners */
+    .map-card::before, .map-card::after {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border: 2px solid #fbbf24;
+      pointer-events: none;
+    }
+    .map-card::before {
+      top: 6px;
+      left: 6px;
+      border-right: none;
+      border-bottom: none;
+    }
+    .map-card::after {
+      bottom: 6px;
+      right: 6px;
+      border-left: none;
+      border-top: none;
+    }
+
+    .map-preview {
+      width: 100%;
+      height: 260px;
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+      border: 3px solid #5a4530;
+      box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.4), 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+    .map-preview svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Decorative compass on map */
+    .compass {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      width: 36px;
+      height: 36px;
+      background: rgba(20, 12, 5, 0.7);
+      border: 2px solid #fbbf24;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #fbbf24;
+      font-family: Georgia, serif;
+      backdrop-filter: blur(5px);
+      z-index: 2;
+    }
+    .compass::before {
+      content: 'N';
+      position: absolute;
+      top: 2px;
+    }
+
+    /* Map tier label overlay */
+    .map-coords {
+      position: absolute;
+      bottom: 8px;
+      left: 10px;
+      font-size: 0.65rem;
+      letter-spacing: 0.25em;
+      color: #fbbf24;
+      background: rgba(20, 12, 5, 0.8);
+      border: 1px solid rgba(251, 191, 36, 0.4);
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      font-family: "Cinzel", Georgia, serif;
+      font-weight: 700;
+      z-index: 2;
+    }
+
+    .map-name {
+      font-family: "Cinzel", Georgia, serif;
+      font-size: 2.8rem;
+      font-weight: 900;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-top: 1rem;
+      background: linear-gradient(180deg, #fff5d6 0%, #fbbf24 50%, #d97706 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.6));
+    }
+
+    .map-difficulty {
+      display: flex;
+      gap: 0.3rem;
+      margin-top: 0.5rem;
+    }
+    .difficulty-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+    }
+    .difficulty-dot.active {
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      box-shadow: 0 0 8px #fbbf24;
+    }
+
+    .map-description {
+      font-family: Georgia, serif;
+      font-style: italic;
+      font-size: 0.95rem;
+      color: #e8dcc0;
+      text-align: center;
+      line-height: 1.5;
+      margin-top: 0.8rem;
+      padding: 0 1.5rem;
+    }
+
+    .locked-badge {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      padding: 0.4rem 0.8rem;
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 20px;
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #fbbf24;
+      border: 1px solid rgba(251, 191, 36, 0.4);
+    }
+
+    .map-indicators {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+    }
+    .indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      transition: all 0.3s;
+    }
+    .indicator.active {
+      background: white;
+      width: 24px;
+      border-radius: 4px;
+    }
+
+    .select-btn {
+      padding: 1.1rem 4rem;
+      font-size: 1.05rem;
+      font-weight: 800;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      background: linear-gradient(180deg, #fbbf24, #d97706);
+      color: #1a1408;
+      border: 2px solid #fde68a;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.3s;
+      box-shadow: 0 8px 24px rgba(251, 191, 36, 0.45);
+    }
+    .select-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 15px 40px rgba(251, 191, 36, 0.6);
+    }
+    .select-btn:active { transform: translateY(0); }
+    .select-btn:disabled {
+      background: rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.4);
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    /* Warrior select screen */
+    .warrior-select {
+      position: fixed;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      background:
+        radial-gradient(ellipse at center, #3a2a1a 0%, #1a1408 60%, #0a0604 100%);
+      z-index: 25;
+      animation: fadeIn 0.6s ease-out;
+      overflow-y: auto;
+      padding: 2rem;
+    }
+    .warrior-header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .warrior-header h2 {
+      font-size: 2rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #fff5d6, #fbbf24, #fff5d6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.3));
+    }
+    .warrior-header p {
+      opacity: 0.7;
+      margin-top: 0.5rem;
+      letter-spacing: 0.1em;
+    }
+    .warrior-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      max-width: 1100px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .warrior-card {
+      background: linear-gradient(180deg, rgba(45, 30, 15, 0.85), rgba(25, 18, 8, 0.85));
+      border: 2px solid #5a4530;
+      border-radius: 10px;
+      padding: 1rem;
+      backdrop-filter: blur(10px);
+      cursor: pointer;
+      transition: all 0.3s;
+      position: relative;
+      text-align: center;
+    }
+    .warrior-card.unlocked:hover {
+      transform: translateY(-6px);
+      border-color: #fbbf24;
+      box-shadow: 0 10px 30px rgba(251, 191, 36, 0.3);
+    }
+    .warrior-card.locked {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .warrior-card.selected {
+      border-color: #fbbf24;
+      background: rgba(251, 191, 36, 0.1);
+      box-shadow: 0 0 30px rgba(251, 191, 36, 0.4);
+    }
+    .warrior-avatar {
+      width: 100%;
+      height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .warrior-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 0.3rem;
+    }
+    .warrior-weapon {
+      font-size: 0.75rem;
+      opacity: 0.6;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 0.6rem;
+    }
+    .warrior-stats {
+      font-size: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    .stat-row {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .stat-label { opacity: 0.6; letter-spacing: 0.05em; }
+    .stat-dots { display: flex; gap: 2px; }
+    .stat-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+    }
+    .stat-dot.on { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
+    .warrior-desc {
+      font-size: 0.7rem;
+      opacity: 0.55;
+      line-height: 1.3;
+      min-height: 2.5em;
+    }
+    .lock-overlay {
+      position: absolute;
+      top: 0.5rem; right: 0.5rem;
+      font-size: 0.65rem;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 0.2rem 0.5rem;
+      border-radius: 8px;
+      color: #fbbf24;
+      letter-spacing: 0.1em;
+    }
+    .warrior-actions {
+      max-width: 600px;
+      margin: 1.5rem auto 0;
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .warrior-back, .warrior-go {
+      padding: 0.8rem 1.6rem;
+      border-radius: 30px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      letter-spacing: 0.15em;
+      cursor: pointer;
+      border: none;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .warrior-back {
+      background: rgba(40, 30, 15, 0.6);
+      border: 2px solid #8b6f47;
+      color: #fff5d6;
+    }
+    .warrior-back:hover { background: rgba(60, 45, 25, 0.85); border-color: #fbbf24; }
+    .warrior-go {
+      background: linear-gradient(135deg, #fbbf24, #d97706);
+      color: #1a1408;
+      border: 2px solid #fde68a;
+    }
+    .warrior-go:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(251, 191, 36, 0.4);
+    }
+    .warrior-go:disabled {
+      background: rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.4);
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* Loading overlay shown briefly when entering game */
+    .game-loading {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      background:
+        radial-gradient(ellipse at center, #2d4a1f 0%, #0e1a0a 70%, #050a05 100%);
+      z-index: 35;
+      animation: fadeIn 0.4s ease-out;
+    }
+    .game-loading h2 {
+      font-size: 3rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #fff5d6, #fbbf24, #fff5d6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.4));
+      margin-bottom: 0.5rem;
+    }
+    .game-loading .sub {
+      opacity: 0.7;
+      color: #e8dcc0;
+      letter-spacing: 0.3em;
+      margin-bottom: 2.5rem;
+      font-size: 0.9rem;
+    }
+    .controls-card {
+      background: linear-gradient(180deg, rgba(50, 35, 20, 0.92), rgba(30, 20, 10, 0.92));
+      border: 2px solid #8b6f47;
+      border-radius: 10px;
+      padding: 1.5rem 2rem;
+      backdrop-filter: blur(10px);
+      display: grid;
+      grid-template-columns: auto auto;
+      gap: 0.6rem 1.5rem;
+      font-size: 0.9rem;
+      color: #fff5d6;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(251, 191, 36, 0.2);
+    }
+    .ctrl-key {
+      font-family: ui-monospace, monospace;
+      background: linear-gradient(180deg, #4d3a20, #2d2010);
+      border: 1px solid #fbbf24;
+      color: #fbbf24;
+      border-radius: 6px;
+      padding: 0.2rem 0.6rem;
+      min-width: 60px;
+      text-align: center;
+      letter-spacing: 0.1em;
+      font-weight: 700;
+    }
+    .loading-progress {
+      width: 260px;
+      height: 6px;
+      background: rgba(40, 30, 15, 0.8);
+      border: 1px solid #5a4530;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 2rem;
+    }
+    .loading-progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #4d8a35, #fbbf24);
+      width: 0%;
+      animation: loadFill 1.6s ease-out forwards;
+      box-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
+    }
+    @keyframes loadFill { to { width: 100%; } }
+
+    /* Attack button */
+    .attack-btn {
+      position: absolute;
+      bottom: 5rem;
+      left: 2rem;
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: rgba(180, 30, 30, 0.9);
+      border: 3px solid #fbbf24;
+      color: #fff5d6;
+      font-size: 1.6rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      z-index: 6;
+      touch-action: none;
+      user-select: none;
+      box-shadow: 0 4px 15px rgba(200, 50, 50, 0.5);
+      transition: transform 0.1s;
+    }
+    .attack-btn:active, .attack-btn.pressed {
+      transform: scale(0.9);
+      background: rgba(220, 50, 50, 1);
+    }
+
+    /* Game screen */
+    .game-screen {
+      position: fixed;
+      inset: 0;
+      display: none;
+      background: #1a1410;
+      z-index: 30;
+      animation: fadeIn 0.8s ease-out;
+      overflow: hidden;
+    }
+    #gameCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+      outline: none;
+    }
+    .game-top-bar {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      right: 1rem;
+      display: flex;
+      gap: 0.5rem;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    /* Resource bar */
+    .resource-bar {
+      display: flex;
+      gap: 0.5rem;
+      background: rgba(50, 35, 20, 0.92);
+      border: 2px solid #8b6f47;
+      border-radius: 8px;
+      padding: 0.5rem 0.8rem;
+      pointer-events: none;
+      backdrop-filter: blur(8px);
+    }
+    .res-item {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      color: #fff5d6;
+      font-size: 0.9rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      padding: 0 0.4rem;
+    }
+    .res-item:not(:last-child) {
+      border-right: 1px solid rgba(255, 245, 214, 0.2);
+      padding-right: 0.8rem;
+    }
+    .res-icon { font-size: 1.1rem; }
+    .res-flash {
+      animation: resFlash 0.6s ease-out;
+    }
+    @keyframes resFlash {
+      0% { background: rgba(50, 35, 20, 0.92); }
+      30% { background: rgba(200, 50, 50, 0.85); }
+      100% { background: rgba(50, 35, 20, 0.92); }
+    }
+    .game-back, .game-explore {
+      pointer-events: auto;
+      background: rgba(50, 35, 20, 0.9);
+      border: 2px solid #8b6f47;
+      color: #fff5d6;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .game-back:hover, .game-explore:hover {
+      background: rgba(80, 55, 30, 0.95);
+      border-color: #fbbf24;
+    }
+    .game-explore {
+      background: rgba(180, 100, 30, 0.9);
+      border-color: #fbbf24;
+      color: #fff5d6;
+      font-weight: 700;
+    }
+    .game-explore:hover {
+      background: rgba(220, 140, 50, 0.95);
+    }
+
+    /* Explore overlay */
+    .explore-screen {
+      position: fixed;
+      inset: 0;
+      display: none;
+      z-index: 40;
+      background: #0a0e14;
+      animation: fadeIn 0.4s ease-out;
+      overflow: hidden;
+    }
+    #exploreCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+    }
+    #exploreCanvas:active { cursor: grabbing; }
+    .explore-top {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      right: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 5;
+      pointer-events: none;
+    }
+    .explore-close {
+      pointer-events: auto;
+      background: rgba(50, 35, 20, 0.9);
+      border: 2px solid #8b6f47;
+      color: #fff5d6;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+    }
+    .explore-close:hover { border-color: #fbbf24; }
+    .explore-title {
+      color: #fff5d6;
+      font-size: 1rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      background: rgba(50, 35, 20, 0.7);
+      padding: 0.5rem 1.5rem;
+      border-radius: 30px;
+      backdrop-filter: blur(10px);
+    }
+    .explore-hint {
+      position: absolute;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 0.8rem;
+      letter-spacing: 0.15em;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 0.5rem 1.2rem;
+      border-radius: 20px;
+      pointer-events: none;
+    }
+    .game-hint {
+      position: absolute;
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.6);
+      color: rgba(255, 255, 255, 0.7);
+      padding: 0.5rem 1.2rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      backdrop-filter: blur(5px);
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    /* Wave countdown bar — bottom of screen */
+    .wave-bar {
+      position: absolute;
+      bottom: 3rem;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(420px, 80%);
+      background: linear-gradient(180deg, rgba(50, 35, 20, 0.92), rgba(30, 20, 10, 0.92));
+      border: 2px solid #8b6f47;
+      border-radius: 10px;
+      padding: 0.5rem 0.8rem;
+      z-index: 5;
+      pointer-events: none;
+      backdrop-filter: blur(8px);
+      color: #fff5d6;
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+    }
+    .wave-bar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.3rem;
+    }
+    .wave-bar-label {
+      font-family: "Cinzel", Georgia, serif;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #fbbf24;
+    }
+    .wave-bar-status { opacity: 0.75; }
+    .wave-bar-track {
+      height: 6px;
+      background: rgba(20, 12, 5, 0.7);
+      border: 1px solid #5a4530;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .wave-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #4d8a35, #fbbf24);
+      width: 0%;
+      transition: width 0.2s linear;
+      box-shadow: 0 0 6px rgba(251, 191, 36, 0.6);
+    }
+    .wave-bar-fill.danger {
+      background: linear-gradient(90deg, #fbbf24, #e74c3c);
+      box-shadow: 0 0 8px rgba(231, 76, 60, 0.8);
+    }
+    .wave-bar-fill.active {
+      background: linear-gradient(90deg, #e74c3c, #7a1a10);
+      box-shadow: 0 0 10px rgba(231, 76, 60, 0.9);
+    }
+
+    /* Wave incoming alert */
+    .wave-alert {
+      position: absolute;
+      top: 30%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.8);
+      background: linear-gradient(180deg, rgba(122, 26, 16, 0.95), rgba(60, 10, 5, 0.95));
+      border: 3px solid #fbbf24;
+      border-radius: 14px;
+      padding: 1.5rem 3rem;
+      text-align: center;
+      pointer-events: none;
+      z-index: 8;
+      opacity: 0;
+      box-shadow: 0 0 40px rgba(231, 76, 60, 0.6);
+    }
+    .wave-alert.show {
+      animation: alertPop 2.2s ease-out;
+    }
+    .wave-alert h2 {
+      font-family: "Cinzel", Georgia, serif;
+      font-size: 2.4rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      background: linear-gradient(180deg, #fff5d6, #fbbf24, #e74c3c);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 12px rgba(231, 76, 60, 0.6));
+      margin-bottom: 0.3rem;
+    }
+    .wave-alert p {
+      color: #fff5d6;
+      letter-spacing: 0.25em;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+    }
+    @keyframes alertPop {
+      0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+      15%  { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+      25%  { transform: translate(-50%, -50%) scale(1); }
+      85%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    /* On-screen D-pad */
+    .dpad {
+      position: absolute;
+      bottom: 4rem;
+      right: 2rem;
+      display: grid;
+      grid-template-columns: 50px 50px 50px;
+      grid-template-rows: 50px 50px 50px;
+      gap: 4px;
+      z-index: 6;
+      user-select: none;
+    }
+    .dpad-btn {
+      background: rgba(50, 35, 20, 0.85);
+      border: 2px solid #8b6f47;
+      color: #fff5d6;
+      font-size: 1.4rem;
+      cursor: pointer;
+      border-radius: 8px;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(8px);
+      touch-action: none;
+      transition: background 0.1s;
+    }
+    .dpad-btn:active, .dpad-btn.pressed {
+      background: rgba(200, 150, 80, 0.9);
+      transform: scale(0.95);
+    }
+    .dpad-up    { grid-column: 2; grid-row: 1; }
+    .dpad-left  { grid-column: 1; grid-row: 2; }
+    .dpad-right { grid-column: 3; grid-row: 2; }
+    .dpad-down  { grid-column: 2; grid-row: 3; }
+  </style>
+</head>
+<body>
+  <div class="stars" id="stars"></div>
+
+  <div class="content">
+    <h1>The Explorers</h1>
+    <p class="subtitle">Claim · Explore · Defend</p>
+
+    <div class="progress-container">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <p class="loading-text" id="loadingText">Initializing...</p>
+
+    <button class="skip-btn" id="skipBtn">Skip →</button>
+  </div>
+
+  <div class="home-screen" id="homeScreen">
+    <!-- Decorative compass top-right -->
+    <div class="home-compass">
+      <svg viewBox="0 0 80 80" width="80" height="80">
+        <circle cx="40" cy="40" r="36" fill="rgba(40, 25, 10, 0.6)" stroke="#8b6f47" stroke-width="2"/>
+        <circle cx="40" cy="40" r="30" fill="none" stroke="rgba(251, 191, 36, 0.3)" stroke-width="1"/>
+        <polygon points="40,10 44,40 40,42 36,40" fill="#e74c3c"/>
+        <polygon points="40,70 44,40 40,38 36,40" fill="#fff5d6"/>
+        <text x="40" y="20" text-anchor="middle" fill="#fbbf24" font-size="8" font-weight="bold" font-family="serif">N</text>
+        <text x="40" y="76" text-anchor="middle" fill="#fbbf24" font-size="8" font-weight="bold" font-family="serif">S</text>
+        <text x="6" y="44" fill="#fbbf24" font-size="8" font-weight="bold" font-family="serif">W</text>
+        <text x="68" y="44" fill="#fbbf24" font-size="8" font-weight="bold" font-family="serif">E</text>
+        <circle cx="40" cy="40" r="3" fill="#fbbf24"/>
+      </svg>
+    </div>
+
+    <!-- Decorative torn-map corner top-left -->
+    <div class="home-map-corner">
+      <svg viewBox="0 0 120 120" width="100" height="100">
+        <path d="M0,0 L100,0 L120,40 L80,60 L100,90 L60,100 L40,120 L0,80 Z" fill="rgba(180, 145, 90, 0.08)" stroke="rgba(180, 145, 90, 0.3)" stroke-width="1" stroke-dasharray="3,3"/>
+        <circle cx="60" cy="50" r="3" fill="#e74c3c"/>
+        <text x="68" y="54" fill="rgba(255, 245, 214, 0.5)" font-size="9" font-family="serif">PLAINS</text>
+        <path d="M30,30 Q50,40 65,45" stroke="rgba(180, 145, 90, 0.5)" stroke-width="1" fill="none" stroke-dasharray="2,3"/>
+      </svg>
+    </div>
+
+    <div class="home-content">
+      <div class="home-title-block">
+        <div class="title-icon">⚔</div>
+        <h1 class="home-title-text">The Explorers</h1>
+        <div class="title-divider">
+          <span class="divider-line"></span>
+          <span class="divider-mark">✦</span>
+          <span class="divider-line"></span>
+        </div>
+        <p class="home-subtitle">An Open-Map Adventure</p>
+      </div>
+
+      <div class="home-menu">
+        <button class="menu-btn menu-primary" id="playBtn">▶ Begin Adventure</button>
+        <button class="menu-btn" id="howToPlayBtn">How to Play</button>
+        <button class="menu-btn" id="creditsBtn">Credits</button>
+      </div>
+
+      <p class="home-tagline">Claim your land · Forge your path · Defend your home</p>
+    </div>
+  </div>
+
+  <!-- Credits modal -->
+  <div class="credits-modal" id="creditsModal">
+    <div class="credits-card">
+      <h3>S&amp;R Studio</h3>
+      <div class="credits-tabs">
+        <button class="credits-tab active" data-tab="credits">Credits</button>
+        <button class="credits-tab" data-tab="more">More</button>
+        <button class="credits-tab" data-tab="community">Community</button>
+      </div>
+
+      <div class="credits-panel active" data-panel="credits">
+        <div class="credits-list">
+          <div>
+            <div class="credits-role">Created by</div>
+            <div class="credits-name">Simon Joosten</div>
+          </div>
+          <div class="credits-divider"></div>
+          <div>
+            <div class="credits-role">Created by</div>
+            <div class="credits-name">Romijn Lijnders</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="credits-panel" data-panel="more">
+        <div class="studio-tag">More from S&amp;R Studio</div>
+        <a class="game-link-card" href="https://simonjoosten.github.io/war-chess/" target="_blank" rel="noopener noreferrer">
+          <div class="game-link-icon">♟️</div>
+          <div class="game-link-info">
+            <div class="game-link-title">War Chess</div>
+            <div class="game-link-sub">Strategy · S&amp;R Studio</div>
+          </div>
+          <div class="game-link-arrow">→</div>
+        </a>
+      </div>
+
+      <div class="credits-panel" data-panel="community">
+        <div class="studio-tag">S&amp;R Group</div>
+        <a class="game-link-card" href="https://discord.gg/sGCV3F2T" target="_blank" rel="noopener noreferrer">
+          <div class="game-link-icon">💬</div>
+          <div class="game-link-info">
+            <div class="game-link-title">Join our Discord</div>
+            <div class="game-link-sub">Chat, updates, and more</div>
+          </div>
+          <div class="game-link-arrow">→</div>
+        </a>
+      </div>
+
+      <button class="credits-close" id="creditsCloseBtn" style="margin-top: 1rem;">Close</button>
+    </div>
+  </div>
+
+  <!-- Map selection screen -->
+  <div class="map-select theme-plains" id="mapSelect">
+    <div class="map-select-header">
+      <button class="back-btn" id="backToHomeBtn">← Back</button>
+      <span class="map-title-label">Choose Your Map</span>
+      <span style="width: 80px;"></span>
+    </div>
+
+    <div class="map-carousel">
+      <button class="arrow-btn" id="prevMapBtn">‹</button>
+
+      <div class="map-card" id="mapCard">
+        <span class="locked-badge" id="lockedBadge" style="display: none;">🔒 Locked</span>
+        <div class="map-preview" id="mapPreview">
+          <div class="compass"></div>
+          <div class="map-coords" id="mapCoords">LAT 52.3° · LON 4.9°</div>
+        </div>
+        <h2 class="map-name" id="mapName">Plains</h2>
+        <div class="map-difficulty" id="mapDifficulty"></div>
+        <p class="map-description" id="mapDescription">Rolling green hills under endless skies. The perfect place to begin your journey.</p>
+      </div>
+
+      <button class="arrow-btn" id="nextMapBtn">›</button>
+    </div>
+
+    <div class="map-indicators" id="mapIndicators"></div>
+
+    <button class="select-btn" id="selectBtn">Select</button>
+  </div>
+
+  <!-- Warrior select screen -->
+  <div class="warrior-select" id="warriorSelect">
+    <div class="warrior-header">
+      <h2>Choose Your Warrior</h2>
+      <p>2 warriors unlocked · 8 more await</p>
+    </div>
+    <div class="warrior-grid" id="warriorGrid"></div>
+    <div class="warrior-actions">
+      <button class="warrior-back" id="warriorBackBtn">← Back</button>
+      <button class="warrior-go" id="warriorGoBtn" disabled>Enter Plains →</button>
+    </div>
+  </div>
+
+  <!-- Game loading screen -->
+  <div class="game-loading" id="gameLoading">
+    <h2 id="loadingMapName">Plains</h2>
+    <p class="sub">Setting up your land...</p>
+    <div class="controls-card">
+      <span class="ctrl-key">↑ ← ↓ →</span><span>Move your hero</span>
+      <span class="ctrl-key">W A S D</span><span>Move (alternative)</span>
+      <span class="ctrl-key">X</span><span>Swing your weapon</span>
+      <span class="ctrl-key">Tap 🗺️</span><span>Claim more land</span>
+    </div>
+    <div class="loading-progress"><div class="loading-progress-bar"></div></div>
+  </div>
+
+  <!-- Game screen -->
+  <div class="game-screen" id="gameScreen">
+    <canvas id="gameCanvas" tabindex="0"></canvas>
+    <div class="game-top-bar">
+      <button class="game-explore" id="exploreBtn">🗺️ Explore</button>
+      <div class="resource-bar" id="gameResBar">
+        <div class="res-item"><span class="res-icon" style="color:#fbbf24;text-shadow:0 0 8px rgba(251,191,36,0.7)">⚡</span><span id="resPower">0</span></div>
+        <div class="res-item"><span class="res-icon">🪵</span><span id="resWood">0</span></div>
+        <div class="res-item"><span class="res-icon">🪨</span><span id="resStone">0</span></div>
+        <div class="res-item">
+          <svg width="14" height="14" viewBox="0 0 14 14" style="filter:drop-shadow(0 0 4px rgba(46,213,115,0.7))">
+            <polygon points="7,1 12,5 11,12 3,12 2,5" fill="#2ed573" stroke="#0a6a3a" stroke-width="0.5"/>
+            <polygon points="7,1 12,5 7,5" fill="#7bed9f"/>
+          </svg>
+          <span id="resGemGreen">0</span>
+        </div>
+        <div class="res-item">
+          <svg width="14" height="14" viewBox="0 0 14 14" style="filter:drop-shadow(0 0 4px rgba(231,76,60,0.7))">
+            <polygon points="7,1 12,5 11,12 3,12 2,5" fill="#e74c3c" stroke="#7a1a10" stroke-width="0.5"/>
+            <polygon points="7,1 12,5 7,5" fill="#ff7675"/>
+          </svg>
+          <span id="resGemRed">0</span>
+        </div>
+        <div class="res-item">
+          <svg width="14" height="14" viewBox="0 0 14 14" style="filter:drop-shadow(0 0 4px rgba(52,152,219,0.7))">
+            <polygon points="7,1 12,5 11,12 3,12 2,5" fill="#3498db" stroke="#0e3a6a" stroke-width="0.5"/>
+            <polygon points="7,1 12,5 7,5" fill="#a0d0ff"/>
+          </svg>
+          <span id="resGemBlue">0</span>
+        </div>
+      </div>
+    </div>
+    <div class="wave-bar" id="waveBar">
+      <div class="wave-bar-header">
+        <span class="wave-bar-label" id="waveBarLabel">Next Wave</span>
+        <span class="wave-bar-status" id="waveBarStatus">2:00</span>
+      </div>
+      <div class="wave-bar-track"><div class="wave-bar-fill" id="waveBarFill"></div></div>
+    </div>
+    <div class="wave-alert" id="waveAlert">
+      <h2 id="waveAlertTitle">Wave 1</h2>
+      <p id="waveAlertSub">Incoming!</p>
+    </div>
+    <div class="game-hint" id="gameHint">Arrows/WASD move · X attacks</div>
+    <div class="dpad">
+      <button class="dpad-btn dpad-up"    data-key="ArrowUp">↑</button>
+      <button class="dpad-btn dpad-left"  data-key="ArrowLeft">←</button>
+      <button class="dpad-btn dpad-right" data-key="ArrowRight">→</button>
+      <button class="dpad-btn dpad-down"  data-key="ArrowDown">↓</button>
+    </div>
+    <button class="attack-btn" id="attackBtn">⚔</button>
+  </div>
+
+  <!-- Explore overlay -->
+  <div class="explore-screen" id="exploreScreen">
+    <canvas id="exploreCanvas"></canvas>
+    <div class="explore-top">
+      <button class="explore-close" id="exploreCloseBtn">← Back to map</button>
+      <span class="explore-title">World Overview</span>
+      <div class="resource-bar" id="exploreResBar">
+        <div class="res-item"><span class="res-icon" style="color:#fbbf24;text-shadow:0 0 8px rgba(251,191,36,0.7)">⚡</span><span id="resPowerEx">0</span></div>
+        <div class="res-item"><span class="res-icon">🪵</span><span id="resWoodEx">0</span></div>
+        <div class="res-item"><span class="res-icon">🪨</span><span id="resStoneEx">0</span></div>
+        <div class="res-item">
+          <svg width="14" height="14" viewBox="0 0 14 14" style="filter:drop-shadow(0 0 4px rgba(46,213,115,0.7))">
+            <polygon points="7,1 12,5 11,12 3,12 2,5" fill="#2ed573" stroke="#0a6a3a" stroke-width="0.5"/>
+            <polygon points="7,1 12,5 7,5" fill="#7bed9f"/>
+          </svg>
+          <span id="resGemGreenEx">0</span>
+        </div>
+        <div class="res-item">
+          <svg width="14" height="14" viewBox="0 0 14 14" style="filter:drop-shadow(0 0 4px rgba(231,76,60,0.7))">
+            <polygon points="7,1 12,5 11,12 3,12 2,5" fill="#e74c3c" stroke="#7a1a10" stroke-width="0.5"/>
+            <polygon points="7,1 12,5 7,5" fill="#ff7675"/>
+          </svg>
+          <span id="resGemRedEx">0</span>
+        </div>
+        <div class="res-item">
+          <svg width="14" height="14" viewBox="0 0 14 14" style="filter:drop-shadow(0 0 4px rgba(52,152,219,0.7))">
+            <polygon points="7,1 12,5 11,12 3,12 2,5" fill="#3498db" stroke="#0e3a6a" stroke-width="0.5"/>
+            <polygon points="7,1 12,5 7,5" fill="#a0d0ff"/>
+          </svg>
+          <span id="resGemBlueEx">0</span>
+        </div>
+      </div>
+    </div>
+    <div class="explore-hint" id="exploreHint">Drag to scroll · Click an adjacent section to buy</div>
+  </div>
+
+  <script>
+    // Create stars
+    const starsContainer = document.getElementById('stars');
+    for (let i = 0; i < 80; i++) {
+      const star = document.createElement('div');
+      star.className = 'star';
+      const size = Math.random() * 3 + 1;
+      star.style.width = size + 'px';
+      star.style.height = size + 'px';
+      star.style.left = Math.random() * 100 + '%';
+      star.style.top = Math.random() * 100 + '%';
+      star.style.animationDelay = Math.random() * 3 + 's';
+      starsContainer.appendChild(star);
+    }
+
+    // Shooting stars
+    for (let i = 0; i < 3; i++) {
+      const shooting = document.createElement('div');
+      shooting.className = 'shooting-star';
+      shooting.style.left = Math.random() * 80 + '%';
+      shooting.style.top = Math.random() * 50 + '%';
+      shooting.style.animationDelay = (i * 2.5) + 's';
+      starsContainer.appendChild(shooting);
+    }
+
+    // Progress bar + loading messages
+    const progressBar = document.getElementById('progressBar');
+    const loadingText = document.getElementById('loadingText');
+    const messages = [
+      'Awakening the realm...',
+      'Unfurling the map...',
+      'Forging the paths...',
+      'Sharpening the blades...',
+      'Almost ready...'
+    ];
+
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 1;
+      progressBar.style.width = progress + '%';
+      const msgIndex = Math.min(Math.floor(progress / 20), messages.length - 1);
+      loadingText.textContent = messages[msgIndex];
+
+      if (progress >= 100) {
+        clearInterval(interval);
+        setTimeout(showMainScreen, 500);
+      }
+    }, 100);
+
+    // Skip button
+    document.getElementById('skipBtn').addEventListener('click', () => {
+      clearInterval(interval);
+      showMainScreen();
+    });
+
+    function showMainScreen() {
+      document.getElementById('homeScreen').style.display = 'flex';
+    }
+
+    // ===== MAP SELECTION =====
+    const mapSVGs = {
+      plains: `
+        <svg viewBox="0 0 400 280" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <linearGradient id="plainsSky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#7fb3e0"/>
+              <stop offset="100%" stop-color="#a8d4a8"/>
+            </linearGradient>
+            <pattern id="grass" width="20" height="20" patternUnits="userSpaceOnUse">
+              <rect width="20" height="20" fill="#8bc26a"/>
+              <circle cx="5" cy="5" r="0.8" fill="#6ea84a" opacity="0.5"/>
+              <circle cx="15" cy="12" r="0.8" fill="#6ea84a" opacity="0.5"/>
+              <circle cx="10" cy="18" r="0.8" fill="#6ea84a" opacity="0.5"/>
+            </pattern>
+          </defs>
+          <rect width="400" height="280" fill="url(#plainsSky)"/>
+          <path d="M0,180 Q100,150 200,170 T400,160 L400,280 L0,280 Z" fill="url(#grass)"/>
+          <path d="M0,200 Q120,175 240,195 T400,185 L400,280 L0,280 Z" fill="#7ab85a" opacity="0.8"/>
+          <!-- Winding path -->
+          <path d="M50,280 Q120,230 180,210 T350,180" stroke="#d4a574" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.8"/>
+          <path d="M50,280 Q120,230 180,210 T350,180" stroke="#b8895a" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="2,8"/>
+          <!-- Small lake -->
+          <ellipse cx="280" cy="220" rx="35" ry="12" fill="#5dade2" opacity="0.85"/>
+          <ellipse cx="280" cy="218" rx="30" ry="8" fill="#7fc3e8" opacity="0.6"/>
+          <!-- Trees -->
+          <g transform="translate(80,200)"><circle cx="0" cy="-8" r="10" fill="#3d6e2a"/><rect x="-1.5" y="-2" width="3" height="8" fill="#6b4423"/></g>
+          <g transform="translate(140,225)"><circle cx="0" cy="-8" r="9" fill="#4a7d35"/><rect x="-1.5" y="-2" width="3" height="8" fill="#6b4423"/></g>
+          <g transform="translate(340,210)"><circle cx="0" cy="-10" r="12" fill="#3d6e2a"/><rect x="-1.5" y="0" width="3" height="10" fill="#6b4423"/></g>
+          <!-- Flowers -->
+          <circle cx="100" cy="245" r="2" fill="#ffd93d"/>
+          <circle cx="170" cy="255" r="2" fill="#ff6b9d"/>
+          <circle cx="220" cy="240" r="2" fill="#ffd93d"/>
+          <circle cx="60" cy="260" r="2" fill="#ff6b9d"/>
+          <!-- Sun -->
+          <circle cx="340" cy="50" r="22" fill="#ffd93d" opacity="0.9"/>
+          <circle cx="340" cy="50" r="28" fill="#ffd93d" opacity="0.3"/>
+          <!-- Start marker -->
+          <g transform="translate(50,278)">
+            <circle r="6" fill="#e74c3c" stroke="white" stroke-width="2"/>
+            <text y="-12" text-anchor="middle" fill="white" font-size="9" font-weight="bold" font-family="sans-serif">START</text>
+          </g>
+          <!-- Clouds -->
+          <ellipse cx="80" cy="40" rx="22" ry="8" fill="white" opacity="0.8"/>
+          <ellipse cx="220" cy="55" rx="28" ry="9" fill="white" opacity="0.7"/>
+        </svg>
+      `,
+      forest: `
+        <svg viewBox="0 0 400 280" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <pattern id="forestGround" width="30" height="30" patternUnits="userSpaceOnUse">
+              <rect width="30" height="30" fill="#2d4a2d"/>
+              <circle cx="5" cy="5" r="1" fill="#1f3a1f"/>
+              <circle cx="20" cy="15" r="1" fill="#1f3a1f"/>
+            </pattern>
+          </defs>
+          <rect width="400" height="280" fill="url(#forestGround)"/>
+          <!-- River -->
+          <path d="M0,140 Q100,120 200,150 T400,130 L400,170 Q300,180 200,165 T0,180 Z" fill="#3a7ca5" opacity="0.85"/>
+          <path d="M0,150 Q100,135 200,158 T400,145" stroke="#6ab0d8" stroke-width="2" fill="none" opacity="0.6"/>
+          <!-- Many trees -->
+          <g><polygon points="0,0 -12,20 12,20" fill="#1a4d1f" transform="translate(40,80)"/><rect x="-2" y="20" width="4" height="8" fill="#3d2818" transform="translate(40,80)"/></g>
+          <g><polygon points="0,0 -15,25 15,25" fill="#0f3d14" transform="translate(80,60)"/><rect x="-2" y="25" width="4" height="10" fill="#3d2818" transform="translate(80,60)"/></g>
+          <g><polygon points="0,0 -13,22 13,22" fill="#1a4d1f" transform="translate(130,75)"/><rect x="-2" y="22" width="4" height="9" fill="#3d2818" transform="translate(130,75)"/></g>
+          <g><polygon points="0,0 -14,24 14,24" fill="#236028" transform="translate(180,55)"/><rect x="-2" y="24" width="4" height="10" fill="#3d2818" transform="translate(180,55)"/></g>
+          <g><polygon points="0,0 -12,20 12,20" fill="#1a4d1f" transform="translate(230,70)"/><rect x="-2" y="20" width="4" height="8" fill="#3d2818" transform="translate(230,70)"/></g>
+          <g><polygon points="0,0 -15,25 15,25" fill="#0f3d14" transform="translate(280,50)"/><rect x="-2" y="25" width="4" height="10" fill="#3d2818" transform="translate(280,50)"/></g>
+          <g><polygon points="0,0 -13,22 13,22" fill="#236028" transform="translate(340,75)"/><rect x="-2" y="22" width="4" height="9" fill="#3d2818" transform="translate(340,75)"/></g>
+          <!-- Lower trees -->
+          <g><polygon points="0,0 -14,24 14,24" fill="#1a4d1f" transform="translate(50,210)"/><rect x="-2" y="24" width="4" height="10" fill="#3d2818" transform="translate(50,210)"/></g>
+          <g><polygon points="0,0 -16,28 16,28" fill="#0f3d14" transform="translate(110,220)"/><rect x="-2" y="28" width="4" height="12" fill="#3d2818" transform="translate(110,220)"/></g>
+          <g><polygon points="0,0 -14,24 14,24" fill="#236028" transform="translate(260,215)"/><rect x="-2" y="24" width="4" height="10" fill="#3d2818" transform="translate(260,215)"/></g>
+          <g><polygon points="0,0 -15,26 15,26" fill="#1a4d1f" transform="translate(330,230)"/><rect x="-2" y="26" width="4" height="11" fill="#3d2818" transform="translate(330,230)"/></g>
+          <!-- Path through forest -->
+          <path d="M200,280 Q210,240 220,200 Q225,180 215,160" stroke="#8b6f47" stroke-width="4" fill="none" stroke-dasharray="3,5" opacity="0.6"/>
+        </svg>
+      `,
+      desert: `
+        <svg viewBox="0 0 400 280" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <linearGradient id="desertSky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#ffb347"/>
+              <stop offset="100%" stop-color="#ffd89e"/>
+            </linearGradient>
+          </defs>
+          <rect width="400" height="280" fill="url(#desertSky)"/>
+          <!-- Sun -->
+          <circle cx="320" cy="60" r="30" fill="#ff8c42" opacity="0.95"/>
+          <circle cx="320" cy="60" r="40" fill="#ffb347" opacity="0.4"/>
+          <!-- Dunes -->
+          <path d="M0,150 Q80,120 160,140 T320,130 T400,140 L400,280 L0,280 Z" fill="#e8a55c"/>
+          <path d="M0,180 Q100,160 200,180 T400,170 L400,280 L0,280 Z" fill="#d49043"/>
+          <path d="M0,220 Q120,200 240,220 T400,210 L400,280 L0,280 Z" fill="#b87333"/>
+          <!-- Dune highlights -->
+          <path d="M0,150 Q80,120 160,140" stroke="#f5c285" stroke-width="2" fill="none" opacity="0.6"/>
+          <path d="M160,140 Q240,130 320,130" stroke="#f5c285" stroke-width="2" fill="none" opacity="0.6"/>
+          <!-- Oasis -->
+          <ellipse cx="120" cy="225" rx="28" ry="8" fill="#3a7ca5" opacity="0.9"/>
+          <ellipse cx="120" cy="223" rx="22" ry="5" fill="#5dade2"/>
+          <!-- Palm trees -->
+          <g transform="translate(95,220)">
+            <rect x="-2" y="-25" width="4" height="25" fill="#6b4423"/>
+            <path d="M0,-25 Q-15,-30 -18,-22" stroke="#3d6e2a" stroke-width="3" fill="none"/>
+            <path d="M0,-25 Q15,-30 18,-22" stroke="#3d6e2a" stroke-width="3" fill="none"/>
+            <path d="M0,-25 Q-8,-38 -10,-32" stroke="#3d6e2a" stroke-width="3" fill="none"/>
+            <path d="M0,-25 Q8,-38 10,-32" stroke="#3d6e2a" stroke-width="3" fill="none"/>
+          </g>
+          <g transform="translate(145,220)">
+            <rect x="-2" y="-22" width="4" height="22" fill="#6b4423"/>
+            <path d="M0,-22 Q-12,-27 -15,-19" stroke="#3d6e2a" stroke-width="3" fill="none"/>
+            <path d="M0,-22 Q12,-27 15,-19" stroke="#3d6e2a" stroke-width="3" fill="none"/>
+            <path d="M0,-22 Q-6,-32 -8,-27" stroke="#3d6e2a" stroke-width="3" fill="none"/>
+          </g>
+          <!-- Cacti -->
+          <g transform="translate(250,225)">
+            <rect x="-3" y="-20" width="6" height="20" rx="3" fill="#5d8a3a"/>
+            <rect x="-8" y="-15" width="5" height="8" rx="2" fill="#5d8a3a"/>
+            <rect x="3" y="-12" width="5" height="6" rx="2" fill="#5d8a3a"/>
+          </g>
+          <!-- Pyramid -->
+          <polygon points="340,180 370,240 310,240" fill="#c9923f"/>
+          <polygon points="340,180 370,240 340,240" fill="#a87a30" opacity="0.6"/>
+          <!-- Tracks in sand -->
+          <path d="M50,265 Q150,250 250,255 T380,245" stroke="#8b6f47" stroke-width="2" fill="none" stroke-dasharray="4,6" opacity="0.5"/>
+        </svg>
+      `,
+      mountains: `
+        <svg viewBox="0 0 400 280" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <linearGradient id="mtnSky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#6b89b5"/>
+              <stop offset="100%" stop-color="#a8b8ce"/>
+            </linearGradient>
+          </defs>
+          <rect width="400" height="280" fill="url(#mtnSky)"/>
+          <!-- Clouds -->
+          <ellipse cx="70" cy="40" rx="30" ry="10" fill="white" opacity="0.8"/>
+          <ellipse cx="200" cy="30" rx="35" ry="11" fill="white" opacity="0.7"/>
+          <ellipse cx="330" cy="50" rx="28" ry="9" fill="white" opacity="0.8"/>
+          <!-- Back mountains -->
+          <polygon points="0,180 80,80 160,180" fill="#5d6e8a"/>
+          <polygon points="100,180 200,60 300,180" fill="#4a5d7a"/>
+          <polygon points="220,180 320,90 400,180" fill="#5d6e8a"/>
+          <!-- Snow caps back -->
+          <polygon points="60,110 80,80 100,110 90,115 70,115" fill="white"/>
+          <polygon points="180,90 200,60 220,90 210,100 190,100" fill="white"/>
+          <polygon points="300,120 320,90 340,120 330,128 310,128" fill="white"/>
+          <!-- Front mountains -->
+          <polygon points="0,280 50,160 130,280" fill="#3a4a66"/>
+          <polygon points="80,280 170,130 260,280" fill="#2d3b54"/>
+          <polygon points="220,280 310,150 400,280" fill="#3a4a66"/>
+          <!-- Snow caps front -->
+          <polygon points="35,180 50,160 65,180 60,185 40,185" fill="white"/>
+          <polygon points="155,155 170,130 185,155 180,162 160,162" fill="white"/>
+          <polygon points="295,175 310,150 325,175 320,182 300,182" fill="white"/>
+          <!-- Ground at bottom -->
+          <rect y="260" width="400" height="20" fill="#1f2a3d"/>
+          <!-- Trail -->
+          <path d="M80,275 Q150,245 200,230 T320,210" stroke="#a8895c" stroke-width="3" fill="none" stroke-dasharray="3,5"/>
+          <!-- Flag at peak -->
+          <g transform="translate(170,130)">
+            <rect x="0" y="-12" width="1.5" height="12" fill="white"/>
+            <polygon points="1.5,-12 10,-10 1.5,-7" fill="#e74c3c"/>
+          </g>
+        </svg>
+      `,
+      ocean: `
+        <svg viewBox="0 0 400 280" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <linearGradient id="oceanSky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#87ceeb"/>
+              <stop offset="100%" stop-color="#b8dde8"/>
+            </linearGradient>
+            <linearGradient id="oceanWater" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#4a90b8"/>
+              <stop offset="100%" stop-color="#1f4a6e"/>
+            </linearGradient>
+          </defs>
+          <rect width="400" height="280" fill="url(#oceanSky)"/>
+          <!-- Sun -->
+          <circle cx="80" cy="60" r="25" fill="#fff8c4" opacity="0.95"/>
+          <circle cx="80" cy="60" r="32" fill="#fff8c4" opacity="0.3"/>
+          <!-- Clouds -->
+          <ellipse cx="250" cy="50" rx="32" ry="10" fill="white" opacity="0.85"/>
+          <ellipse cx="340" cy="40" rx="28" ry="9" fill="white" opacity="0.8"/>
+          <!-- Ocean -->
+          <rect y="130" width="400" height="150" fill="url(#oceanWater)"/>
+          <!-- Waves -->
+          <path d="M0,150 Q25,145 50,150 T100,150 T150,150 T200,150 T250,150 T300,150 T350,150 T400,150" stroke="white" stroke-width="1.5" fill="none" opacity="0.5"/>
+          <path d="M0,170 Q25,165 50,170 T100,170 T150,170 T200,170 T250,170 T300,170 T350,170 T400,170" stroke="white" stroke-width="1.5" fill="none" opacity="0.4"/>
+          <path d="M0,195 Q30,190 60,195 T120,195 T180,195 T240,195 T300,195 T360,195 T400,195" stroke="white" stroke-width="1.5" fill="none" opacity="0.35"/>
+          <path d="M0,220 Q30,215 60,220 T120,220 T180,220 T240,220 T300,220 T360,220 T400,220" stroke="white" stroke-width="1.5" fill="none" opacity="0.3"/>
+          <path d="M0,250 Q35,245 70,250 T140,250 T210,250 T280,250 T350,250 T400,250" stroke="white" stroke-width="1.5" fill="none" opacity="0.25"/>
+          <!-- Islands -->
+          <ellipse cx="120" cy="200" rx="35" ry="8" fill="#d4a574"/>
+          <ellipse cx="120" cy="197" rx="28" ry="6" fill="#5d8a3a"/>
+          <g transform="translate(115,193)">
+            <rect x="-1.5" y="-12" width="3" height="12" fill="#6b4423"/>
+            <path d="M0,-12 Q-10,-16 -12,-10" stroke="#3d6e2a" stroke-width="2" fill="none"/>
+            <path d="M0,-12 Q10,-16 12,-10" stroke="#3d6e2a" stroke-width="2" fill="none"/>
+          </g>
+          <ellipse cx="310" cy="230" rx="40" ry="10" fill="#d4a574"/>
+          <ellipse cx="310" cy="227" rx="32" ry="7" fill="#5d8a3a"/>
+          <!-- Ship -->
+          <g transform="translate(220,180)">
+            <path d="M-20,5 L20,5 L15,12 L-15,12 Z" fill="#6b4423"/>
+            <rect x="-1" y="-25" width="2" height="30" fill="#3d2818"/>
+            <polygon points="1,-25 18,-10 1,-10" fill="white"/>
+            <polygon points="1,-15 14,-5 1,-5" fill="white" opacity="0.9"/>
+          </g>
+          <!-- Compass rose effect: small X marks for treasure -->
+          <text x="280" y="208" fill="#e74c3c" font-size="14" font-weight="bold" font-family="sans-serif">✕</text>
+        </svg>
+      `
+    };
+
+    const maps = [
+      {
+        id: 'plains',
+        name: 'Plains',
+        coords: 'TIER I · BEGINNER',
+        description: 'Lush meadows for new heroes. Plenty of wood, stone, and the occasional gem to gather as you grow.',
+        difficulty: 1,
+        locked: false
+      },
+      {
+        id: 'forest',
+        name: 'Forest',
+        coords: 'TIER II · ADEPT',
+        description: 'Dense woodlands rich in timber. Watch for hidden dangers among the towering pines.',
+        difficulty: 2,
+        locked: true
+      },
+      {
+        id: 'desert',
+        name: 'Desert',
+        coords: 'TIER III · VETERAN',
+        description: 'Burning sands and ancient ruins. Rare gems hide beneath the dunes — if you can survive the heat.',
+        difficulty: 3,
+        locked: true
+      },
+      {
+        id: 'mountains',
+        name: 'Mountains',
+        coords: 'TIER IV · EXPERT',
+        description: 'Frozen peaks rich in stone and ore. Only the hardiest heroes can climb these heights.',
+        difficulty: 4,
+        locked: true
+      },
+      {
+        id: 'ocean',
+        name: 'Ocean',
+        coords: 'TIER V · LEGEND',
+        description: 'Boundless waves and forgotten islands. The deepest mysteries lie hidden beneath the tides.',
+        difficulty: 5,
+        locked: true
+      }
+    ];
+
+    let currentMapIndex = 0;
+    const mapSelect = document.getElementById('mapSelect');
+    const mapCard = document.getElementById('mapCard');
+    const mapPreview = document.getElementById('mapPreview');
+    const mapName = document.getElementById('mapName');
+    const mapDescription = document.getElementById('mapDescription');
+    const mapDifficulty = document.getElementById('mapDifficulty');
+    const mapIndicators = document.getElementById('mapIndicators');
+    const lockedBadge = document.getElementById('lockedBadge');
+    const selectBtn = document.getElementById('selectBtn');
+    const prevMapBtn = document.getElementById('prevMapBtn');
+    const nextMapBtn = document.getElementById('nextMapBtn');
+
+    // Build indicator dots
+    maps.forEach((_, i) => {
+      const dot = document.createElement('div');
+      dot.className = 'indicator';
+      mapIndicators.appendChild(dot);
+    });
+
+    function renderMap() {
+      const map = maps[currentMapIndex];
+
+      // Theme background
+      mapSelect.className = 'map-select theme-' + map.id;
+      mapSelect.style.display = 'flex';
+
+      // Card content - render SVG map illustration
+      mapPreview.innerHTML = mapSVGs[map.id]
+        + '<div class="compass"></div>'
+        + '<div class="map-coords">' + map.coords + '</div>';
+      mapName.textContent = map.name;
+      mapDescription.textContent = map.description;
+
+      // Difficulty dots
+      mapDifficulty.innerHTML = '';
+      for (let i = 0; i < 5; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'difficulty-dot' + (i < map.difficulty ? ' active' : '');
+        mapDifficulty.appendChild(dot);
+      }
+
+      // Locked state
+      if (map.locked) {
+        lockedBadge.style.display = 'block';
+        selectBtn.disabled = true;
+        selectBtn.textContent = 'Coming Soon';
+      } else {
+        lockedBadge.style.display = 'none';
+        selectBtn.disabled = false;
+        selectBtn.textContent = 'Select';
+      }
+
+      // Indicators
+      [...mapIndicators.children].forEach((dot, i) => {
+        dot.classList.toggle('active', i === currentMapIndex);
+      });
+
+      // Arrow states
+      prevMapBtn.disabled = currentMapIndex === 0;
+      nextMapBtn.disabled = currentMapIndex === maps.length - 1;
+
+      // Subtle card animation
+      mapCard.style.transform = 'scale(0.95)';
+      setTimeout(() => { mapCard.style.transform = 'scale(1)'; }, 50);
+    }
+
+    document.getElementById('playBtn').addEventListener('click', () => {
+      document.getElementById('homeScreen').style.display = 'none';
+      currentMapIndex = 0;
+      renderMap();
+    });
+
+    const creditsModal = document.getElementById('creditsModal');
+    document.getElementById('creditsBtn').addEventListener('click', () => {
+      creditsModal.style.display = 'flex';
+    });
+    document.getElementById('creditsCloseBtn').addEventListener('click', () => {
+      creditsModal.style.display = 'none';
+    });
+    creditsModal.addEventListener('click', (e) => {
+      if (e.target === creditsModal) creditsModal.style.display = 'none';
+    });
+    // Tab switching
+    document.querySelectorAll('.credits-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const target = tab.dataset.tab;
+        document.querySelectorAll('.credits-tab').forEach(t => t.classList.toggle('active', t === tab));
+        document.querySelectorAll('.credits-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === target));
+      });
+    });
+
+    prevMapBtn.addEventListener('click', () => {
+      if (currentMapIndex > 0) {
+        currentMapIndex--;
+        renderMap();
+      }
+    });
+
+    nextMapBtn.addEventListener('click', () => {
+      if (currentMapIndex < maps.length - 1) {
+        currentMapIndex++;
+        renderMap();
+      }
+    });
+
+    // Keyboard arrows
+    document.addEventListener('keydown', (e) => {
+      if (mapSelect.style.display !== 'flex') return;
+      if (e.key === 'ArrowLeft' && currentMapIndex > 0) {
+        currentMapIndex--;
+        renderMap();
+      } else if (e.key === 'ArrowRight' && currentMapIndex < maps.length - 1) {
+        currentMapIndex++;
+        renderMap();
+      } else if (e.key === 'Enter' && !maps[currentMapIndex].locked) {
+        selectBtn.click();
+      }
+    });
+
+    document.getElementById('backToHomeBtn').addEventListener('click', () => {
+      mapSelect.style.display = 'none';
+      document.getElementById('homeScreen').style.display = 'flex';
+    });
+
+    selectBtn.addEventListener('click', () => {
+      if (maps[currentMapIndex].locked) return;
+      mapSelect.style.display = 'none';
+      openWarriorSelect();
+    });
+
+    // ===== WARRIORS =====
+    const warriors = [
+      { id: 'knight',      name: 'Knight',      emoji: '⚔️', locked: false, hp: 100, speed: 3, weapon: 'sword',     weaponName: 'Longsword',  range: 45, damage: 10, color: '#3a5d8a', desc: 'Balanced fighter with a trusty blade.' },
+      { id: 'archer',      name: 'Archer',      emoji: '🏹', locked: false, hp: 70,  speed: 4, weapon: 'bow',       weaponName: 'Longbow',    range: 280, damage: 8,  color: '#3a8a4a', desc: 'Fast and deadly from a distance.' },
+      { id: 'mage',        name: 'Mage',        emoji: '🔮', locked: true,  hp: 60,  speed: 2, weapon: 'staff',     weaponName: 'Arcane Staff', range: 220, damage: 14, color: '#7a3aa8', desc: 'Hurls magical orbs that pierce stone.' },
+      { id: 'berserker',   name: 'Berserker',   emoji: '🪓', locked: true,  hp: 140, speed: 2, weapon: 'axe',       weaponName: 'Battle Axe', range: 50, damage: 18, color: '#8a3a3a', desc: 'Tanky and brutal with a heavy axe.' },
+      { id: 'ranger',      name: 'Ranger',      emoji: '🎯', locked: true,  hp: 80,  speed: 4, weapon: 'crossbow',  weaponName: 'Crossbow',   range: 320, damage: 11, color: '#5a8a3a', desc: 'Pierces multiple targets in a line.' },
+      { id: 'paladin',     name: 'Paladin',     emoji: '🛡️', locked: true,  hp: 130, speed: 2, weapon: 'hammer',    weaponName: 'War Hammer', range: 55, damage: 12, color: '#fbbf24', desc: 'Regenerates HP slowly over time.' },
+      { id: 'assassin',    name: 'Assassin',    emoji: '🗡️', locked: true,  hp: 60,  speed: 5, weapon: 'daggers',   weaponName: 'Twin Daggers', range: 40, damage: 9, color: '#3a3a4a', desc: 'Strikes twice per swing, very fast.' },
+      { id: 'pyromancer',  name: 'Pyromancer',  emoji: '🔥', locked: true,  hp: 65,  speed: 3, weapon: 'firestaff', weaponName: 'Fire Staff', range: 200, damage: 16, color: '#e74c3c', desc: 'Burns enemies in a fiery arc.' },
+      { id: 'druid',       name: 'Druid',       emoji: '🌿', locked: true,  hp: 90,  speed: 3, weapon: 'vines',     weaponName: 'Thornwhip',  range: 150, damage: 10, color: '#2a7028', desc: 'Slows enemies with binding vines.' },
+      { id: 'samurai',     name: 'Samurai',     emoji: '🥷', locked: true,  hp: 95,  speed: 4, weapon: 'katana',    weaponName: 'Katana',     range: 60, damage: 14, color: '#c12d1f', desc: 'Lightning-fast slashes.' }
+    ];
+
+    let selectedWarriorId = null;
+
+    function openWarriorSelect() {
+      const grid = document.getElementById('warriorGrid');
+      grid.innerHTML = '';
+      selectedWarriorId = null;
+      document.getElementById('warriorGoBtn').disabled = true;
+
+      warriors.forEach(w => {
+        const card = document.createElement('div');
+        card.className = 'warrior-card ' + (w.locked ? 'locked' : 'unlocked');
+        card.dataset.id = w.id;
+
+        const speedDots = [1,2,3,4,5].map(i =>
+          `<div class="stat-dot ${i <= w.speed ? 'on' : ''}"></div>`).join('');
+        const hpDots = [1,2,3,4,5].map(i => {
+          const tier = Math.ceil(w.hp / 30);
+          return `<div class="stat-dot ${i <= tier ? 'on' : ''}"></div>`;
+        }).join('');
+
+        card.innerHTML = `
+          ${w.locked ? '<div class="lock-overlay">🔒 LOCKED</div>' : ''}
+          <div class="warrior-avatar" style="background: radial-gradient(circle, ${w.color}33, transparent)">${w.emoji}</div>
+          <div class="warrior-name">${w.name}</div>
+          <div class="warrior-weapon">${w.weaponName}</div>
+          <div class="warrior-stats">
+            <div class="stat-row"><span class="stat-label">SPD</span><div class="stat-dots">${speedDots}</div></div>
+            <div class="stat-row"><span class="stat-label">HP </span><div class="stat-dots">${hpDots}</div></div>
+          </div>
+          <p class="warrior-desc">${w.desc}</p>
+        `;
+        if (!w.locked) {
+          card.addEventListener('click', () => {
+            document.querySelectorAll('.warrior-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            selectedWarriorId = w.id;
+            document.getElementById('warriorGoBtn').disabled = false;
+          });
+        }
+        grid.appendChild(card);
+      });
+
+      document.getElementById('warriorSelect').style.display = 'flex';
+    }
+
+    document.getElementById('warriorBackBtn').addEventListener('click', () => {
+      document.getElementById('warriorSelect').style.display = 'none';
+      renderMap();
+    });
+
+    document.getElementById('warriorGoBtn').addEventListener('click', () => {
+      if (!selectedWarriorId) return;
+      document.getElementById('warriorSelect').style.display = 'none';
+      showGameLoading();
+    });
+
+    function showGameLoading() {
+      const loading = document.getElementById('gameLoading');
+      document.getElementById('loadingMapName').textContent = maps[currentMapIndex].name;
+      // Reset progress bar animation
+      const bar = loading.querySelector('.loading-progress-bar');
+      bar.style.animation = 'none';
+      void bar.offsetWidth;
+      bar.style.animation = '';
+      loading.style.display = 'flex';
+      setTimeout(() => {
+        loading.style.display = 'none';
+        document.getElementById('gameScreen').style.display = 'block';
+        startGame(maps[currentMapIndex].id);
+      }, 1800);
+    }
+
+
+    // ===== GAME (Step 1: world canvas) =====
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let gameRunning = false;
+    let animationId = null;
+    let world = null;
+    const keysPressed = new Set();
+
+    // Persistent player inventory (survives between sessions in same load)
+    const playerInventory = {
+      power: 0,
+      wood: 100,
+      stone: 50,
+      gemGreen: 0,
+      gemRed: 0,
+      gemBlue: 0
+    };
+
+    function updateResourceBars() {
+      const map = {
+        power: ['resPower', 'resPowerEx'],
+        wood: ['resWood', 'resWoodEx'],
+        stone: ['resStone', 'resStoneEx'],
+        gemGreen: ['resGemGreen', 'resGemGreenEx'],
+        gemRed: ['resGemRed', 'resGemRedEx'],
+        gemBlue: ['resGemBlue', 'resGemBlueEx']
+      };
+      Object.entries(map).forEach(([key, ids]) => {
+        ids.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = playerInventory[key];
+        });
+      });
+    }
+
+    function totalGems() {
+      return playerInventory.gemGreen + playerInventory.gemRed + playerInventory.gemBlue;
+    }
+
+    function deductGems(amount) {
+      let remaining = amount;
+      ['gemGreen', 'gemRed', 'gemBlue'].forEach(k => {
+        const take = Math.min(remaining, playerInventory[k]);
+        playerInventory[k] -= take;
+        remaining -= take;
+      });
+    }
+
+    // Normalize WASD -> arrow keys
+    const keyAlias = {
+      'w': 'ArrowUp', 'W': 'ArrowUp',
+      's': 'ArrowDown', 'S': 'ArrowDown',
+      'a': 'ArrowLeft', 'A': 'ArrowLeft',
+      'd': 'ArrowRight', 'D': 'ArrowRight'
+    };
+
+    function handleKeyDown(e) {
+      if (!gameRunning) return;
+      if (exploreScreen && exploreScreen.style.display === 'block') return;
+      const key = keyAlias[e.key] || e.key;
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) {
+        keysPressed.add(key);
+        e.preventDefault();
+      }
+      if (e.key === 'x' || e.key === 'X' || e.key === ' ') {
+        attemptAttack();
+        e.preventDefault();
+      }
+    }
+    function handleKeyUp(e) {
+      const key = keyAlias[e.key] || e.key;
+      keysPressed.delete(key);
+    }
+    // Attach to both document and window with capture, to be safe in Safari
+    document.addEventListener('keydown', handleKeyDown, true);
+    document.addEventListener('keyup', handleKeyUp, true);
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      // Don't reset world positions here — camera handles viewport adjustment
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    function startGame(mapId) {
+      resizeCanvas();
+      const tileSize = 60;
+      const warrior = warriors.find(w => w.id === selectedWarriorId) || warriors[0];
+      // Reset explore sections so initial cluster is in place
+      exState.sections = generateSections();
+      // Section (0,0) tile (0,0) anchored so initial 2x2 cluster is centered on canvas
+      const sectionPx = tileSize * 3; // 180
+      world = {
+        mapId: mapId,
+        warrior: warrior,
+        tileSize: tileSize,
+        // section (0,0) tile (0,0) origin in canvas pixels
+        originX: canvas.width / 2 - sectionPx,
+        originY: canvas.height / 2 - sectionPx,
+        // Field bbox (rectangular bounds of owned sections)
+        fieldX: 0, fieldY: 0, fieldW: 0, fieldH: 0,
+        center: { x: canvas.width / 2, y: canvas.height / 2 },
+        house: { x: canvas.width / 2, y: canvas.height / 2 - 20 },
+        player: {
+          x: canvas.width / 2,
+          y: canvas.height / 2 + 60,
+          vx: 0, vy: 0,
+          facing: 1,
+          speed: warrior.speed * 0.8,
+          hp: warrior.hp,
+          maxHp: warrior.hp,
+          attackCooldown: 0
+        },
+        decorations: [],
+        projectiles: [],
+        floatingText: [],
+        enemies: [],
+        camera: { x: 0, y: 0 },
+        ownedBBox: { minCol: 0, maxCol: 1, minRow: 0, maxRow: 1 },
+        time: 0,
+        inventory: playerInventory,
+        // Wave system
+        waveNumber: 0,
+        waveActive: false,
+        timeToNextWave: 120 * 1000, // 2 minutes
+        waveTotalTime: 120 * 1000
+      };
+      // Give the house HP
+      world.house.hp = 200;
+      world.house.maxHp = 200;
+      world.house.hitFlash = 0;
+      // Permanent structures near shelter — tree grower + stone mine
+      world.structures = [
+        {
+          type: 'tree-gen',
+          x: world.house.x - 130, y: world.house.y + 0,
+          level: 1, timer: 0,
+          childDeco: null
+        },
+        {
+          type: 'mine',
+          x: world.house.x + 130, y: world.house.y + 0,
+          level: 1, timer: 0
+        }
+      ];
+      recomputeFieldBBox();
+      world.decorations = generateDecorations();
+      world.camera.x = world.player.x - canvas.width / 2;
+      world.camera.y = world.player.y - canvas.height / 2;
+      gameRunning = true;
+      keysPressed.clear();
+      updateResourceBars();
+      // Ensure canvas gets keyboard focus
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      canvas.focus();
+      gameLoop();
+    }
+    // Refocus + try upgrade structure on click
+    canvas.addEventListener('click', (e) => {
+      canvas.focus();
+      if (!world || !world.structures) return;
+      const cam = world.camera || { x: 0, y: 0 };
+      const wx = e.clientX + cam.x;
+      const wy = e.clientY + cam.y;
+      for (const s of world.structures) {
+        const dx = wx - s.x;
+        const dy = wy - s.y;
+        if (dx * dx + dy * dy < 1200) { // ~35px click radius
+          tryUpgradeStructure(s);
+          return;
+        }
+      }
+    });
+
+    // Attack button (X for desktop, button for mobile)
+    const attackBtn = document.getElementById('attackBtn');
+    if (attackBtn) {
+      const pressAttack = (e) => {
+        e.preventDefault();
+        attackBtn.classList.add('pressed');
+        attemptAttack();
+      };
+      const releaseAttack = (e) => {
+        if (e) e.preventDefault();
+        attackBtn.classList.remove('pressed');
+      };
+      attackBtn.addEventListener('mousedown', pressAttack);
+      attackBtn.addEventListener('mouseup', releaseAttack);
+      attackBtn.addEventListener('mouseleave', releaseAttack);
+      attackBtn.addEventListener('touchstart', pressAttack, { passive: false });
+      attackBtn.addEventListener('touchend', releaseAttack, { passive: false });
+    }
+
+    function attemptAttack() {
+      if (!world || !world.player) return;
+      const p = world.player;
+      if (p.attackCooldown > 0) return;
+      const w = world.warrior;
+
+      // Find nearest target — enemies first (prioritized), then decorations
+      let nearest = null, nearestDist = w.range, nearestType = null;
+      world.enemies.forEach(e => {
+        const d = Math.hypot(e.x - p.x, e.y - p.y);
+        if (d < nearestDist) { nearest = e; nearestDist = d; nearestType = 'enemy'; }
+      });
+      if (!nearest) {
+        world.decorations.forEach(d => {
+          const dist = Math.hypot(d.x - p.x, d.y - p.y);
+          if (dist < nearestDist) { nearest = d; nearestDist = dist; nearestType = 'decoration'; }
+        });
+      }
+
+      if (!nearest) return;
+
+      const melee = ['sword', 'axe', 'hammer', 'daggers', 'katana'].includes(w.weapon);
+      p.facing = (nearest.x >= p.x) ? 1 : -1;
+
+      if (melee) {
+        if (nearestType === 'enemy') hitEnemy(nearest, w.damage);
+        else hitDecoration(nearest, 1);
+        const mode = w.weapon === 'daggers' ? 'stab' : 'swing';
+        const lifeFrames = mode === 'stab' ? 10 : 14;
+        world.swingArc = { x: p.x, y: p.y, target: nearest, life: lifeFrames, totalLife: lifeFrames, mode };
+      } else {
+        const dx = nearest.x - p.x;
+        const dy = nearest.y - p.y;
+        const dist = Math.hypot(dx, dy);
+        const speed = 9;
+        world.projectiles.push({
+          x: p.x + p.facing * 8,
+          y: p.y - 4,
+          vx: dx / dist * speed,
+          vy: dy / dist * speed,
+          target: nearest,
+          targetType: nearestType,
+          weapon: w.weapon,
+          damage: w.damage,
+          life: 90
+        });
+      }
+
+      p.attackCooldown = w.weapon === 'daggers' ? 12 : 25;
+    }
+
+    function hitDecoration(d, dmg) {
+      d.hp -= dmg;
+      d.hitFlash = 6;
+      if (d.hp <= 0) {
+        const loot = (resourceLoot[d.type] || {}).drop || {};
+        Object.entries(loot).forEach(([k, v]) => {
+          playerInventory[k] = (playerInventory[k] || 0) + v;
+          const labels = { wood: '🪵', stone: '🪨', gemGreen: '◆', gemRed: '◆', gemBlue: '◆' };
+          const colors = { wood: '#fff5d6', stone: '#fff5d6', gemGreen: '#2ed573', gemRed: '#e74c3c', gemBlue: '#3498db' };
+          world.floatingText.push({
+            x: d.x, y: d.y - 12, vy: -0.7, life: 50,
+            text: `+${v} ${labels[k] || ''}`,
+            color: colors[k] || '#fff'
+          });
+        });
+        updateResourceBars();
+        const idx = world.decorations.indexOf(d);
+        if (idx >= 0) world.decorations.splice(idx, 1);
+      }
+    }
+
+    function updateProjectiles() {
+      for (let i = world.projectiles.length - 1; i >= 0; i--) {
+        const pr = world.projectiles[i];
+        pr.x += pr.vx;
+        pr.y += pr.vy;
+        pr.life--;
+
+        if (pr.hostile) {
+          // Enemy projectile — hits player/house
+          const t = pr.target;
+          if (t) {
+            const dx = pr.x - t.x;
+            const dy = pr.y - t.y;
+            if (dx * dx + dy * dy < 280) {
+              t.hp = Math.max(0, (t.hp || 0) - pr.damage);
+              t.hitFlash = 10;
+              world.projectiles.splice(i, 1);
+              continue;
+            }
+          }
+        } else if (pr.target) {
+          // Player projectile
+          let stillExists = false;
+          if (pr.targetType === 'enemy') stillExists = world.enemies.includes(pr.target);
+          else stillExists = world.decorations.includes(pr.target);
+          if (stillExists) {
+            const dx = pr.x - pr.target.x;
+            const dy = pr.y - pr.target.y;
+            if (dx * dx + dy * dy < 400) {
+              if (pr.targetType === 'enemy') hitEnemy(pr.target, pr.damage || 1);
+              else hitDecoration(pr.target, 1);
+              world.projectiles.splice(i, 1);
+              continue;
+            }
+          }
+        }
+        if (pr.life <= 0) world.projectiles.splice(i, 1);
+      }
+    }
+
+    function drawProjectiles() {
+      world.projectiles.forEach(pr => {
+        if (pr.weapon === 'bow' || pr.weapon === 'crossbow') {
+          // Arrow
+          const ang = Math.atan2(pr.vy, pr.vx);
+          ctx.save();
+          ctx.translate(pr.x, pr.y);
+          ctx.rotate(ang);
+          // Shaft
+          ctx.fillStyle = '#8b6f47';
+          ctx.fillRect(-10, -0.5, 14, 1);
+          // Head
+          ctx.fillStyle = '#c0c0c8';
+          ctx.beginPath();
+          ctx.moveTo(4, 0);
+          ctx.lineTo(0, -2.5);
+          ctx.lineTo(0, 2.5);
+          ctx.closePath();
+          ctx.fill();
+          // Fletching
+          ctx.fillStyle = '#e74c3c';
+          ctx.fillRect(-12, -2, 3, 4);
+          ctx.restore();
+        } else if (pr.weapon === 'enemy-fireball') {
+          // Enemy fireball — red/orange flame
+          const glow = ctx.createRadialGradient(pr.x, pr.y, 0, pr.x, pr.y, 18);
+          glow.addColorStop(0, 'rgba(255, 100, 30, 0.7)');
+          glow.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = glow;
+          ctx.beginPath(); ctx.arc(pr.x, pr.y, 18, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#ff5020';
+          ctx.beginPath(); ctx.arc(pr.x, pr.y, 5, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#ffbe50';
+          ctx.beginPath(); ctx.arc(pr.x - 1, pr.y - 1, 2, 0, Math.PI * 2); ctx.fill();
+        } else if (pr.weapon === 'staff' || pr.weapon === 'firestaff') {
+          const color = pr.weapon === 'firestaff' ? '#ff7340' : '#c084fc';
+          const glowColor = pr.weapon === 'firestaff' ? 'rgba(255,115,64,0.5)' : 'rgba(192,132,252,0.5)';
+          // Glow
+          const g = ctx.createRadialGradient(pr.x, pr.y, 0, pr.x, pr.y, 16);
+          g.addColorStop(0, glowColor);
+          g.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = g;
+          ctx.beginPath(); ctx.arc(pr.x, pr.y, 16, 0, Math.PI * 2); ctx.fill();
+          // Orb
+          ctx.fillStyle = color;
+          ctx.beginPath(); ctx.arc(pr.x, pr.y, 5, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#fff';
+          ctx.beginPath(); ctx.arc(pr.x - 1, pr.y - 1, 1.5, 0, Math.PI * 2); ctx.fill();
+        }
+      });
+    }
+
+    function drawFloatingText() {
+      for (let i = world.floatingText.length - 1; i >= 0; i--) {
+        const t = world.floatingText[i];
+        t.y += t.vy || -0.7;
+        t.life--;
+        if (t.life <= 0) { world.floatingText.splice(i, 1); continue; }
+        const alpha = Math.min(1, t.life / 30);
+        ctx.fillStyle = t.color || '#fff';
+        ctx.globalAlpha = alpha;
+        ctx.font = 'bold 13px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+        ctx.lineWidth = 3;
+        ctx.strokeText(t.text, t.x, t.y);
+        ctx.fillText(t.text, t.x, t.y);
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    // ===== STRUCTURES (tree gen + mine) =====
+    function treeGenPeriod(level) {
+      // 5 min at lvl 1, -30s per level, min 30s
+      return Math.max(30000, 300000 - (level - 1) * 30000);
+    }
+    function minePeriod(level) {
+      // 60s at lvl 1, -5s per level, min 10s
+      return Math.max(10000, 60000 - (level - 1) * 5000);
+    }
+    function structureUpgradeCost(s) {
+      return 50 * s.level;
+    }
+
+    function updateStructures() {
+      if (!world.structures) return;
+      const treeTypes = ['tree-oak','tree-pine','tree-birch','tree-maple','tree-willow'];
+      world.structures.forEach(s => {
+        if (s.type === 'tree-gen') {
+          const childExists = s.childDeco && world.decorations.includes(s.childDeco);
+          if (!childExists) {
+            s.childDeco = null;
+            s.timer += 16;
+            const period = treeGenPeriod(s.level);
+            if (s.timer >= period) {
+              const type = treeTypes[Math.floor(Math.random() * treeTypes.length)];
+              // Spawn child tree just next to the generator
+              const tx = s.x - 28 + (Math.random() - 0.5) * 6;
+              const ty = s.y - 4 + (Math.random() - 0.5) * 6;
+              const child = spawnDecoration(type, tx, ty);
+              world.decorations.push(child);
+              world.decorations.sort((a, b) => a.y - b.y);
+              s.childDeco = child;
+              s.timer = 0;
+              world.floatingText.push({
+                x: s.x, y: s.y - 30, vy: -0.6, life: 60,
+                text: '🌳 grown!', color: '#4d8a35'
+              });
+            }
+          } else {
+            s.timer = 0;
+          }
+        } else if (s.type === 'mine') {
+          s.timer += 16;
+          const period = minePeriod(s.level);
+          if (s.timer >= period) {
+            playerInventory.stone = (playerInventory.stone || 0) + 1;
+            updateResourceBars();
+            world.floatingText.push({
+              x: s.x, y: s.y - 18, vy: -0.7, life: 55,
+              text: '+1 🪨', color: '#fff5d6'
+            });
+            s.timer = 0;
+          }
+        }
+      });
+    }
+
+    function tryUpgradeStructure(s) {
+      const cost = structureUpgradeCost(s);
+      const flash = () => {
+        ['gameResBar', 'exploreResBar'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) { el.classList.remove('res-flash'); void el.offsetWidth; el.classList.add('res-flash'); }
+        });
+      };
+      // Check max level
+      const period = s.type === 'tree-gen' ? treeGenPeriod(s.level) : minePeriod(s.level);
+      const minP = s.type === 'tree-gen' ? 30000 : 10000;
+      if (period <= minP) {
+        world.floatingText.push({
+          x: s.x, y: s.y - 22, vy: -0.7, life: 55,
+          text: 'MAX LEVEL', color: '#fbbf24'
+        });
+        return;
+      }
+      if ((playerInventory.power || 0) < cost) {
+        flash();
+        world.floatingText.push({
+          x: s.x, y: s.y - 22, vy: -0.7, life: 55,
+          text: `Need ${cost} ⚡`, color: '#e74c3c'
+        });
+        return;
+      }
+      playerInventory.power -= cost;
+      s.level++;
+      updateResourceBars();
+      const saved = s.type === 'mine' ? 5 : 30;
+      world.floatingText.push({
+        x: s.x, y: s.y - 24, vy: -0.7, life: 70,
+        text: `Lvl ${s.level} ✦ -${saved}s`, color: '#fbbf24'
+      });
+    }
+
+    function drawStructures() {
+      if (!world.structures) return;
+      world.structures.forEach(s => {
+        const t = world.time;
+        if (s.type === 'tree-gen') {
+          // Ground shadow
+          ctx.fillStyle = 'rgba(0,0,0,0.4)';
+          ctx.beginPath(); ctx.ellipse(s.x, s.y + 14, 22, 6, 0, 0, Math.PI * 2); ctx.fill();
+          // Stump base
+          ctx.fillStyle = '#5a3a1f';
+          ctx.beginPath(); ctx.ellipse(s.x, s.y + 6, 22, 9, 0, 0, Math.PI * 2); ctx.fill();
+          // Stump top wood
+          ctx.fillStyle = '#8b6f47';
+          ctx.beginPath(); ctx.ellipse(s.x, s.y - 2, 20, 7, 0, 0, Math.PI * 2); ctx.fill();
+          // Tree rings
+          ctx.strokeStyle = '#5a3a1f';
+          ctx.lineWidth = 0.8;
+          ctx.beginPath(); ctx.ellipse(s.x, s.y - 2, 14, 5, 0, 0, Math.PI * 2); ctx.stroke();
+          ctx.beginPath(); ctx.ellipse(s.x, s.y - 2, 8, 3, 0, 0, Math.PI * 2); ctx.stroke();
+          // Moss on top
+          ctx.fillStyle = '#4d8a35';
+          ctx.beginPath(); ctx.arc(s.x - 8, s.y - 5, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(s.x + 6, s.y - 6, 3, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(s.x + 10, s.y - 3, 2.5, 0, Math.PI * 2); ctx.fill();
+          // Glowing sparkles
+          const pulse = 0.5 + Math.sin(t * 0.005) * 0.5;
+          ctx.fillStyle = `rgba(125, 211, 124, ${0.5 + pulse * 0.5})`;
+          [[0, -16], [-8, -12], [10, -14], [4, -18]].forEach(([dx, dy]) => {
+            ctx.beginPath();
+            ctx.arc(s.x + dx, s.y + dy + Math.sin(t * 0.003 + dx) * 2, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+          });
+
+          // Progress ring (if no child)
+          const childExists = s.childDeco && world.decorations.includes(s.childDeco);
+          if (!childExists) {
+            const period = treeGenPeriod(s.level);
+            const ratio = Math.min(1, s.timer / period);
+            ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+            ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.arc(s.x, s.y - 2, 26, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = '#4d8a35';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(s.x, s.y - 2, 26, -Math.PI / 2, -Math.PI / 2 + ratio * Math.PI * 2);
+            ctx.stroke();
+          }
+
+          // Level badge
+          ctx.fillStyle = 'rgba(20, 12, 5, 0.85)';
+          ctx.fillRect(s.x - 14, s.y + 16, 28, 12);
+          ctx.strokeStyle = '#fbbf24';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(s.x - 14, s.y + 16, 28, 12);
+          ctx.fillStyle = '#fbbf24';
+          ctx.font = 'bold 9px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(`Lv ${s.level}`, s.x, s.y + 25);
+        } else if (s.type === 'mine') {
+          // Ground shadow
+          ctx.fillStyle = 'rgba(0,0,0,0.4)';
+          ctx.beginPath(); ctx.ellipse(s.x, s.y + 14, 26, 6, 0, 0, Math.PI * 2); ctx.fill();
+          // Mine entrance arch (stone blocks)
+          ctx.fillStyle = '#6a5a4a';
+          ctx.beginPath();
+          ctx.moveTo(s.x - 22, s.y + 12);
+          ctx.lineTo(s.x - 22, s.y - 8);
+          ctx.quadraticCurveTo(s.x, s.y - 22, s.x + 22, s.y - 8);
+          ctx.lineTo(s.x + 22, s.y + 12);
+          ctx.closePath(); ctx.fill();
+          // Stone block details
+          ctx.strokeStyle = 'rgba(30, 20, 10, 0.6)';
+          ctx.lineWidth = 1;
+          [-12, 0, 12].forEach(dx => {
+            ctx.beginPath();
+            ctx.moveTo(s.x + dx, s.y - 6);
+            ctx.lineTo(s.x + dx, s.y + 12);
+            ctx.stroke();
+          });
+          ctx.beginPath();
+          ctx.moveTo(s.x - 22, s.y + 2);
+          ctx.lineTo(s.x + 22, s.y + 2);
+          ctx.stroke();
+          // Dark entrance
+          ctx.fillStyle = '#0a0604';
+          ctx.beginPath();
+          ctx.moveTo(s.x - 14, s.y + 12);
+          ctx.lineTo(s.x - 14, s.y - 4);
+          ctx.quadraticCurveTo(s.x, s.y - 14, s.x + 14, s.y - 4);
+          ctx.lineTo(s.x + 14, s.y + 12);
+          ctx.closePath(); ctx.fill();
+          // Pickaxe leaning
+          ctx.strokeStyle = '#6b4023';
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.moveTo(s.x - 26, s.y + 14);
+          ctx.lineTo(s.x - 14, s.y - 6);
+          ctx.stroke();
+          ctx.fillStyle = '#a89888';
+          ctx.beginPath();
+          ctx.moveTo(s.x - 20, s.y - 4);
+          ctx.lineTo(s.x - 8, s.y - 8);
+          ctx.lineTo(s.x - 14, s.y - 12);
+          ctx.lineTo(s.x - 18, s.y - 10);
+          ctx.closePath(); ctx.fill();
+
+          // Progress ring around entrance
+          const period = minePeriod(s.level);
+          const ratio = Math.min(1, s.timer / period);
+          ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+          ctx.lineWidth = 4;
+          ctx.beginPath(); ctx.arc(s.x, s.y, 28, 0, Math.PI * 2); ctx.stroke();
+          ctx.strokeStyle = '#fbbf24';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, 28, -Math.PI / 2, -Math.PI / 2 + ratio * Math.PI * 2);
+          ctx.stroke();
+
+          // Level badge
+          ctx.fillStyle = 'rgba(20, 12, 5, 0.85)';
+          ctx.fillRect(s.x - 14, s.y + 16, 28, 12);
+          ctx.strokeStyle = '#fbbf24';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(s.x - 14, s.y + 16, 28, 12);
+          ctx.fillStyle = '#fbbf24';
+          ctx.font = 'bold 9px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(`Lv ${s.level}`, s.x, s.y + 25);
+        }
+      });
+    }
+
+    // ===== WAVES & ENEMIES =====
+    function randomSpawnPosition() {
+      // Pick random side of the owned bbox and spawn just outside
+      const bb = world.ownedBBox;
+      const sp = world.tileSize * 3;
+      const margin = 40;
+      const side = Math.floor(Math.random() * 4);
+      const colSpan = (bb.maxCol - bb.minCol + 1);
+      const rowSpan = (bb.maxRow - bb.minRow + 1);
+      if (side === 0) { // top
+        return {
+          x: world.originX + (bb.minCol + Math.random() * colSpan) * sp,
+          y: world.originY + bb.minRow * sp - margin
+        };
+      } else if (side === 1) { // right
+        return {
+          x: world.originX + (bb.maxCol + 1) * sp + margin,
+          y: world.originY + (bb.minRow + Math.random() * rowSpan) * sp
+        };
+      } else if (side === 2) { // bottom
+        return {
+          x: world.originX + (bb.minCol + Math.random() * colSpan) * sp,
+          y: world.originY + (bb.maxRow + 1) * sp + margin
+        };
+      } else { // left
+        return {
+          x: world.originX + bb.minCol * sp - margin,
+          y: world.originY + (bb.minRow + Math.random() * rowSpan) * sp
+        };
+      }
+    }
+
+    function spawnEnemy(typeKey) {
+      const def = enemyTypes[typeKey];
+      if (!def) return;
+      const pos = randomSpawnPosition();
+      world.enemies.push({
+        type: typeKey,
+        x: pos.x, y: pos.y,
+        hp: def.hp, maxHp: def.hp,
+        attackCooldown: 0,
+        facing: 1,
+        hitFlash: 0,
+        bobOffset: Math.random() * Math.PI * 2
+      });
+    }
+
+    function startNewWave() {
+      world.waveNumber++;
+      world.waveActive = true;
+      const w = world.waveNumber;
+      const totalEnemies = 3 + Math.floor(w * 1.5);
+      // Available types scale with wave number
+      const types = ['goblin'];
+      if (w >= 2) types.push('wolf');
+      if (w >= 3) types.push('skeleton', 'slime');
+      if (w >= 4) types.push('imp');
+      if (w >= 5) types.push('orc');
+
+      // Show alert
+      const alert = document.getElementById('waveAlert');
+      document.getElementById('waveAlertTitle').textContent = `Wave ${w}`;
+      document.getElementById('waveAlertSub').textContent = 'Incoming!';
+      alert.classList.remove('show');
+      void alert.offsetWidth;
+      alert.classList.add('show');
+
+      // Spawn enemies staggered
+      for (let i = 0; i < totalEnemies; i++) {
+        setTimeout(() => {
+          if (!gameRunning) return;
+          const t = types[Math.floor(Math.random() * types.length)];
+          spawnEnemy(t);
+        }, i * 700);
+      }
+    }
+
+    function updateWaves() {
+      if (!world.waveActive) {
+        world.timeToNextWave -= 16;
+        if (world.timeToNextWave <= 0) {
+          startNewWave();
+        }
+      } else {
+        if (world.enemies.length === 0) {
+          world.waveActive = false;
+          world.timeToNextWave = world.waveTotalTime;
+          onWaveComplete();
+        }
+      }
+      // Update HUD
+      const bar = document.getElementById('waveBarFill');
+      const label = document.getElementById('waveBarLabel');
+      const status = document.getElementById('waveBarStatus');
+      if (world.waveActive) {
+        if (label) label.textContent = `Wave ${world.waveNumber}`;
+        if (status) status.textContent = `${world.enemies.length} left`;
+        if (bar) {
+          bar.style.width = '100%';
+          bar.className = 'wave-bar-fill active';
+        }
+      } else {
+        const ratio = 1 - world.timeToNextWave / world.waveTotalTime;
+        if (bar) {
+          bar.style.width = (ratio * 100) + '%';
+          bar.className = 'wave-bar-fill' + (world.timeToNextWave < 15000 ? ' danger' : '');
+        }
+        if (label) label.textContent = `Wave ${world.waveNumber + 1}`;
+        const secs = Math.ceil(world.timeToNextWave / 1000);
+        const m = Math.floor(secs / 60), s = secs % 60;
+        if (status) status.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+      }
+    }
+
+    function updateEnemies() {
+      const bb = world.ownedBBox;
+      const sp = world.tileSize * 3;
+      // Center of owned bounding box
+      const centerX = world.originX + ((bb.minCol + bb.maxCol + 1) / 2) * sp;
+      const centerY = world.originY + ((bb.minRow + bb.maxRow + 1) / 2) * sp;
+
+      for (let i = world.enemies.length - 1; i >= 0; i--) {
+        const e = world.enemies[i];
+        const def = enemyTypes[e.type];
+        if (e.hp <= 0) {
+          // Power always drops
+          const power = def.powerDrop || 1;
+          playerInventory.power = (playerInventory.power || 0) + power;
+          world.floatingText.push({
+            x: e.x, y: e.y - 14, vy: -0.7, life: 55,
+            text: `+${power} ⚡`,
+            color: '#fbbf24'
+          });
+          // Bonus wood/stone with chance
+          if (Math.random() < def.lootChance && def.lootTable) {
+            Object.entries(def.lootTable).forEach(([k, v], idx) => {
+              playerInventory[k] = (playerInventory[k] || 0) + v;
+              const labels = { wood: '🪵', stone: '🪨' };
+              world.floatingText.push({
+                x: e.x + (idx + 1) * 8, y: e.y - 6, vy: -0.7, life: 55,
+                text: `+${v} ${labels[k] || ''}`,
+                color: '#fff5d6'
+              });
+            });
+          }
+          updateResourceBars();
+          onEnemyKilled(e.type);
+          world.enemies.splice(i, 1);
+          continue;
+        }
+
+        if (e.hitFlash > 0) e.hitFlash--;
+        if (e.attackCooldown > 0) e.attackCooldown--;
+        if (e.lungeFrames > 0) e.lungeFrames--;
+
+        // Vision: only target what's within visionRange
+        const distP = Math.hypot(world.player.x - e.x, world.player.y - e.y);
+        const distH = Math.hypot(world.house.x - e.x, world.house.y - e.y);
+        let target = null, dist = Infinity;
+        if (distP < def.visionRange) { target = world.player; dist = distP; }
+        if (distH < def.visionRange && distH < dist) { target = world.house; dist = distH; }
+
+        if (!target) {
+          // Wander toward center of owned area
+          const cdist = Math.hypot(centerX - e.x, centerY - e.y);
+          if (cdist > 8) {
+            const ang = Math.atan2(centerY - e.y, centerX - e.x);
+            e.x += Math.cos(ang) * def.speed * 0.6;
+            e.y += Math.sin(ang) * def.speed * 0.6;
+            e.facing = Math.cos(ang) >= 0 ? 1 : -1;
+          }
+          continue;
+        }
+
+        if (dist > def.range) {
+          // Move toward target — wolves do a periodic lunge dash
+          let moveSpeed = def.speed;
+          if (def.attackType === 'lunge' && e.lungeFrames > 0) moveSpeed = def.speed * 2.2;
+          const ang = Math.atan2(target.y - e.y, target.x - e.x);
+          e.x += Math.cos(ang) * moveSpeed;
+          e.y += Math.sin(ang) * moveSpeed;
+          e.facing = Math.cos(ang) >= 0 ? 1 : -1;
+        } else if (e.attackCooldown <= 0) {
+          if (def.attackType === 'fireball') {
+            // Ranged — shoot a fireball at target
+            const ang = Math.atan2(target.y - e.y, target.x - e.x);
+            const speed = 4.5;
+            world.projectiles.push({
+              x: e.x, y: e.y - 4,
+              vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed,
+              target: target, targetType: target === world.player ? 'player' : 'house',
+              weapon: 'enemy-fireball',
+              damage: def.damage,
+              hostile: true,
+              life: 120
+            });
+          } else if (def.attackType === 'lunge') {
+            // Trigger lunge dash + bite
+            e.lungeFrames = 14;
+            target.hp = Math.max(0, (target.hp || 0) - def.damage);
+            target.hitFlash = 10;
+          } else {
+            // Default melee
+            target.hp = Math.max(0, (target.hp || 0) - def.damage);
+            target.hitFlash = 10;
+          }
+          e.attackCooldown = def.attackRate;
+        }
+      }
+    }
+
+    function hitEnemy(e, dmg) {
+      e.hp -= dmg;
+      e.hitFlash = 6;
+    }
+
+    function drawEnemies() {
+      world.enemies.forEach(e => {
+        const def = enemyTypes[e.type];
+        const t = world.time;
+        const bob = Math.sin(t * 0.01 + e.bobOffset) * 1.2;
+
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.beginPath();
+        ctx.ellipse(e.x, e.y + 12, 10, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Body
+        const color = e.hitFlash > 0 ? '#ffffff' : def.color;
+        const accent = e.hitFlash > 0 ? '#fff' : def.accent;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y + bob, 9, 0, Math.PI * 2);
+        ctx.fill();
+        // Belly
+        ctx.fillStyle = accent;
+        ctx.beginPath();
+        ctx.ellipse(e.x, e.y + 4 + bob, 7, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Head outline (darker arc on top)
+        ctx.fillStyle = accent;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y - 4 + bob, 7, Math.PI, 0);
+        ctx.fill();
+
+        // Glowing red eyes
+        ctx.fillStyle = '#ff3030';
+        ctx.fillRect(e.x - 3, e.y - 3 + bob, 2, 2);
+        ctx.fillRect(e.x + 1, e.y - 3 + bob, 2, 2);
+        ctx.fillStyle = '#ffff00';
+        ctx.fillRect(e.x - 2.5, e.y - 2.5 + bob, 0.8, 0.8);
+        ctx.fillRect(e.x + 1.5, e.y - 2.5 + bob, 0.8, 0.8);
+
+        // Type-specific extras
+        if (e.type === 'wolf') {
+          // Pointy ears
+          ctx.fillStyle = def.color;
+          ctx.beginPath();
+          ctx.moveTo(e.x - 7, e.y - 8 + bob);
+          ctx.lineTo(e.x - 4, e.y - 13 + bob);
+          ctx.lineTo(e.x - 3, e.y - 7 + bob);
+          ctx.closePath(); ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(e.x + 3, e.y - 7 + bob);
+          ctx.lineTo(e.x + 4, e.y - 13 + bob);
+          ctx.lineTo(e.x + 7, e.y - 8 + bob);
+          ctx.closePath(); ctx.fill();
+        } else if (e.type === 'orc' || e.type === 'goblin') {
+          // Tusks
+          ctx.fillStyle = '#fff5d6';
+          ctx.fillRect(e.x - 3, e.y + bob, 1, 3);
+          ctx.fillRect(e.x + 2, e.y + bob, 1, 3);
+        } else if (e.type === 'skeleton') {
+          // Hollow eyes (replace red)
+          ctx.fillStyle = '#000';
+          ctx.fillRect(e.x - 3, e.y - 3 + bob, 2, 3);
+          ctx.fillRect(e.x + 1, e.y - 3 + bob, 2, 3);
+        } else if (e.type === 'imp') {
+          // Horns
+          ctx.fillStyle = '#3a1a1a';
+          ctx.beginPath();
+          ctx.moveTo(e.x - 5, e.y - 9 + bob);
+          ctx.lineTo(e.x - 7, e.y - 13 + bob);
+          ctx.lineTo(e.x - 3, e.y - 8 + bob);
+          ctx.closePath(); ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(e.x + 3, e.y - 8 + bob);
+          ctx.lineTo(e.x + 7, e.y - 13 + bob);
+          ctx.lineTo(e.x + 5, e.y - 9 + bob);
+          ctx.closePath(); ctx.fill();
+        } else if (e.type === 'slime') {
+          // Glossy highlight
+          ctx.fillStyle = 'rgba(255,255,255,0.5)';
+          ctx.beginPath();
+          ctx.ellipse(e.x - 3, e.y - 4 + bob, 3, 1.5, -0.3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // HP bar above
+        const hpRatio = e.hp / e.maxHp;
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.fillRect(e.x - 12, e.y - 22, 24, 4);
+        ctx.fillStyle = hpRatio > 0.5 ? '#4d8a35' : (hpRatio > 0.25 ? '#fbbf24' : '#e74c3c');
+        ctx.fillRect(e.x - 11, e.y - 21, 22 * hpRatio, 2);
+      });
+    }
+
+    function drawHpBars() {
+      // Player HP bar above sprite (only if damaged)
+      const p = world.player;
+      if (p.hp < p.maxHp) {
+        const ratio = p.hp / p.maxHp;
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.fillRect(p.x - 16, p.y - 22, 32, 5);
+        ctx.fillStyle = ratio > 0.5 ? '#4d8a35' : (ratio > 0.25 ? '#fbbf24' : '#e74c3c');
+        ctx.fillRect(p.x - 15, p.y - 21, 30 * ratio, 3);
+      }
+      // House HP bar above shelter (only if damaged)
+      const h = world.house;
+      if (h.hp < h.maxHp) {
+        const ratio = h.hp / h.maxHp;
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(h.x - 40, h.y - 70, 80, 7);
+        ctx.fillStyle = ratio > 0.5 ? '#4d8a35' : (ratio > 0.25 ? '#fbbf24' : '#e74c3c');
+        ctx.fillRect(h.x - 39, h.y - 69, 78 * ratio, 5);
+      }
+    }
+
+    function drawSwingArc() {
+      if (!world.swingArc) return;
+      const a = world.swingArc;
+      a.life--;
+      if (a.life <= 0) { world.swingArc = null; return; }
+
+      const totalLife = a.totalLife || 12;
+      const progress = 1 - a.life / totalLife; // 0 → 1
+      const targetAng = Math.atan2(a.target.y - a.y, a.target.x - a.x);
+
+      ctx.save();
+      ctx.translate(a.x, a.y - 4);
+      ctx.rotate(targetAng);
+
+      if (a.mode === 'stab') {
+        // Forward thrust — sword extends and retracts
+        const reach = 20 + Math.sin(progress * Math.PI) * 28;
+        const fade = 1 - Math.abs(progress - 0.5) * 1.6;
+        // Bright thrust line
+        ctx.strokeStyle = `rgba(255, 255, 255, ${fade})`;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(8, 0);
+        ctx.lineTo(reach, 0);
+        ctx.stroke();
+        // Gold glow
+        ctx.strokeStyle = `rgba(255, 220, 100, ${fade * 0.6})`;
+        ctx.lineWidth = 9;
+        ctx.beginPath();
+        ctx.moveTo(8, 0);
+        ctx.lineTo(reach, 0);
+        ctx.stroke();
+        // Tip flash
+        ctx.fillStyle = `rgba(255, 255, 220, ${fade})`;
+        ctx.beginPath();
+        ctx.arc(reach, 0, 5, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // Sweeping swing arc (default for swords, axes, katana, hammer)
+        const sweep = 1.6; // ~90 degrees
+        const startAng = -sweep / 2 + progress * sweep;
+        const endAng = startAng + 0.5;
+        const fade = 1 - progress * 0.5;
+        // Outer slash (bright)
+        ctx.strokeStyle = `rgba(255, 255, 255, ${fade})`;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(0, 0, 36, startAng, endAng);
+        ctx.stroke();
+        // Inner gold glow
+        ctx.strokeStyle = `rgba(255, 220, 100, ${fade * 0.7})`;
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        ctx.arc(0, 0, 36, startAng, endAng);
+        ctx.stroke();
+        // Trailing sparkle at swing tip
+        const tipX = Math.cos(endAng) * 36;
+        const tipY = Math.sin(endAng) * 36;
+        ctx.fillStyle = `rgba(255, 255, 220, ${fade})`;
+        ctx.beginPath();
+        ctx.arc(tipX, tipY, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // On-screen D-pad (for mobile + as backup)
+    document.querySelectorAll('.dpad-btn').forEach(btn => {
+      const key = btn.dataset.key;
+      const press = (e) => { e.preventDefault(); keysPressed.add(key); btn.classList.add('pressed'); };
+      const release = (e) => { if (e) e.preventDefault(); keysPressed.delete(key); btn.classList.remove('pressed'); };
+      btn.addEventListener('mousedown', press);
+      btn.addEventListener('mouseup', release);
+      btn.addEventListener('mouseleave', release);
+      btn.addEventListener('touchstart', press, { passive: false });
+      btn.addEventListener('touchend', release, { passive: false });
+      btn.addEventListener('touchcancel', release, { passive: false });
+    });
+
+    function stopGame() {
+      gameRunning = false;
+      if (animationId) cancelAnimationFrame(animationId);
+    }
+
+    // ===== ENEMIES =====
+    // Each enemy ALWAYS drops some power. lootChance is the extra chance for wood/stone.
+    const enemyTypes = {
+      goblin: {
+        name: 'Goblin', emoji: '👹',
+        hp: 12, speed: 1.0, damage: 4, attackRate: 60, range: 28,
+        visionRange: 260, attackType: 'melee',
+        color: '#5a8228', accent: '#3a5018',
+        powerDrop: 40, lootChance: 0.55, lootTable: { wood: 2 }
+      },
+      wolf: {
+        name: 'Wolf', emoji: '🐺',
+        hp: 9,  speed: 1.7, damage: 3, attackRate: 45, range: 26,
+        visionRange: 340, attackType: 'lunge',
+        color: '#5a4530', accent: '#2a2010',
+        powerDrop: 35, lootChance: 0.45, lootTable: { wood: 2 }
+      },
+      skeleton: {
+        name: 'Skeleton', emoji: '💀',
+        hp: 18, speed: 0.9, damage: 5, attackRate: 65, range: 32,
+        visionRange: 220, attackType: 'melee',
+        color: '#e8e4d4', accent: '#7a7268',
+        powerDrop: 45, lootChance: 0.55, lootTable: { stone: 2 }
+      },
+      orc: {
+        name: 'Orc', emoji: '🧌',
+        hp: 30, speed: 0.7, damage: 8, attackRate: 80, range: 34,
+        visionRange: 280, attackType: 'melee',
+        color: '#3d6e2a', accent: '#1a3d10',
+        powerDrop: 80, lootChance: 0.70, lootTable: { stone: 3 }
+      },
+      imp: {
+        name: 'Imp', emoji: '😈',
+        hp: 10, speed: 1.0, damage: 6, attackRate: 80, range: 160,
+        visionRange: 360, attackType: 'fireball',
+        color: '#c12d1f', accent: '#7a1a10',
+        powerDrop: 50, lootChance: 0.50, lootTable: { wood: 2 }
+      },
+      slime: {
+        name: 'Slime', emoji: '🟢',
+        hp: 8,  speed: 0.6, damage: 3, attackRate: 70, range: 24,
+        visionRange: 180, attackType: 'melee',
+        color: '#2ed573', accent: '#0a6a3a',
+        powerDrop: 30, lootChance: 0.40, lootTable: { wood: 2 }
+      }
+    };
+
+    function spawnPool() {
+      const pool = [];
+      const add = (type, n) => { for (let i = 0; i < n; i++) pool.push(type); };
+      ['tree-oak','tree-pine','tree-birch','tree-maple','tree-willow'].forEach(t => add(t, 4));
+      ['stone-pebble','stone-boulder','stone-large','stone-mossy','stone-slate'].forEach(t => add(t, 4));
+      ['bush-round','bush-berry','bush-yellow','bush-purple','bush-thorny'].forEach(t => add(t, 2));
+      ['gem-green','gem-red','gem-blue'].forEach(t => add(t, 1));
+      return pool;
+    }
+
+    // HP + loot table per decoration type
+    const resourceLoot = {
+      'tree-oak':    { hp: 3, drop: { wood: 12 } },
+      'tree-pine':   { hp: 3, drop: { wood: 10 } },
+      'tree-birch':  { hp: 3, drop: { wood: 9 } },
+      'tree-maple':  { hp: 3, drop: { wood: 11 } },
+      'tree-willow': { hp: 3, drop: { wood: 14 } },
+      'stone-pebble':  { hp: 1, drop: { stone: 3 } },
+      'stone-boulder': { hp: 4, drop: { stone: 10 } },
+      'stone-large':   { hp: 6, drop: { stone: 18 } },
+      'stone-mossy':   { hp: 4, drop: { stone: 10 } },
+      'stone-slate':   { hp: 5, drop: { stone: 14 } },
+      'bush-round':  { hp: 2, drop: { wood: 3 } },
+      'bush-berry':  { hp: 2, drop: { wood: 3 } },
+      'bush-yellow': { hp: 2, drop: { wood: 3 } },
+      'bush-purple': { hp: 2, drop: { wood: 3 } },
+      'bush-thorny': { hp: 2, drop: { wood: 5 } },
+      'gem-green':   { hp: 1, drop: { gemGreen: 1 } },
+      'gem-red':     { hp: 1, drop: { gemRed: 1 } },
+      'gem-blue':    { hp: 1, drop: { gemBlue: 1 } }
+    };
+    function spawnDecoration(type, x, y) {
+      const info = resourceLoot[type] || { hp: 1 };
+      return { type, x, y, hp: info.hp, maxHp: info.hp };
+    }
+
+    // Check if (x, y) is in the area reserved for shelter + player spawn
+    function isReservedArea(x, y) {
+      const dxh = x - world.house.x;
+      const dyh = y - world.house.y;
+      // Skip a ~120x120 area around the shelter
+      return Math.abs(dxh) < 70 && dyh > -70 && dyh < 90;
+    }
+
+    function generateDecorations() {
+      const items = [];
+      const owned = exState.sections.filter(s => s.type === 'owned');
+      const ts = world.tileSize;
+      const sectionPx = ts * 3;
+      const pool = spawnPool();
+      owned.forEach(sec => {
+        const sx = world.originX + sec.col * sectionPx;
+        const sy = world.originY + sec.row * sectionPx;
+        for (let r = 0; r < 3; r++) {
+          for (let c = 0; c < 3; c++) {
+            const tx = sx + c * ts + ts / 2 + (Math.random() - 0.5) * 12;
+            const ty = sy + r * ts + ts / 2 + (Math.random() - 0.5) * 12;
+            if (isReservedArea(tx, ty)) continue;
+            if (Math.random() < 0.18) {
+              const type = pool[Math.floor(Math.random() * pool.length)];
+              items.push(spawnDecoration(type, tx, ty));
+            }
+          }
+        }
+      });
+      items.sort((a, b) => a.y - b.y);
+      return items;
+    }
+
+    function addDecorationsForSection(sec) {
+      const ts = world.tileSize;
+      const sectionPx = ts * 3;
+      const sx = world.originX + sec.col * sectionPx;
+      const sy = world.originY + sec.row * sectionPx;
+      const pool = spawnPool();
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          const tx = sx + c * ts + ts / 2 + (Math.random() - 0.5) * 12;
+          const ty = sy + r * ts + ts / 2 + (Math.random() - 0.5) * 12;
+          if (isReservedArea(tx, ty)) continue;
+          if (Math.random() < 0.18) {
+            const type = pool[Math.floor(Math.random() * pool.length)];
+            world.decorations.push(spawnDecoration(type, tx, ty));
+          }
+        }
+      }
+      world.decorations.sort((a, b) => a.y - b.y);
+    }
+
+    function recomputeFieldBBox() {
+      if (!world) return;
+      const owned = exState.sections.filter(s => s.type === 'owned');
+      if (owned.length === 0) return;
+      let minCol = Infinity, maxCol = -Infinity, minRow = Infinity, maxRow = -Infinity;
+      owned.forEach(s => {
+        if (s.col < minCol) minCol = s.col;
+        if (s.col > maxCol) maxCol = s.col;
+        if (s.row < minRow) minRow = s.row;
+        if (s.row > maxRow) maxRow = s.row;
+      });
+      const sectionPx = world.tileSize * 3;
+      world.fieldX = world.originX + minCol * sectionPx;
+      world.fieldY = world.originY + minRow * sectionPx;
+      world.fieldW = (maxCol - minCol + 1) * sectionPx;
+      world.fieldH = (maxRow - minRow + 1) * sectionPx;
+    }
+
+    function isPositionInOwnedArea(x, y) {
+      const sectionPx = world.tileSize * 3;
+      const sCol = Math.floor((x - world.originX) / sectionPx);
+      const sRow = Math.floor((y - world.originY) / sectionPx);
+      return exState.sections.some(s =>
+        s.type === 'owned' && s.col === sCol && s.row === sRow
+      );
+    }
+
+    function drawGround() {
+      // Dark void background covers the camera view
+      const cam = world.camera || { x: 0, y: 0 };
+      ctx.fillStyle = '#1a1410';
+      ctx.fillRect(cam.x - 100, cam.y - 100, canvas.width + 200, canvas.height + 200);
+
+      const owned = exState.sections.filter(s => s.type === 'owned');
+      const ts = world.tileSize;
+      const sectionPx = ts * 3;
+
+      // Grass tiles per owned section
+      owned.forEach(sec => {
+        const sx = world.originX + sec.col * sectionPx;
+        const sy = world.originY + sec.row * sectionPx;
+        for (let r = 0; r < 3; r++) {
+          for (let c = 0; c < 3; c++) {
+            const tx = sx + c * ts;
+            const ty = sy + r * ts;
+            const gc = sec.col * 3 + c;
+            const gr = sec.row * 3 + r;
+            const isEven = (gc + gr) % 2 === 0;
+            ctx.fillStyle = isEven ? '#8fb84a' : '#82ad42';
+            ctx.fillRect(tx, ty, ts, ts);
+            ctx.fillStyle = 'rgba(60, 90, 30, 0.35)';
+            ctx.fillRect(tx + 12, ty + 18, 2, 2);
+            ctx.fillRect(tx + 38, ty + 8, 2, 2);
+            ctx.fillRect(tx + 24, ty + 42, 2, 2);
+            ctx.fillRect(tx + 50, ty + 36, 2, 2);
+          }
+        }
+      });
+
+      // Inner grid lines
+      ctx.strokeStyle = 'rgba(50, 75, 25, 0.35)';
+      ctx.lineWidth = 1;
+      owned.forEach(sec => {
+        const sx = world.originX + sec.col * sectionPx;
+        const sy = world.originY + sec.row * sectionPx;
+        for (let i = 0; i <= 3; i++) {
+          ctx.beginPath();
+          ctx.moveTo(sx + i * ts, sy);
+          ctx.lineTo(sx + i * ts, sy + sectionPx);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(sx, sy + i * ts);
+          ctx.lineTo(sx + sectionPx, sy + i * ts);
+          ctx.stroke();
+        }
+      });
+
+      // Outer border on edges of owned area (only sides without an owned neighbor)
+      ctx.strokeStyle = 'rgba(40, 25, 15, 0.85)';
+      ctx.lineWidth = 4;
+      owned.forEach(sec => {
+        const sx = world.originX + sec.col * sectionPx;
+        const sy = world.originY + sec.row * sectionPx;
+        const has = (dr, dc) => owned.some(o => o.row === sec.row + dr && o.col === sec.col + dc);
+        if (!has(-1, 0)) {
+          ctx.beginPath();
+          ctx.moveTo(sx, sy);
+          ctx.lineTo(sx + sectionPx, sy);
+          ctx.stroke();
+        }
+        if (!has(1, 0)) {
+          ctx.beginPath();
+          ctx.moveTo(sx, sy + sectionPx);
+          ctx.lineTo(sx + sectionPx, sy + sectionPx);
+          ctx.stroke();
+        }
+        if (!has(0, -1)) {
+          ctx.beginPath();
+          ctx.moveTo(sx, sy);
+          ctx.lineTo(sx, sy + sectionPx);
+          ctx.stroke();
+        }
+        if (!has(0, 1)) {
+          ctx.beginPath();
+          ctx.moveTo(sx + sectionPx, sy);
+          ctx.lineTo(sx + sectionPx, sy + sectionPx);
+          ctx.stroke();
+        }
+      });
+    }
+
+    function drawDecorations() {
+      world.decorations.forEach(d => drawResource(d.type, d.x, d.y, world.time));
+    }
+
+    function shadow(x, y, w, h) {
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(x, y, w, h, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawResource(type, x, y, t) {
+      switch (type) {
+        // ===== TREES =====
+        case 'tree-oak': {
+          shadow(x + 4, y + 22, 20, 6);
+          // Trunk with bark texture
+          ctx.fillStyle = '#4a2e18';
+          ctx.fillRect(x - 5, y + 2, 10, 22);
+          ctx.fillStyle = '#6b4023';
+          ctx.fillRect(x - 5, y + 2, 4, 22);
+          // Bark lines
+          ctx.strokeStyle = '#2a1a0a';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x - 3, y + 4); ctx.lineTo(x - 3, y + 22);
+          ctx.moveTo(x + 1, y + 6); ctx.lineTo(x + 1, y + 20);
+          ctx.moveTo(x + 3, y + 8); ctx.lineTo(x + 3, y + 18);
+          ctx.stroke();
+          // Roots at base
+          ctx.fillStyle = '#4a2e18';
+          ctx.beginPath();
+          ctx.ellipse(x, y + 24, 10, 3, 0, 0, Math.PI * 2);
+          ctx.fill();
+          // Foliage — multiple layered clumps for depth
+          const clumps = [
+            { dx: 0, dy: -14, r: 18, c: '#2d5a1a' },
+            { dx: -10, dy: -10, r: 12, c: '#3d6e2a' },
+            { dx: 10, dy: -8, r: 13, c: '#3d6e2a' },
+            { dx: -3, dy: -22, r: 11, c: '#4d8a35' },
+            { dx: 8, dy: -18, r: 10, c: '#4d8a35' },
+            { dx: -8, dy: -20, r: 8, c: '#5fa040' },
+            { dx: 4, dy: -25, r: 7, c: '#5fa040' }
+          ];
+          clumps.forEach(c => {
+            ctx.fillStyle = c.c;
+            ctx.beginPath(); ctx.arc(x + c.dx, y + c.dy, c.r, 0, Math.PI * 2); ctx.fill();
+          });
+          // Highlight from top-left
+          ctx.fillStyle = 'rgba(180, 220, 130, 0.4)';
+          ctx.beginPath(); ctx.arc(x - 10, y - 20, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(x - 5, y - 25, 3, 0, Math.PI * 2); ctx.fill();
+          break;
+        }
+        case 'tree-pine': {
+          shadow(x + 3, y + 24, 14, 5);
+          // Trunk
+          ctx.fillStyle = '#3a1f0e';
+          ctx.fillRect(x - 3, y + 8, 6, 18);
+          ctx.fillStyle = '#5a3018';
+          ctx.fillRect(x - 3, y + 8, 2, 18);
+          // Pine tiers — bottom to top
+          const tiers = [
+            { dy: 12, w: 16, h: 12, c: '#1a3d18' },
+            { dy: 2, w: 14, h: 11, c: '#1f4d1f' },
+            { dy: -8, w: 12, h: 10, c: '#246025' },
+            { dy: -18, w: 9, h: 9, c: '#2a7028' },
+            { dy: -26, w: 6, h: 7, c: '#308032' }
+          ];
+          tiers.forEach(tier => {
+            ctx.fillStyle = tier.c;
+            ctx.beginPath();
+            ctx.moveTo(x - tier.w, y + tier.dy);
+            ctx.lineTo(x + tier.w, y + tier.dy);
+            ctx.lineTo(x, y + tier.dy - tier.h);
+            ctx.closePath();
+            ctx.fill();
+            // Left side highlight
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+            ctx.beginPath();
+            ctx.moveTo(x - tier.w, y + tier.dy);
+            ctx.lineTo(x, y + tier.dy - tier.h);
+            ctx.lineTo(x - tier.w * 0.3, y + tier.dy);
+            ctx.closePath();
+            ctx.fill();
+          });
+          // Tiny needles texture
+          ctx.strokeStyle = 'rgba(20, 50, 20, 0.5)';
+          ctx.lineWidth = 0.5;
+          for (let i = 0; i < 6; i++) {
+            const ny = y - 20 + i * 7;
+            ctx.beginPath();
+            ctx.moveTo(x - 8, ny); ctx.lineTo(x + 8, ny);
+            ctx.stroke();
+          }
+          break;
+        }
+        case 'tree-birch': {
+          shadow(x + 3, y + 22, 14, 5);
+          // White trunk with subtle gradient
+          ctx.fillStyle = '#e8e4d4';
+          ctx.fillRect(x - 4, y + 2, 8, 22);
+          ctx.fillStyle = '#c4c0b0';
+          ctx.fillRect(x + 2, y + 2, 2, 22);
+          ctx.fillStyle = '#f5f1e1';
+          ctx.fillRect(x - 4, y + 2, 2, 22);
+          // Bark markings (dark horizontal patches)
+          ctx.fillStyle = '#2a2a2a';
+          ctx.fillRect(x - 4, y + 5, 8, 1.5);
+          ctx.fillRect(x - 4, y + 12, 6, 1.5);
+          ctx.fillRect(x - 2, y + 18, 6, 1.5);
+          ctx.fillRect(x - 3, y + 9, 3, 1);
+          // Foliage layers
+          const clumps = [
+            { dx: -8, dy: -8, r: 10, c: '#5d8a2a' },
+            { dx: 8, dy: -6, r: 11, c: '#5d8a2a' },
+            { dx: 0, dy: -14, r: 12, c: '#7aa83a' },
+            { dx: -6, dy: -18, r: 8, c: '#8fb84a' },
+            { dx: 7, dy: -16, r: 7, c: '#8fb84a' },
+            { dx: -2, dy: -22, r: 6, c: '#a5cf5a' }
+          ];
+          clumps.forEach(c => {
+            ctx.fillStyle = c.c;
+            ctx.beginPath(); ctx.arc(x + c.dx, y + c.dy, c.r, 0, Math.PI * 2); ctx.fill();
+          });
+          // Sparkle on top
+          ctx.fillStyle = 'rgba(220, 240, 160, 0.5)';
+          ctx.beginPath(); ctx.arc(x - 5, y - 20, 2, 0, Math.PI * 2); ctx.fill();
+          break;
+        }
+        case 'tree-maple': {
+          shadow(x + 4, y + 22, 20, 6);
+          // Trunk
+          ctx.fillStyle = '#3a2010';
+          ctx.fillRect(x - 5, y + 2, 10, 22);
+          ctx.fillStyle = '#5a3520';
+          ctx.fillRect(x - 5, y + 2, 4, 22);
+          ctx.strokeStyle = '#1a0a05';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x - 2, y + 4); ctx.lineTo(x - 2, y + 22);
+          ctx.moveTo(x + 2, y + 6); ctx.lineTo(x + 2, y + 20);
+          ctx.stroke();
+          // Autumn foliage — layers from deep red to yellow
+          const clumps = [
+            { dx: 0, dy: -12, r: 18, c: '#7a2010' },
+            { dx: -10, dy: -8, r: 12, c: '#a8331a' },
+            { dx: 11, dy: -10, r: 11, c: '#a8331a' },
+            { dx: -4, dy: -20, r: 11, c: '#d4451a' },
+            { dx: 8, dy: -18, r: 10, c: '#e0552a' },
+            { dx: -8, dy: -22, r: 8, c: '#f5743a' },
+            { dx: 3, dy: -26, r: 7, c: '#fbbf24' },
+            { dx: -2, dy: -16, r: 6, c: '#fc8c30' }
+          ];
+          clumps.forEach(c => {
+            ctx.fillStyle = c.c;
+            ctx.beginPath(); ctx.arc(x + c.dx, y + c.dy, c.r, 0, Math.PI * 2); ctx.fill();
+          });
+          // Highlight specks
+          ctx.fillStyle = 'rgba(255, 220, 100, 0.6)';
+          ctx.beginPath(); ctx.arc(x + 5, y - 22, 2, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(x - 8, y - 18, 1.5, 0, Math.PI * 2); ctx.fill();
+          break;
+        }
+        case 'tree-willow': {
+          shadow(x + 4, y + 22, 22, 6);
+          // Trunk
+          ctx.fillStyle = '#4a2e18';
+          ctx.fillRect(x - 4, y + 2, 8, 22);
+          ctx.fillStyle = '#6b4023';
+          ctx.fillRect(x - 4, y + 2, 3, 22);
+          // Canopy (wider, soft)
+          ctx.fillStyle = '#6a8c4a';
+          ctx.beginPath(); ctx.ellipse(x, y - 8, 22, 14, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#8fb86a';
+          ctx.beginPath(); ctx.ellipse(x - 5, y - 12, 14, 9, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#a5cf7a';
+          ctx.beginPath(); ctx.ellipse(x - 8, y - 15, 7, 4, 0, 0, Math.PI * 2); ctx.fill();
+          // Drooping strands with varying length
+          ctx.strokeStyle = '#7aa860';
+          ctx.lineWidth = 1.2;
+          for (let i = -5; i <= 5; i++) {
+            const dropX = x + i * 3.5;
+            const dropLen = 10 + Math.abs(i) * 1.5 + (i % 2 ? 3 : 0);
+            const startY = y + 2 - Math.abs(i) * 0.5;
+            ctx.beginPath();
+            ctx.moveTo(dropX, startY);
+            ctx.quadraticCurveTo(dropX + i * 0.3, startY + dropLen * 0.5, dropX + i * 0.8, startY + dropLen);
+            ctx.stroke();
+          }
+          // Smaller darker strands behind
+          ctx.strokeStyle = '#5a8848';
+          ctx.lineWidth = 0.7;
+          for (let i = -4; i <= 4; i++) {
+            ctx.beginPath();
+            ctx.moveTo(x + i * 4, y + 4);
+            ctx.lineTo(x + i * 4, y + 14);
+            ctx.stroke();
+          }
+          break;
+        }
+
+        // ===== STONES =====
+        case 'stone-pebble': {
+          shadow(x + 2, y + 6, 8, 2);
+          // Two small pebbles
+          ctx.fillStyle = '#7a7268';
+          ctx.beginPath(); ctx.ellipse(x - 3, y, 5, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#9c9088';
+          ctx.beginPath(); ctx.ellipse(x + 3, y + 1, 6, 4, 0, 0, Math.PI * 2); ctx.fill();
+          // Highlights
+          ctx.fillStyle = '#bcb0a8';
+          ctx.beginPath(); ctx.ellipse(x - 4, y - 1, 2.5, 1.2, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(x + 1, y, 3, 1.5, 0, 0, Math.PI * 2); ctx.fill();
+          // Crack
+          ctx.strokeStyle = 'rgba(40,30,20,0.4)';
+          ctx.lineWidth = 0.6;
+          ctx.beginPath();
+          ctx.moveTo(x + 2, y - 1); ctx.lineTo(x + 6, y + 2);
+          ctx.stroke();
+          break;
+        }
+        case 'stone-boulder': {
+          shadow(x + 3, y + 10, 14, 5);
+          // Main body — angular polygon
+          ctx.fillStyle = '#7a6e60';
+          ctx.beginPath();
+          ctx.moveTo(x - 12, y + 4);
+          ctx.lineTo(x - 11, y - 4);
+          ctx.lineTo(x - 5, y - 9);
+          ctx.lineTo(x + 6, y - 8);
+          ctx.lineTo(x + 12, y - 1);
+          ctx.lineTo(x + 11, y + 6);
+          ctx.lineTo(x + 4, y + 9);
+          ctx.lineTo(x - 8, y + 8);
+          ctx.closePath();
+          ctx.fill();
+          // Top light face
+          ctx.fillStyle = '#a89888';
+          ctx.beginPath();
+          ctx.moveTo(x - 11, y - 4);
+          ctx.lineTo(x - 5, y - 9);
+          ctx.lineTo(x + 6, y - 8);
+          ctx.lineTo(x + 3, y - 3);
+          ctx.lineTo(x - 6, y - 2);
+          ctx.closePath();
+          ctx.fill();
+          // Highlight
+          ctx.fillStyle = '#c4b8a8';
+          ctx.beginPath();
+          ctx.moveTo(x - 5, y - 9);
+          ctx.lineTo(x + 2, y - 8);
+          ctx.lineTo(x - 1, y - 5);
+          ctx.closePath();
+          ctx.fill();
+          // Cracks
+          ctx.strokeStyle = 'rgba(30,20,10,0.5)';
+          ctx.lineWidth = 0.8;
+          ctx.beginPath();
+          ctx.moveTo(x - 3, y - 2); ctx.lineTo(x + 1, y + 6);
+          ctx.moveTo(x + 5, y - 4); ctx.lineTo(x + 8, y + 5);
+          ctx.stroke();
+          break;
+        }
+        case 'stone-large': {
+          shadow(x + 4, y + 16, 22, 6);
+          // Three rocks clustered
+          ctx.fillStyle = '#5a4a3a';
+          ctx.beginPath();
+          ctx.moveTo(x - 18, y + 10);
+          ctx.lineTo(x - 16, y - 8);
+          ctx.lineTo(x - 5, y - 15);
+          ctx.lineTo(x + 10, y - 11);
+          ctx.lineTo(x + 18, y - 2);
+          ctx.lineTo(x + 16, y + 12);
+          ctx.lineTo(x - 4, y + 16);
+          ctx.closePath();
+          ctx.fill();
+          // Lit faces (top-left)
+          ctx.fillStyle = '#7a6a5a';
+          ctx.beginPath();
+          ctx.moveTo(x - 16, y - 8);
+          ctx.lineTo(x - 5, y - 15);
+          ctx.lineTo(x + 4, y - 9);
+          ctx.lineTo(x - 10, y - 2);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = '#9a8a7a';
+          ctx.beginPath();
+          ctx.moveTo(x - 12, y - 6);
+          ctx.lineTo(x - 5, y - 13);
+          ctx.lineTo(x - 2, y - 9);
+          ctx.lineTo(x - 8, y - 5);
+          ctx.closePath();
+          ctx.fill();
+          // Second peak
+          ctx.fillStyle = '#7a6a5a';
+          ctx.beginPath();
+          ctx.moveTo(x + 4, y - 9);
+          ctx.lineTo(x + 10, y - 11);
+          ctx.lineTo(x + 14, y - 4);
+          ctx.lineTo(x + 8, y - 2);
+          ctx.closePath();
+          ctx.fill();
+          // Cracks
+          ctx.strokeStyle = 'rgba(20,10,5,0.6)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x - 5, y - 13); ctx.lineTo(x - 3, y + 8);
+          ctx.moveTo(x + 6, y - 10); ctx.lineTo(x + 10, y + 10);
+          ctx.moveTo(x - 12, y - 4); ctx.lineTo(x - 10, y + 10);
+          ctx.stroke();
+          // Small chips at base
+          ctx.fillStyle = '#5a4a3a';
+          ctx.beginPath(); ctx.arc(x - 14, y + 14, 2, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(x + 12, y + 14, 1.5, 0, Math.PI * 2); ctx.fill();
+          break;
+        }
+        case 'stone-mossy': {
+          shadow(x + 3, y + 12, 14, 5);
+          // Stone body
+          ctx.fillStyle = '#6a5a4a';
+          ctx.beginPath();
+          ctx.moveTo(x - 13, y + 4);
+          ctx.lineTo(x - 11, y - 6);
+          ctx.lineTo(x - 2, y - 11);
+          ctx.lineTo(x + 9, y - 9);
+          ctx.lineTo(x + 13, y - 1);
+          ctx.lineTo(x + 11, y + 9);
+          ctx.lineTo(x - 5, y + 11);
+          ctx.closePath();
+          ctx.fill();
+          // Top lighter face
+          ctx.fillStyle = '#8a7a6a';
+          ctx.beginPath();
+          ctx.moveTo(x - 11, y - 6);
+          ctx.lineTo(x - 2, y - 11);
+          ctx.lineTo(x + 4, y - 6);
+          ctx.lineTo(x - 8, y - 1);
+          ctx.closePath();
+          ctx.fill();
+          // Moss patches — varied greens
+          ctx.fillStyle = '#2a5018';
+          ctx.beginPath();
+          ctx.ellipse(x - 8, y + 4, 6, 3.5, -0.3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.ellipse(x + 6, y + 6, 7, 4, 0.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.ellipse(x - 1, y - 7, 5, 3, 0.1, 0, Math.PI * 2);
+          ctx.fill();
+          // Lighter moss tops
+          ctx.fillStyle = '#4d8a35';
+          ctx.beginPath(); ctx.arc(x - 8, y + 2, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(x + 6, y + 4, 5, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(x - 1, y - 8, 3.5, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#5fa040';
+          ctx.beginPath(); ctx.arc(x + 4, y + 2, 2, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(x - 6, y, 1.5, 0, Math.PI * 2); ctx.fill();
+          // Sprouts of grass
+          ctx.strokeStyle = '#3d6e2a';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x - 6, y - 6); ctx.lineTo(x - 6, y - 10);
+          ctx.moveTo(x + 3, y - 8); ctx.lineTo(x + 3, y - 12);
+          ctx.stroke();
+          break;
+        }
+        case 'stone-slate': {
+          shadow(x + 3, y + 11, 14, 5);
+          // Dark slate body — sharper angular shape
+          ctx.fillStyle = '#2a2a3a';
+          ctx.beginPath();
+          ctx.moveTo(x - 13, y + 6);
+          ctx.lineTo(x - 12, y - 7);
+          ctx.lineTo(x + 3, y - 12);
+          ctx.lineTo(x + 13, y - 4);
+          ctx.lineTo(x + 12, y + 8);
+          ctx.lineTo(x - 3, y + 11);
+          ctx.closePath();
+          ctx.fill();
+          // Mid-tone face
+          ctx.fillStyle = '#4a4a5a';
+          ctx.beginPath();
+          ctx.moveTo(x - 12, y - 7);
+          ctx.lineTo(x + 3, y - 12);
+          ctx.lineTo(x + 8, y - 4);
+          ctx.lineTo(x - 6, y - 1);
+          ctx.closePath();
+          ctx.fill();
+          // Top highlight
+          ctx.fillStyle = '#6a6a7a';
+          ctx.beginPath();
+          ctx.moveTo(x - 8, y - 6);
+          ctx.lineTo(x + 1, y - 11);
+          ctx.lineTo(x + 4, y - 7);
+          ctx.lineTo(x - 4, y - 4);
+          ctx.closePath();
+          ctx.fill();
+          // Sharp cracks
+          ctx.strokeStyle = 'rgba(10,10,20,0.85)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x - 9, y - 5); ctx.lineTo(x + 5, y + 7);
+          ctx.moveTo(x - 2, y - 10); ctx.lineTo(x + 4, y + 9);
+          ctx.moveTo(x + 6, y - 5); ctx.lineTo(x + 9, y + 6);
+          ctx.stroke();
+          // Subtle bluish sheen
+          ctx.fillStyle = 'rgba(120, 140, 180, 0.15)';
+          ctx.beginPath();
+          ctx.moveTo(x - 6, y - 8);
+          ctx.lineTo(x, y - 10);
+          ctx.lineTo(x, y - 6);
+          ctx.lineTo(x - 5, y - 4);
+          ctx.closePath();
+          ctx.fill();
+          break;
+        }
+
+        // ===== BUSHES =====
+        case 'bush-round': {
+          shadow(x + 3, y + 10, 16, 5);
+          // Multiple layered clumps
+          const clumps = [
+            { dx: -7, dy: 0, r: 9, c: '#2a5a1a' },
+            { dx: 7, dy: 0, r: 9, c: '#2a5a1a' },
+            { dx: 0, dy: -6, r: 10, c: '#3d6e2a' },
+            { dx: -4, dy: -3, r: 7, c: '#4d8a35' },
+            { dx: 5, dy: -2, r: 6, c: '#4d8a35' },
+            { dx: -2, dy: -10, r: 5, c: '#5fa040' },
+            { dx: 3, dy: -8, r: 4, c: '#5fa040' }
+          ];
+          clumps.forEach(c => {
+            ctx.fillStyle = c.c;
+            ctx.beginPath(); ctx.arc(x + c.dx, y + c.dy, c.r, 0, Math.PI * 2); ctx.fill();
+          });
+          // Top highlights
+          ctx.fillStyle = 'rgba(160, 200, 100, 0.5)';
+          ctx.beginPath(); ctx.arc(x - 3, y - 9, 2, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(x + 3, y - 7, 1.5, 0, Math.PI * 2); ctx.fill();
+          break;
+        }
+        case 'bush-berry': {
+          shadow(x + 3, y + 10, 14, 5);
+          // Darker foliage
+          const clumps = [
+            { dx: -6, dy: 0, r: 8, c: '#1a3d10' },
+            { dx: 6, dy: 0, r: 8, c: '#1a3d10' },
+            { dx: 0, dy: -5, r: 9, c: '#2a5018' },
+            { dx: -3, dy: -3, r: 6, c: '#3d6e2a' },
+            { dx: 4, dy: -2, r: 6, c: '#3d6e2a' },
+            { dx: 0, dy: -9, r: 4, c: '#4d8a35' }
+          ];
+          clumps.forEach(c => {
+            ctx.fillStyle = c.c;
+            ctx.beginPath(); ctx.arc(x + c.dx, y + c.dy, c.r, 0, Math.PI * 2); ctx.fill();
+          });
+          // Berries with shadows and highlights
+          const berries = [[-5, -2], [4, -1], [0, 3], [-7, 3], [6, 4], [2, -6], [-2, 0], [5, -5]];
+          berries.forEach(([dx, dy]) => {
+            // Berry shadow
+            ctx.fillStyle = '#6a1010';
+            ctx.beginPath(); ctx.arc(x + dx + 0.5, y + dy + 0.5, 2.2, 0, Math.PI * 2); ctx.fill();
+            // Berry main
+            ctx.fillStyle = '#c13a3a';
+            ctx.beginPath(); ctx.arc(x + dx, y + dy, 2, 0, Math.PI * 2); ctx.fill();
+            // Highlight
+            ctx.fillStyle = '#e85a5a';
+            ctx.beginPath(); ctx.arc(x + dx - 0.7, y + dy - 0.7, 0.7, 0, Math.PI * 2); ctx.fill();
+          });
+          break;
+        }
+        case 'bush-yellow': {
+          shadow(x + 3, y + 10, 14, 5);
+          // Foliage
+          const clumps = [
+            { dx: -6, dy: 0, r: 8, c: '#3d6e2a' },
+            { dx: 6, dy: 0, r: 8, c: '#3d6e2a' },
+            { dx: 0, dy: -5, r: 9, c: '#4d8a35' },
+            { dx: -3, dy: -3, r: 6, c: '#5fa040' },
+            { dx: 4, dy: -2, r: 6, c: '#5fa040' }
+          ];
+          clumps.forEach(c => {
+            ctx.fillStyle = c.c;
+            ctx.beginPath(); ctx.arc(x + c.dx, y + c.dy, c.r, 0, Math.PI * 2); ctx.fill();
+          });
+          // Yellow flowers with petals + center
+          const flowers = [[-6, -3], [5, -2], [0, 2], [6, 3], [-3, 4], [-5, -1], [3, -5]];
+          flowers.forEach(([dx, dy]) => {
+            // Petals
+            ctx.fillStyle = '#fbbf24';
+            for (let i = 0; i < 5; i++) {
+              const a = (i / 5) * Math.PI * 2;
+              ctx.beginPath();
+              ctx.arc(x + dx + Math.cos(a) * 1.5, y + dy + Math.sin(a) * 1.5, 1.4, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            // Highlight petal
+            ctx.fillStyle = '#fed676';
+            ctx.beginPath();
+            ctx.arc(x + dx - 1.2, y + dy - 1.2, 0.8, 0, Math.PI * 2);
+            ctx.fill();
+            // Dark center
+            ctx.fillStyle = '#b8801a';
+            ctx.beginPath(); ctx.arc(x + dx, y + dy, 1, 0, Math.PI * 2); ctx.fill();
+          });
+          break;
+        }
+        case 'bush-purple': {
+          shadow(x + 3, y + 10, 14, 5);
+          // Foliage
+          const clumps = [
+            { dx: -6, dy: 0, r: 8, c: '#2a5a1a' },
+            { dx: 6, dy: 0, r: 8, c: '#2a5a1a' },
+            { dx: 0, dy: -5, r: 9, c: '#3d6e2a' },
+            { dx: -3, dy: -3, r: 6, c: '#4d8a35' },
+            { dx: 4, dy: -2, r: 6, c: '#4d8a35' }
+          ];
+          clumps.forEach(c => {
+            ctx.fillStyle = c.c;
+            ctx.beginPath(); ctx.arc(x + c.dx, y + c.dy, c.r, 0, Math.PI * 2); ctx.fill();
+          });
+          // Purple flowers (lavender clusters)
+          const flowers = [[-6, -3], [5, -2], [0, 2], [6, 3], [-3, 4], [-5, -1], [3, -5]];
+          flowers.forEach(([dx, dy]) => {
+            // Petals
+            ctx.fillStyle = '#7a3aa8';
+            for (let i = 0; i < 5; i++) {
+              const a = (i / 5) * Math.PI * 2;
+              ctx.beginPath();
+              ctx.arc(x + dx + Math.cos(a) * 1.5, y + dy + Math.sin(a) * 1.5, 1.4, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            // Highlight petal
+            ctx.fillStyle = '#c084fc';
+            ctx.beginPath();
+            ctx.arc(x + dx - 1.2, y + dy - 1.2, 0.9, 0, Math.PI * 2);
+            ctx.fill();
+            // Center
+            ctx.fillStyle = '#fbbf24';
+            ctx.beginPath(); ctx.arc(x + dx, y + dy, 0.9, 0, Math.PI * 2); ctx.fill();
+          });
+          break;
+        }
+        case 'bush-thorny': {
+          shadow(x + 3, y + 10, 14, 5);
+          // Dry, sparse foliage
+          const clumps = [
+            { dx: -5, dy: 0, r: 6, c: '#4a3a1a' },
+            { dx: 5, dy: 0, r: 6, c: '#4a3a1a' },
+            { dx: 0, dy: -3, r: 7, c: '#6a5a3a' },
+            { dx: -3, dy: -2, r: 4, c: '#7a6a4a' }
+          ];
+          clumps.forEach(c => {
+            ctx.fillStyle = c.c;
+            ctx.beginPath(); ctx.arc(x + c.dx, y + c.dy, c.r, 0, Math.PI * 2); ctx.fill();
+          });
+          // Branches
+          ctx.strokeStyle = '#3a2a1a';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(x - 8, y + 4); ctx.lineTo(x - 2, y - 5);
+          ctx.moveTo(x + 8, y + 4); ctx.lineTo(x + 2, y - 6);
+          ctx.moveTo(x, y + 6); ctx.lineTo(x, y - 8);
+          ctx.moveTo(x - 5, y + 5); ctx.lineTo(x - 4, y - 2);
+          ctx.moveTo(x + 4, y + 5); ctx.lineTo(x + 5, y - 1);
+          ctx.stroke();
+          // Thorns
+          ctx.fillStyle = '#2a1a0a';
+          const thorns = [[-7, -4], [-5, 3], [3, -5], [7, 2], [0, -8], [5, 5], [-3, 6], [-1, -3], [2, 0]];
+          thorns.forEach(([dx, dy]) => {
+            const tx = x + dx;
+            const ty = y + dy;
+            ctx.beginPath();
+            ctx.moveTo(tx, ty);
+            ctx.lineTo(tx + (dx > 0 ? 3 : -3), ty + (dy > 0 ? 3 : -3));
+            ctx.lineTo(tx + (dx > 0 ? 2 : -2), ty);
+            ctx.closePath();
+            ctx.fill();
+          });
+          // A few dried berries / seeds
+          ctx.fillStyle = '#8a4a1a';
+          ctx.beginPath(); ctx.arc(x - 3, y - 1, 1, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(x + 4, y + 2, 1, 0, Math.PI * 2); ctx.fill();
+          break;
+        }
+
+        // ===== GEMS =====
+        case 'gem-green':
+        case 'gem-red':
+        case 'gem-blue': {
+          const colors = {
+            'gem-green': { main: '#1fa55a', light: '#7bed9f', mid: '#2ed573', dark: '#0a6a3a', glow: 'rgba(46, 213, 115, 0.6)' },
+            'gem-red':   { main: '#c12d1f', light: '#ff7675', mid: '#e74c3c', dark: '#7a1a10', glow: 'rgba(231, 76, 60, 0.6)' },
+            'gem-blue':  { main: '#2070b8', light: '#a0d0ff', mid: '#3498db', dark: '#0e3a6a', glow: 'rgba(52, 152, 219, 0.6)' }
+          };
+          const c = colors[type];
+          const offset = type === 'gem-red' ? 1.3 : type === 'gem-blue' ? 2.6 : 0;
+          const pulse = 0.7 + Math.sin(t * 0.004 + offset) * 0.3;
+          const sparklePulse = 0.5 + Math.sin(t * 0.012 + offset) * 0.5;
+
+          // Outer glow halo
+          const g = ctx.createRadialGradient(x, y, 0, x, y, 22);
+          g.addColorStop(0, c.glow);
+          g.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.globalAlpha = pulse;
+          ctx.fillStyle = g;
+          ctx.beginPath(); ctx.arc(x, y, 22, 0, Math.PI * 2); ctx.fill();
+          ctx.globalAlpha = 1;
+
+          // Shadow under
+          shadow(x + 1, y + 9, 8, 2.5);
+
+          // Gem outline (subtle dark border)
+          ctx.fillStyle = '#0a0a0a';
+          ctx.beginPath();
+          ctx.moveTo(x, y - 11);
+          ctx.lineTo(x + 9, y - 2);
+          ctx.lineTo(x + 6, y + 8);
+          ctx.lineTo(x - 6, y + 8);
+          ctx.lineTo(x - 9, y - 2);
+          ctx.closePath(); ctx.fill();
+
+          // Main gem body
+          ctx.fillStyle = c.main;
+          ctx.beginPath();
+          ctx.moveTo(x, y - 10);
+          ctx.lineTo(x + 8, y - 2);
+          ctx.lineTo(x + 5, y + 7);
+          ctx.lineTo(x - 5, y + 7);
+          ctx.lineTo(x - 8, y - 2);
+          ctx.closePath(); ctx.fill();
+
+          // Mid-tone facet (center diamond)
+          ctx.fillStyle = c.mid;
+          ctx.beginPath();
+          ctx.moveTo(x, y - 6);
+          ctx.lineTo(x + 5, y - 1);
+          ctx.lineTo(x, y + 4);
+          ctx.lineTo(x - 5, y - 1);
+          ctx.closePath(); ctx.fill();
+
+          // Top-left light facet
+          ctx.fillStyle = c.light;
+          ctx.beginPath();
+          ctx.moveTo(x, y - 10);
+          ctx.lineTo(x - 8, y - 2);
+          ctx.lineTo(x - 5, y - 1);
+          ctx.lineTo(x, y - 6);
+          ctx.closePath(); ctx.fill();
+
+          // Top-right mid
+          ctx.fillStyle = c.light;
+          ctx.globalAlpha = 0.6;
+          ctx.beginPath();
+          ctx.moveTo(x, y - 10);
+          ctx.lineTo(x + 8, y - 2);
+          ctx.lineTo(x + 5, y - 1);
+          ctx.lineTo(x, y - 6);
+          ctx.closePath(); ctx.fill();
+          ctx.globalAlpha = 1;
+
+          // Bottom dark facet
+          ctx.fillStyle = c.dark;
+          ctx.beginPath();
+          ctx.moveTo(x + 5, y + 7);
+          ctx.lineTo(x - 5, y + 7);
+          ctx.lineTo(x - 5, y - 1);
+          ctx.lineTo(x, y + 4);
+          ctx.lineTo(x + 5, y - 1);
+          ctx.closePath(); ctx.fill();
+
+          // Inner sparkle highlight (small white)
+          ctx.fillStyle = `rgba(255, 255, 255, ${0.7 + sparklePulse * 0.3})`;
+          ctx.beginPath();
+          ctx.moveTo(x - 3, y - 6);
+          ctx.lineTo(x - 1, y - 4);
+          ctx.lineTo(x - 3, y - 2);
+          ctx.lineTo(x - 5, y - 4);
+          ctx.closePath(); ctx.fill();
+
+          // Tiny sparkle dot
+          ctx.fillStyle = `rgba(255, 255, 255, ${sparklePulse})`;
+          ctx.beginPath(); ctx.arc(x + 3, y + 2, 0.8, 0, Math.PI * 2); ctx.fill();
+
+          // Cross-sparkle effect
+          if (sparklePulse > 0.85) {
+            ctx.strokeStyle = `rgba(255, 255, 255, ${sparklePulse - 0.6})`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x - 12, y - 6); ctx.lineTo(x + 8, y - 6);
+            ctx.moveTo(x - 2, y - 14); ctx.lineTo(x - 2, y + 6);
+            ctx.stroke();
+          }
+          break;
+        }
+      }
+    }
+
+    function drawHouse() {
+      const x = world.house.x;
+      const y = world.house.y;
+
+      // Tight ground shadow — sits right at the base, not below it
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+      ctx.beginPath();
+      ctx.ellipse(x + 3, y + 44, 52, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Base ring of small stones tucked at the base of the dome (overlap with dome)
+      const baseStones = [
+        [-52, 42, 4], [-38, 45, 4], [-22, 46, 4], [-6, 47, 3],
+        [10, 47, 4], [26, 46, 4], [42, 44, 4], [54, 41, 3]
+      ];
+      baseStones.forEach(([dx, dy, r]) => {
+        // Shadow
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.beginPath();
+        ctx.ellipse(x + dx + 1, y + dy + 2, r, r * 0.4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Stone
+        ctx.fillStyle = '#7a6e60';
+        ctx.beginPath();
+        ctx.ellipse(x + dx, y + dy, r, r * 0.7, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Highlight
+        ctx.fillStyle = '#a89888';
+        ctx.beginPath();
+        ctx.ellipse(x + dx - r * 0.3, y + dy - r * 0.3, r * 0.4, r * 0.25, 0, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Main shelter dome (rugged cave shape)
+      ctx.fillStyle = '#8a6e52';
+      ctx.beginPath();
+      ctx.moveTo(x - 58, y + 47);
+      ctx.quadraticCurveTo(x - 68, y - 40, x - 2, y - 58);
+      ctx.quadraticCurveTo(x + 68, y - 40, x + 58, y + 47);
+      ctx.closePath();
+      ctx.fill();
+
+      // Larger left highlight (lit side)
+      ctx.fillStyle = '#a88766';
+      ctx.beginPath();
+      ctx.moveTo(x - 58, y + 47);
+      ctx.quadraticCurveTo(x - 68, y - 40, x - 2, y - 58);
+      ctx.quadraticCurveTo(x - 28, y - 45, x - 30, y + 47);
+      ctx.closePath();
+      ctx.fill();
+
+      // Brightest top-left light
+      ctx.fillStyle = '#c4a280';
+      ctx.beginPath();
+      ctx.moveTo(x - 45, y + 0);
+      ctx.quadraticCurveTo(x - 55, y - 35, x - 10, y - 52);
+      ctx.quadraticCurveTo(x - 28, y - 30, x - 35, y + 0);
+      ctx.closePath();
+      ctx.fill();
+
+      // Right side shadow
+      ctx.fillStyle = 'rgba(40, 25, 15, 0.4)';
+      ctx.beginPath();
+      ctx.moveTo(x + 25, y + 47);
+      ctx.quadraticCurveTo(x + 45, y - 35, x + 8, y - 56);
+      ctx.quadraticCurveTo(x + 68, y - 40, x + 58, y + 47);
+      ctx.closePath();
+      ctx.fill();
+
+      // Rough stone clusters (large)
+      ctx.fillStyle = 'rgba(60, 45, 30, 0.55)';
+      const darkStones = [
+        [-25, -25, 6], [22, -16, 7], [-35, 12, 5], [32, 18, 6],
+        [-10, -42, 6], [4, 28, 5], [-18, 5, 4], [16, 8, 4], [-2, -10, 3]
+      ];
+      darkStones.forEach(([dx, dy, r]) => {
+        ctx.beginPath();
+        ctx.arc(x + dx, y + dy, r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Lighter stone highlights
+      ctx.fillStyle = 'rgba(220, 200, 175, 0.4)';
+      const lightStones = [
+        [-33, -13, 4], [12, -28, 4], [25, 5, 4], [-14, 22, 3], [-8, -20, 3], [3, -38, 3]
+      ];
+      lightStones.forEach(([dx, dy, r]) => {
+        ctx.beginPath();
+        ctx.arc(x + dx, y + dy, r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Small crack details
+      ctx.strokeStyle = 'rgba(40, 25, 15, 0.5)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x - 15, y - 35); ctx.quadraticCurveTo(x - 12, y - 20, x - 18, y - 5);
+      ctx.moveTo(x + 18, y - 25); ctx.quadraticCurveTo(x + 22, y - 10, x + 20, y + 10);
+      ctx.moveTo(x + 35, y - 5); ctx.lineTo(x + 38, y + 20);
+      ctx.stroke();
+
+      // Wooden support beam over entrance
+      ctx.fillStyle = '#4a2e18';
+      ctx.fillRect(x - 18, y + 8, 36, 5);
+      ctx.fillStyle = '#6b4023';
+      ctx.fillRect(x - 18, y + 8, 36, 2);
+      // Beam end caps
+      ctx.fillStyle = '#3a1e0e';
+      ctx.fillRect(x - 19, y + 7, 3, 7);
+      ctx.fillRect(x + 16, y + 7, 3, 7);
+
+      // Dark opening (cave mouth)
+      ctx.fillStyle = '#0a0604';
+      ctx.beginPath();
+      ctx.moveTo(x - 14, y + 47);
+      ctx.lineTo(x - 14, y + 20);
+      ctx.quadraticCurveTo(x, y + 12, x + 14, y + 20);
+      ctx.lineTo(x + 14, y + 47);
+      ctx.closePath();
+      ctx.fill();
+
+      // Inner darker shadow
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.beginPath();
+      ctx.ellipse(x, y + 32, 8, 13, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Edge highlight on left of opening
+      ctx.strokeStyle = 'rgba(180, 150, 110, 0.4)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(x - 14, y + 47);
+      ctx.lineTo(x - 14, y + 20);
+      ctx.quadraticCurveTo(x - 8, y + 14, x - 2, y + 13);
+      ctx.stroke();
+    }
+
+    function drawPlayer() {
+      const p = world.player;
+      const moving = p.vx !== 0 || p.vy !== 0;
+      const t = world.time;
+      // Walk bob is faster when moving
+      const bob = moving
+        ? Math.abs(Math.sin(t * 0.018)) * 1.8
+        : Math.sin(t * 0.004) * 0.8;
+      // Leg swing when moving
+      const legSwing = moving ? Math.sin(t * 0.018) * 3 : 0;
+      // Flip sprite based on horizontal direction
+      const facingLeft = p.facing < 0;
+      const flip = facingLeft ? -1 : 1;
+
+      // Tight ground shadow at the feet
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+      ctx.beginPath();
+      ctx.ellipse(p.x, p.y + 17, 9, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // === Legs (animated swing when moving) ===
+      // Back leg (further when walking)
+      ctx.fillStyle = '#2a1a0a';
+      ctx.fillRect(p.x - 5, p.y + 11 + bob - legSwing, 4, 7 + legSwing);
+      ctx.fillRect(p.x + 1, p.y + 11 + bob + legSwing, 4, 7 - legSwing);
+      // Boots
+      ctx.fillStyle = '#1a0a05';
+      ctx.fillRect(p.x - 5, p.y + 16 + bob - legSwing, 4, 2);
+      ctx.fillRect(p.x + 1, p.y + 16 + bob + legSwing, 4, 2);
+
+      // === Torso (tunic with details) ===
+      // Tunic main
+      ctx.fillStyle = '#3a5d8a';
+      ctx.fillRect(p.x - 7, p.y - 1 + bob, 14, 13);
+      // Tunic shadow side
+      ctx.fillStyle = '#2a4570';
+      ctx.fillRect(p.x + 3 * flip, p.y - 1 + bob, 4 * flip, 13);
+      // Tunic highlight
+      ctx.fillStyle = '#4d80b8';
+      ctx.fillRect(p.x - 7 * flip, p.y - 1 + bob, 3 * flip, 13);
+      // Collar V
+      ctx.fillStyle = '#2a4570';
+      ctx.beginPath();
+      ctx.moveTo(p.x - 3, p.y - 1 + bob);
+      ctx.lineTo(p.x + 3, p.y - 1 + bob);
+      ctx.lineTo(p.x, p.y + 3 + bob);
+      ctx.closePath();
+      ctx.fill();
+      // Belt
+      ctx.fillStyle = '#3a2010';
+      ctx.fillRect(p.x - 7, p.y + 8 + bob, 14, 3);
+      // Belt buckle
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillRect(p.x - 2, p.y + 9 + bob, 4, 2);
+      ctx.fillStyle = '#d4961c';
+      ctx.fillRect(p.x - 2, p.y + 10 + bob, 4, 1);
+
+      // === Head ===
+      // Skin
+      ctx.fillStyle = '#e0c090';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y - 8 + bob, 7, 0, Math.PI * 2);
+      ctx.fill();
+      // Skin shadow
+      ctx.fillStyle = '#c4a070';
+      ctx.beginPath();
+      ctx.arc(p.x + 2 * flip, p.y - 7 + bob, 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Hair
+      ctx.fillStyle = '#5a3a1f';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y - 10 + bob, 7.5, Math.PI, 0);
+      ctx.fill();
+      // Hair fringe
+      ctx.fillStyle = '#5a3a1f';
+      ctx.fillRect(p.x - 6, p.y - 11 + bob, 12, 3);
+      // Hair highlight
+      ctx.fillStyle = '#7a5530';
+      ctx.fillRect(p.x - 5 * flip, p.y - 13 + bob, 4 * flip, 2);
+
+      // Ear
+      ctx.fillStyle = '#c4a070';
+      ctx.beginPath();
+      ctx.arc(p.x - 6 * flip, p.y - 7 + bob, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Eyes (white + pupil) — moving direction
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(p.x - 3, p.y - 8 + bob, 2, 2);
+      ctx.fillRect(p.x + 1, p.y - 8 + bob, 2, 2);
+      ctx.fillStyle = '#1a1410';
+      ctx.fillRect(p.x - 2 + flip * 0.5, p.y - 8 + bob, 1, 1.5);
+      ctx.fillRect(p.x + 2 + flip * 0.5, p.y - 8 + bob, 1, 1.5);
+
+      // Eyebrows
+      ctx.fillStyle = '#3a2510';
+      ctx.fillRect(p.x - 4, p.y - 10 + bob, 3, 1);
+      ctx.fillRect(p.x + 1, p.y - 10 + bob, 3, 1);
+
+      // Mouth
+      ctx.fillStyle = '#8a4030';
+      ctx.fillRect(p.x - 1, p.y - 4 + bob, 2, 1);
+
+      // === Arms ===
+      // Back arm (slightly lower when moving)
+      ctx.fillStyle = '#e0c090';
+      ctx.fillRect(p.x - 9, p.y + 1 + bob + (moving ? legSwing * 0.5 : 0), 2, 7);
+      ctx.fillStyle = '#c4a070';
+      ctx.fillRect(p.x - 9, p.y + 5 + bob + (moving ? legSwing * 0.5 : 0), 2, 3);
+      // Sleeve
+      ctx.fillStyle = '#3a5d8a';
+      ctx.fillRect(p.x - 9, p.y + 1 + bob + (moving ? legSwing * 0.5 : 0), 2, 3);
+
+      // Front arm (with sword)
+      ctx.fillStyle = '#e0c090';
+      ctx.fillRect(p.x + 7, p.y + 1 + bob - (moving ? legSwing * 0.5 : 0), 2, 7);
+      ctx.fillStyle = '#3a5d8a';
+      ctx.fillRect(p.x + 7, p.y + 1 + bob - (moving ? legSwing * 0.5 : 0), 2, 3);
+
+      // === Sword (held in front hand) ===
+      const swordY = p.y + 4 + bob - (moving ? legSwing * 0.5 : 0);
+      // Hilt
+      ctx.fillStyle = '#3a2010';
+      ctx.fillRect(p.x + 7, swordY, 3, 4);
+      // Crossguard
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillRect(p.x + 6, swordY - 1, 5, 1.5);
+      // Blade
+      ctx.fillStyle = '#d0d0d8';
+      ctx.beginPath();
+      ctx.moveTo(p.x + 7, swordY - 1);
+      ctx.lineTo(p.x + 10, swordY - 1);
+      ctx.lineTo(p.x + 15, swordY - 11);
+      ctx.lineTo(p.x + 13, swordY - 12);
+      ctx.closePath();
+      ctx.fill();
+      // Blade highlight
+      ctx.fillStyle = '#f0f0f8';
+      ctx.beginPath();
+      ctx.moveTo(p.x + 8, swordY - 1);
+      ctx.lineTo(p.x + 9, swordY - 1);
+      ctx.lineTo(p.x + 13, swordY - 11);
+      ctx.lineTo(p.x + 12, swordY - 11);
+      ctx.closePath();
+      ctx.fill();
+
+      // === Cape (back) ===
+      ctx.fillStyle = '#7a2010';
+      ctx.beginPath();
+      ctx.moveTo(p.x - 6, p.y + bob);
+      ctx.quadraticCurveTo(p.x - 8, p.y + 6 + bob, p.x - 5, p.y + 11 + bob);
+      ctx.lineTo(p.x + 5, p.y + 11 + bob);
+      ctx.quadraticCurveTo(p.x + 8, p.y + 6 + bob, p.x + 6, p.y + bob);
+      ctx.closePath();
+      ctx.fill();
+      // Cape side hidden behind shoulders to look more 3D
+      ctx.fillStyle = '#3a5d8a';
+      ctx.fillRect(p.x - 7, p.y - 1 + bob, 14, 4);
+    }
+
+    function drawFogOfWar() {
+      // Use camera-relative field position so fog stays around the field visually
+      const cam = world.camera || { x: 0, y: 0 };
+      const fieldX = world.fieldX - cam.x;
+      const fieldY = world.fieldY - cam.y;
+      const fieldW = world.fieldW;
+      const fieldH = world.fieldH;
+      const fade = 40;
+
+      // Top fog
+      let g = ctx.createLinearGradient(0, fieldY - fade, 0, fieldY);
+      g.addColorStop(0, 'rgba(0,0,0,0.85)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, fieldY - fade, canvas.width, fade);
+      ctx.fillStyle = 'rgba(0,0,0,0.85)';
+      ctx.fillRect(0, 0, canvas.width, fieldY - fade);
+
+      // Bottom fog
+      g = ctx.createLinearGradient(0, fieldY + fieldH, 0, fieldY + fieldH + fade);
+      g.addColorStop(0, 'rgba(0,0,0,0)');
+      g.addColorStop(1, 'rgba(0,0,0,0.85)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, fieldY + fieldH, canvas.width, fade);
+      ctx.fillStyle = 'rgba(0,0,0,0.85)';
+      ctx.fillRect(0, fieldY + fieldH + fade, canvas.width, canvas.height - (fieldY + fieldH + fade));
+
+      // Left fog
+      g = ctx.createLinearGradient(fieldX - fade, 0, fieldX, 0);
+      g.addColorStop(0, 'rgba(0,0,0,0.85)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(fieldX - fade, fieldY - fade, fade, fieldH + fade * 2);
+      ctx.fillStyle = 'rgba(0,0,0,0.85)';
+      ctx.fillRect(0, fieldY - fade, fieldX - fade, fieldH + fade * 2);
+
+      // Right fog
+      g = ctx.createLinearGradient(fieldX + fieldW, 0, fieldX + fieldW + fade, 0);
+      g.addColorStop(0, 'rgba(0,0,0,0)');
+      g.addColorStop(1, 'rgba(0,0,0,0.85)');
+      ctx.fillStyle = g;
+      ctx.fillRect(fieldX + fieldW, fieldY - fade, fade, fieldH + fade * 2);
+      ctx.fillStyle = 'rgba(0,0,0,0.85)';
+      ctx.fillRect(fieldX + fieldW + fade, fieldY - fade, canvas.width - (fieldX + fieldW + fade), fieldH + fade * 2);
+    }
+
+    // Collision radii per resource type (0 = walkable)
+    const colliderRadius = {
+      'tree-oak': 12, 'tree-pine': 10, 'tree-birch': 10, 'tree-maple': 12, 'tree-willow': 14,
+      'stone-pebble': 0, 'stone-boulder': 11, 'stone-large': 16, 'stone-mossy': 12, 'stone-slate': 11,
+      'bush-round': 10, 'bush-berry': 10, 'bush-yellow': 10, 'bush-purple': 10, 'bush-thorny': 10,
+      'gem-green': 0, 'gem-red': 0, 'gem-blue': 0
+    };
+    const PLAYER_RADIUS = 8;
+    const SHELTER_RADIUS = 42;
+
+    function collidesAt(nx, ny) {
+      // Owned area check - player can't walk into non-owned tiles
+      if (!isPositionInOwnedArea(nx, ny)) return true;
+
+      // Shelter
+      const dxh = nx - world.house.x;
+      const dyh = ny - (world.house.y + 20);
+      if (dxh * dxh + dyh * dyh < SHELTER_RADIUS * SHELTER_RADIUS) return true;
+
+      // Decorations
+      for (const d of world.decorations) {
+        const r = colliderRadius[d.type] || 0;
+        if (r === 0) continue;
+        const dx = nx - d.x;
+        const dy = ny - (d.y + 4);
+        const rr = r + PLAYER_RADIUS;
+        if (dx * dx + dy * dy < rr * rr) return true;
+      }
+      // Structures (tree-gen, mine)
+      if (world.structures) {
+        for (const s of world.structures) {
+          const dx = nx - s.x;
+          const dy = ny - (s.y + 2);
+          const r = s.type === 'mine' ? 24 : 20;
+          const rr = r + PLAYER_RADIUS;
+          if (dx * dx + dy * dy < rr * rr) return true;
+        }
+      }
+      return false;
+    }
+
+    function updatePlayer() {
+      const p = world.player;
+      if (p.attackCooldown > 0) p.attackCooldown--;
+
+      let dx = 0, dy = 0;
+      if (keysPressed.has('ArrowLeft'))  dx -= 1;
+      if (keysPressed.has('ArrowRight')) dx += 1;
+      if (keysPressed.has('ArrowUp'))    dy -= 1;
+      if (keysPressed.has('ArrowDown'))  dy += 1;
+
+      // Hint shows controls + position
+      const hint = document.getElementById('gameHint');
+      if (hint) {
+        hint.textContent = `WASD/Arrows · X attack · HP ${p.hp}/${p.maxHp}`;
+      }
+
+      // Normalize diagonal
+      if (dx !== 0 && dy !== 0) { dx *= 0.707; dy *= 0.707; }
+
+      p.vx = dx * p.speed;
+      p.vy = dy * p.speed;
+
+      // Update facing direction
+      if (dx > 0) p.facing = 1;
+      else if (dx < 0) p.facing = -1;
+
+      // Try X then Y movement, with owned-area check inside collidesAt
+      let nx = p.x + p.vx;
+      if (!collidesAt(nx, p.y)) p.x = nx;
+      let ny = p.y + p.vy;
+      if (!collidesAt(p.x, ny)) p.y = ny;
+    }
+
+    function updateCamera() {
+      const p = world.player;
+      const targetX = p.x - canvas.width / 2;
+      const targetY = p.y - canvas.height / 2;
+      // Smooth follow
+      world.camera.x += (targetX - world.camera.x) * 0.12;
+      world.camera.y += (targetY - world.camera.y) * 0.12;
+      // Clamp so camera doesn't show too much outside the field
+      const padding = 80;
+      const fX = world.fieldX, fW = world.fieldW;
+      const fY = world.fieldY, fH = world.fieldH;
+      if (fW + 2 * padding < canvas.width) {
+        world.camera.x = fX + (fW - canvas.width) / 2;
+      } else {
+        world.camera.x = Math.max(fX - padding, Math.min(fX + fW + padding - canvas.width, world.camera.x));
+      }
+      if (fH + 2 * padding < canvas.height) {
+        world.camera.y = fY + (fH - canvas.height) / 2;
+      } else {
+        world.camera.y = Math.max(fY - padding, Math.min(fY + fH + padding - canvas.height, world.camera.y));
+      }
+    }
+
+    function gameLoop() {
+      if (!gameRunning) return;
+      try {
+        world.time += 16;
+        updatePlayer();
+        updateStructures();
+        updateWaves();
+        updateEnemies();
+        updateProjectiles();
+        if (world.house.hitFlash > 0) world.house.hitFlash--;
+        if (world.player.hitFlash > 0) world.player.hitFlash--;
+        updateCamera();
+
+        // Clear canvas fully
+        ctx.fillStyle = '#1a1410';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // World drawing in camera-transformed space
+        ctx.save();
+        ctx.translate(-Math.round(world.camera.x), -Math.round(world.camera.y));
+        drawGround();
+        drawDecorations();
+        drawHouse();
+        drawStructures();
+        drawEnemies();
+        drawPlayer();
+        drawProjectiles();
+        drawSwingArc();
+        drawHpBars();
+        drawFloatingText();
+        ctx.restore();
+
+        // Dark void already drawn by drawGround — no extra fog needed
+      } catch (err) {
+        console.error('gameLoop error:', err);
+      }
+      animationId = requestAnimationFrame(gameLoop);
+    }
+
+    // ===== EXPLORE / WORLD MAP =====
+    const exploreCanvas = document.getElementById('exploreCanvas');
+    const exCtx = exploreCanvas.getContext('2d');
+    const exploreScreen = document.getElementById('exploreScreen');
+
+    const exState = {
+      // Camera offset (center of viewport)
+      camX: 0,
+      camY: 0,
+      // Drag state
+      dragging: false,
+      dragStartX: 0,
+      dragStartY: 0,
+      camStartX: 0,
+      camStartY: 0,
+      // Each section cell = 3x3 inner tiles = 60px
+      // Start (owned) area = 2x2 cells = 6x6 inner tiles = 120px
+      chunkSize: 60,
+      innerTiles: 3,
+      sections: []
+    };
+
+    function generateSections() {
+      const sections = [];
+      for (let r = 0; r <= 1; r++) {
+        for (let c = 0; c <= 1; c++) {
+          sections.push({ row: r, col: c, type: 'owned' });
+        }
+      }
+      ensureSectionsAround(sections, 0, 0, 8);
+      ensureSectionsAround(sections, 1, 1, 8);
+      return sections;
+    }
+
+    const questTemplates = [
+      { type: 'gather', target: 'wood',     label: 'wood',         amounts: [8, 15, 25],   color: '#a0855a' },
+      { type: 'gather', target: 'stone',    label: 'stone',        amounts: [6, 12, 20],   color: '#a89888' },
+      { type: 'gather', target: 'gemGreen', label: 'green gems',   amounts: [1, 2, 3],     color: '#2ed573' },
+      { type: 'gather', target: 'gemRed',   label: 'red gems',     amounts: [1, 2, 3],     color: '#e74c3c' },
+      { type: 'gather', target: 'gemBlue',  label: 'blue gems',    amounts: [1, 2, 3],     color: '#3498db' },
+      { type: 'defeat', target: 'goblin',   label: 'goblins',      amounts: [3, 5, 8],     color: '#5a8228' },
+      { type: 'defeat', target: 'wolf',     label: 'wolves',       amounts: [2, 4, 6],     color: '#7a5a30' },
+      { type: 'defeat', target: 'skeleton', label: 'skeletons',    amounts: [2, 4, 6],     color: '#e8e4d4' },
+      { type: 'defeat', target: 'orc',      label: 'orcs',         amounts: [1, 2, 3],     color: '#3d6e2a' },
+      { type: 'defeat', target: 'imp',      label: 'imps',         amounts: [2, 3, 5],     color: '#c12d1f' },
+      { type: 'defeat', target: 'slime',    label: 'slimes',       amounts: [2, 4, 6],     color: '#2ed573' },
+      { type: 'survive', target: 'wave',    label: 'waves',        amounts: [1, 2, 3],     color: '#fbbf24' }
+    ];
+
+    function refreshGatherQuests() {
+      // Recompute progress for all started gather quests
+      exState.sections.forEach(sec => {
+        if (sec.type !== 'quest' || !sec.quest || !sec.quest.started) return;
+        const q = sec.quest;
+        if (q.type === 'gather') {
+          const have = playerInventory[q.target] || 0;
+          q.progress = Math.max(0, Math.min(q.amount, have - (q.baseline || 0)));
+        }
+      });
+    }
+
+    function onEnemyKilled(enemyType) {
+      exState.sections.forEach(sec => {
+        if (sec.type !== 'quest' || !sec.quest || !sec.quest.started) return;
+        const q = sec.quest;
+        if (q.type === 'defeat' && q.target === enemyType && q.progress < q.amount) {
+          q.progress++;
+        }
+      });
+    }
+
+    function onWaveComplete() {
+      exState.sections.forEach(sec => {
+        if (sec.type !== 'quest' || !sec.quest || !sec.quest.started) return;
+        const q = sec.quest;
+        if (q.type === 'survive' && q.progress < q.amount) q.progress++;
+      });
+    }
+
+    function makeQuest(tier) {
+      const tmpl = questTemplates[Math.floor(Math.random() * questTemplates.length)];
+      const idx = Math.min(tier - 1, tmpl.amounts.length - 1);
+      const amount = tmpl.amounts[idx];
+      const verb = tmpl.type === 'gather' ? 'Gather' : (tmpl.type === 'defeat' ? 'Defeat' : 'Survive');
+      return {
+        type: tmpl.type,
+        target: tmpl.target,
+        label: tmpl.label,
+        amount,
+        progress: 0,
+        started: false,
+        color: tmpl.color,
+        text: `${verb} ${amount} ${tmpl.label}`
+      };
+    }
+
+    function ensureSectionsAround(sections, centerRow, centerCol, radius) {
+      const rng = (i) => ((Math.sin(i * 78.233 + 0.5) * 43758.5453) % 1 + 1) % 1;
+      let idx = sections.length;
+      const bb = (world && world.ownedBBox) ? world.ownedBBox : { minCol: 0, maxCol: 1, minRow: 0, maxRow: 1 };
+      for (let r = centerRow - radius; r <= centerRow + radius; r++) {
+        for (let c = centerCol - radius; c <= centerCol + radius; c++) {
+          if (sections.some(s => s.row === r && s.col === c)) continue;
+          const dr = r < bb.minRow ? bb.minRow - r : (r > bb.maxRow ? r - bb.maxRow : 0);
+          const dc = c < bb.minCol ? bb.minCol - c : (c > bb.maxCol ? c - bb.maxCol : 0);
+          const tier = Math.max(1, Math.max(dr, dc));
+
+          // Quest chance grows with tier: 8% at tier 1, +8% per tier, capped 50%
+          const questChance = Math.min(0.5, 0.08 + (tier - 1) * 0.08);
+          if (rng(idx * 7 + 999) < questChance) {
+            const quest = makeQuest(tier);
+            sections.push({
+              row: r, col: c, type: 'quest', quest, questText: quest.text
+            });
+          } else {
+            const cost = {
+              wood: 15 + 15 * tier + Math.floor(rng(idx * 13 + 1000) * 15),
+              stone: 8 + 8 * tier + Math.floor(rng(idx * 13 + 2000) * 12),
+              gems: tier > 1 ? Math.floor(rng(idx * 13 + 3000) * 3) + 1 : 0
+            };
+            sections.push({ row: r, col: c, type: 'buy', cost });
+          }
+          idx++;
+        }
+      }
+    }
+
+    function isConnectedToOwned(sec) {
+      return exState.sections.some(s =>
+        s.type === 'owned' &&
+        Math.abs(s.row - sec.row) + Math.abs(s.col - sec.col) === 1
+      );
+    }
+
+    function hasOwnedNeighbor(sec, dr, dc) {
+      return exState.sections.some(s =>
+        s.type === 'owned' && s.row === sec.row + dr && s.col === sec.col + dc
+      );
+    }
+
+    function resizeExploreCanvas() {
+      exploreCanvas.width = window.innerWidth;
+      exploreCanvas.height = window.innerHeight;
+    }
+
+    function openExplore() {
+      resizeExploreCanvas();
+      if (exState.sections.length === 0) {
+        exState.sections = generateSections();
+      }
+      // Center camera on owned cluster center
+      exState.camX = exploreCanvas.width / 2;
+      exState.camY = exploreCanvas.height / 2;
+      exploreScreen.style.display = 'block';
+      updateResourceBars();
+      keysPressed.clear(); // prevent player moving while exploring
+      drawExplore();
+    }
+
+    function canAfford(cost) {
+      return playerInventory.wood >= cost.wood
+        && playerInventory.stone >= cost.stone
+        && totalGems() >= cost.gems;
+    }
+
+    function buySection(sec) {
+      if (!canAfford(sec.cost)) {
+        ['gameResBar', 'exploreResBar'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.classList.remove('res-flash');
+            void el.offsetWidth;
+            el.classList.add('res-flash');
+          }
+        });
+        return false;
+      }
+      playerInventory.wood -= sec.cost.wood;
+      playerInventory.stone -= sec.cost.stone;
+      if (sec.cost.gems > 0) deductGems(sec.cost.gems);
+      sec.type = 'owned';
+      delete sec.cost;
+
+      // Update Plains field + decorations for this new section
+      if (world && world.ownedBBox) {
+        const bb = world.ownedBBox;
+        bb.minCol = Math.min(bb.minCol, sec.col);
+        bb.maxCol = Math.max(bb.maxCol, sec.col);
+        bb.minRow = Math.min(bb.minRow, sec.row);
+        bb.maxRow = Math.max(bb.maxRow, sec.row);
+        recomputeFieldBBox();
+        addDecorationsForSection(sec);
+      }
+
+      // Keep buy sections available around new owned land
+      ensureSectionsAround(exState.sections, sec.row, sec.col, 6);
+
+      updateResourceBars();
+      drawExplore();
+      return true;
+    }
+
+    function getSectionAt(clientX, clientY) {
+      // The 2x2 owned cluster is centered on (camX, camY).
+      // Cell (col, row) top-left is at (camX + (col-1)*c, camY + (row-1)*c).
+      const c = exState.chunkSize;
+      const col = Math.floor((clientX - exState.camX) / c) + 1;
+      const row = Math.floor((clientY - exState.camY) / c) + 1;
+      return exState.sections.find(sec => sec.row === row && sec.col === col);
+    }
+
+    function closeExplore() {
+      exploreScreen.style.display = 'none';
+      keysPressed.clear();
+      // Make sure game loop is still running
+      if (!gameRunning && world) {
+        gameRunning = true;
+        gameLoop();
+      }
+      canvas.focus();
+    }
+
+    function drawExplore() {
+      const w = exploreCanvas.width;
+      const h = exploreCanvas.height;
+      const c = exState.chunkSize;
+      const innerTiles = exState.innerTiles;
+      const tilePx = c / innerTiles;
+
+      // Background
+      exCtx.fillStyle = '#0a0e14';
+      exCtx.fillRect(0, 0, w, h);
+
+      // Starfield
+      exCtx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+      for (let i = 0; i < 100; i++) {
+        const sx = (i * 137.5) % w;
+        const sy = (i * 91.3) % h;
+        exCtx.fillRect(sx, sy, 1, 1);
+      }
+
+      // Helper to get cell top-left
+      const cellPos = (sec) => ({
+        x: exState.camX + (sec.col - 1) * c,
+        y: exState.camY + (sec.row - 1) * c
+      });
+
+      // Draw each section
+      exState.sections.forEach(sec => {
+        const visible = sec.type === 'owned' || isConnectedToOwned(sec);
+        if (!visible) return;
+
+        const { x, y } = cellPos(sec);
+
+        if (sec.type === 'owned') {
+          // Grass tiles (3x3 inner) with checker
+          for (let r = 0; r < innerTiles; r++) {
+            for (let cc = 0; cc < innerTiles; cc++) {
+              const isEven = (r + cc + sec.row + sec.col) % 2 === 0;
+              exCtx.fillStyle = isEven ? '#8fb84a' : '#82ad42';
+              exCtx.fillRect(x + cc * tilePx, y + r * tilePx, tilePx, tilePx);
+            }
+          }
+          // Inner grid lines
+          exCtx.strokeStyle = 'rgba(50, 75, 25, 0.3)';
+          exCtx.lineWidth = 0.5;
+          for (let i = 0; i <= innerTiles; i++) {
+            exCtx.beginPath();
+            exCtx.moveTo(x + i * tilePx, y);
+            exCtx.lineTo(x + i * tilePx, y + c);
+            exCtx.stroke();
+            exCtx.beginPath();
+            exCtx.moveTo(x, y + i * tilePx);
+            exCtx.lineTo(x + c, y + i * tilePx);
+            exCtx.stroke();
+          }
+        } else if (sec.type === 'buy') {
+          // Locked dark section
+          exCtx.fillStyle = '#1a1f1a';
+          exCtx.fillRect(x, y, c, c);
+          exCtx.strokeStyle = 'rgba(80, 60, 40, 0.3)';
+          exCtx.lineWidth = 0.5;
+          for (let i = 0; i <= innerTiles; i++) {
+            exCtx.beginPath();
+            exCtx.moveTo(x + i * tilePx, y);
+            exCtx.lineTo(x + i * tilePx, y + c);
+            exCtx.stroke();
+            exCtx.beginPath();
+            exCtx.moveTo(x, y + i * tilePx);
+            exCtx.lineTo(x + c, y + i * tilePx);
+            exCtx.stroke();
+          }
+          exCtx.strokeStyle = 'rgba(80, 60, 40, 0.4)';
+          exCtx.lineWidth = 1;
+          for (let i = -c; i < c * 2; i += 8) {
+            exCtx.beginPath();
+            exCtx.moveTo(x + i, y);
+            exCtx.lineTo(x + i + c, y + c);
+            exCtx.stroke();
+          }
+          exCtx.strokeStyle = '#4a3a2a';
+          exCtx.lineWidth = 1;
+          exCtx.strokeRect(x + 0.5, y + 0.5, c - 1, c - 1);
+          const cx = x + c / 2;
+          exCtx.font = 'bold 9px sans-serif';
+          exCtx.textAlign = 'center';
+          exCtx.fillStyle = '#fff5d6';
+          exCtx.fillText(`🪵${sec.cost.wood}`, cx, y + 18);
+          exCtx.fillText(`🪨${sec.cost.stone}`, cx, y + 30);
+          if (sec.cost.gems > 0) {
+            exCtx.fillStyle = '#c084fc';
+            exCtx.fillText(`◆${sec.cost.gems}`, cx, y + 42);
+          }
+          exCtx.font = '7px sans-serif';
+          exCtx.fillStyle = 'rgba(255, 245, 214, 0.5)';
+          exCtx.fillText('BUY', cx, y + c - 4);
+        } else if (sec.type === 'quest') {
+          const q = sec.quest;
+          const ready = q && q.started && q.progress >= q.amount;
+          // Background based on state
+          exCtx.fillStyle = ready ? '#1a3a1a' : '#2a1a3a';
+          exCtx.fillRect(x, y, c, c);
+          // Sparkles
+          exCtx.fillStyle = ready ? 'rgba(70, 200, 90, 0.4)' : 'rgba(192, 132, 252, 0.35)';
+          for (let i = 0; i < 10; i++) {
+            const sx = x + ((i * 73.3 + sec.col * 17 + sec.row * 31) % c);
+            const sy = y + ((i * 41.7 + sec.col * 23 + sec.row * 13) % c);
+            exCtx.fillRect(sx, sy, 2, 2);
+          }
+          // Border
+          exCtx.strokeStyle = ready ? '#4d8a35' : '#c084fc';
+          exCtx.lineWidth = ready ? 2 : 1.5;
+          exCtx.strokeRect(x + 1, y + 1, c - 2, c - 2);
+          const cx = x + c / 2;
+          // Scroll icon (smaller)
+          exCtx.fillStyle = '#fff5d6';
+          exCtx.fillRect(cx - 9, y + 6, 18, 13);
+          exCtx.strokeStyle = '#8b6f47';
+          exCtx.lineWidth = 1;
+          exCtx.strokeRect(cx - 9, y + 6, 18, 13);
+          exCtx.strokeStyle = '#a89078';
+          exCtx.lineWidth = 0.6;
+          exCtx.beginPath();
+          exCtx.moveTo(cx - 7, y + 10); exCtx.lineTo(cx + 7, y + 10);
+          exCtx.moveTo(cx - 7, y + 13); exCtx.lineTo(cx + 7, y + 13);
+          exCtx.moveTo(cx - 7, y + 16); exCtx.lineTo(cx + 4, y + 16);
+          exCtx.stroke();
+
+          if (q && q.started) {
+            // Show progress
+            exCtx.font = 'bold 11px sans-serif';
+            exCtx.textAlign = 'center';
+            exCtx.fillStyle = ready ? '#4d8a35' : '#fff5d6';
+            exCtx.fillText(`${q.progress}/${q.amount}`, cx, y + 32);
+            // Target label
+            exCtx.font = '7px sans-serif';
+            exCtx.fillStyle = q.color || '#c084fc';
+            const verb = q.type === 'gather' ? 'GATHER' : (q.type === 'defeat' ? 'DEFEAT' : 'SURVIVE');
+            exCtx.fillText(verb, cx, y + 42);
+            exCtx.fillText(q.label.toUpperCase().slice(0, 8), cx, y + 50);
+            // Status
+            exCtx.font = 'bold 8px sans-serif';
+            exCtx.fillStyle = ready ? '#4d8a35' : 'rgba(192, 132, 252, 0.8)';
+            exCtx.fillText(ready ? 'CLAIM!' : 'ACTIVE', cx, y + c - 4);
+          } else {
+            // Not started
+            exCtx.fillStyle = '#c084fc';
+            exCtx.font = 'bold 9px sans-serif';
+            exCtx.textAlign = 'center';
+            exCtx.fillText('QUEST', cx, y + 30);
+            // Brief target hint
+            exCtx.font = '7px sans-serif';
+            exCtx.fillStyle = q.color || '#c084fc';
+            exCtx.fillText((q.type === 'gather' ? 'GATHER' : q.type === 'defeat' ? 'DEFEAT' : 'SURVIVE'), cx, y + 42);
+            exCtx.fillText(`${q.amount} ${q.label.toUpperCase().slice(0, 8)}`, cx, y + 50);
+            exCtx.font = '7px sans-serif';
+            exCtx.fillStyle = 'rgba(192, 132, 252, 0.7)';
+            exCtx.fillText('ACCEPT', cx, y + c - 4);
+          }
+        }
+      });
+
+      // Draw gold border around the outer edges of all owned cells
+      exCtx.strokeStyle = '#fbbf24';
+      exCtx.lineWidth = 3;
+      exState.sections.forEach(sec => {
+        if (sec.type !== 'owned') return;
+        const { x, y } = cellPos(sec);
+        if (!hasOwnedNeighbor(sec, -1, 0)) {
+          exCtx.beginPath();
+          exCtx.moveTo(x, y);
+          exCtx.lineTo(x + c, y);
+          exCtx.stroke();
+        }
+        if (!hasOwnedNeighbor(sec, 1, 0)) {
+          exCtx.beginPath();
+          exCtx.moveTo(x, y + c);
+          exCtx.lineTo(x + c, y + c);
+          exCtx.stroke();
+        }
+        if (!hasOwnedNeighbor(sec, 0, -1)) {
+          exCtx.beginPath();
+          exCtx.moveTo(x, y);
+          exCtx.lineTo(x, y + c);
+          exCtx.stroke();
+        }
+        if (!hasOwnedNeighbor(sec, 0, 1)) {
+          exCtx.beginPath();
+          exCtx.moveTo(x + c, y);
+          exCtx.lineTo(x + c, y + c);
+          exCtx.stroke();
+        }
+      });
+
+      // Single shelter + label in cluster center (camX, camY)
+      exCtx.fillStyle = '#9c7a5a';
+      exCtx.beginPath();
+      exCtx.moveTo(exState.camX - 14, exState.camY + 10);
+      exCtx.quadraticCurveTo(exState.camX - 18, exState.camY - 8, exState.camX, exState.camY - 14);
+      exCtx.quadraticCurveTo(exState.camX + 18, exState.camY - 8, exState.camX + 14, exState.camY + 10);
+      exCtx.closePath();
+      exCtx.fill();
+      exCtx.fillStyle = '#1a1008';
+      exCtx.fillRect(exState.camX - 3, exState.camY + 2, 6, 8);
+
+      exCtx.fillStyle = '#fbbf24';
+      exCtx.font = 'bold 11px sans-serif';
+      exCtx.textAlign = 'center';
+      exCtx.fillText('YOUR LAND', exState.camX, exState.camY + c + 4);
+    }
+
+    // Drag to scroll + click to buy
+    function startDrag(clientX, clientY) {
+      exState.dragging = true;
+      exState.dragMoved = false;
+      exState.dragStartX = clientX;
+      exState.dragStartY = clientY;
+      exState.camStartX = exState.camX;
+      exState.camStartY = exState.camY;
+    }
+    function moveDrag(clientX, clientY) {
+      if (!exState.dragging) return;
+      const dx = clientX - exState.dragStartX;
+      const dy = clientY - exState.dragStartY;
+      if (Math.abs(dx) > 10 || Math.abs(dy) > 10) exState.dragMoved = true;
+      exState.camX = exState.camStartX + dx;
+      exState.camY = exState.camStartY + dy;
+      drawExplore();
+    }
+    function endDrag(clientX, clientY) {
+      if (exState.dragging && !exState.dragMoved && exploreScreen.style.display === 'block') {
+        const sec = getSectionAt(clientX, clientY);
+        const hint = document.getElementById('exploreHint');
+        if (!sec) {
+          if (hint) hint.textContent = `Click landed in empty space (col ${Math.floor((clientX - exState.camX) / exState.chunkSize) + 1}, row ${Math.floor((clientY - exState.camY) / exState.chunkSize) + 1})`;
+        } else if (sec.type === 'owned') {
+          if (hint) hint.textContent = `That's already your land`;
+        } else if ((sec.type === 'buy' || sec.type === 'quest') && !isConnectedToOwned(sec)) {
+          if (hint) hint.textContent = `Not connected to your land yet — claim adjacent first`;
+        } else if (sec.type === 'buy') {
+          const ok = buySection(sec);
+          if (hint) hint.textContent = ok
+            ? `✓ Bought! Land expanded.`
+            : `Not enough materials (need ${sec.cost.wood}🪵 ${sec.cost.stone}🪨${sec.cost.gems > 0 ? ' ' + sec.cost.gems + '◆' : ''})`;
+        } else if (sec.type === 'quest') {
+          const q = sec.quest;
+          if (!q.started) {
+            q.started = true;
+            q.baseline = q.type === 'gather' ? (playerInventory[q.target] || 0) : 0;
+            if (hint) hint.textContent = `📜 Quest accepted — ${q.text}`;
+            drawExplore();
+          } else {
+            refreshGatherQuests();
+            if (q.progress >= q.amount) {
+              // Claim
+              sec.type = 'owned';
+              delete sec.quest;
+              delete sec.questText;
+              if (world && world.ownedBBox) {
+                const bb = world.ownedBBox;
+                bb.minCol = Math.min(bb.minCol, sec.col);
+                bb.maxCol = Math.max(bb.maxCol, sec.col);
+                bb.minRow = Math.min(bb.minRow, sec.row);
+                bb.maxRow = Math.max(bb.maxRow, sec.row);
+                recomputeFieldBBox();
+                addDecorationsForSection(sec);
+              }
+              ensureSectionsAround(exState.sections, sec.row, sec.col, 6);
+              drawExplore();
+              if (hint) hint.textContent = `✓ Quest complete! Land claimed.`;
+            } else {
+              drawExplore();
+              if (hint) hint.textContent = `📜 ${q.text} · ${q.progress}/${q.amount}`;
+            }
+          }
+        }
+      }
+      exState.dragging = false;
+    }
+    exploreCanvas.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY));
+    window.addEventListener('mousemove', (e) => moveDrag(e.clientX, e.clientY));
+    window.addEventListener('mouseup', (e) => endDrag(e.clientX, e.clientY));
+    // Touch support
+    exploreCanvas.addEventListener('touchstart', (e) => {
+      const t = e.touches[0];
+      startDrag(t.clientX, t.clientY);
+    }, { passive: true });
+    window.addEventListener('touchmove', (e) => {
+      if (!exState.dragging) return;
+      const t = e.touches[0];
+      moveDrag(t.clientX, t.clientY);
+    }, { passive: true });
+    window.addEventListener('touchend', (e) => {
+      const t = e.changedTouches[0];
+      endDrag(t.clientX, t.clientY);
+    });
+
+    // Open / close
+    document.getElementById('exploreBtn').addEventListener('click', openExplore);
+    document.getElementById('exploreCloseBtn').addEventListener('click', closeExplore);
+
+    window.addEventListener('resize', () => {
+      if (exploreScreen.style.display === 'block') {
+        resizeExploreCanvas();
+        drawExplore();
+      }
+    });
+  </script>
+</body>
+</html>
