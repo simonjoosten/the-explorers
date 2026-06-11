@@ -1384,6 +1384,12 @@
       color: #e8dcc0;
     }
     .build-card-cost .bad { color: #e74c3c; }
+    .build-card-count {
+      margin-top: 0.25rem;
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      color: #b89968;
+    }
     .build-panel-close {
       margin-top: 0.9rem;
       background: rgba(40, 30, 15, 0.7);
@@ -2922,6 +2928,8 @@
       world.house.level = 1;
       // Player-built defensive buildings + their visual effects
       world.buildings = [];
+      world.helpers = [];
+      world.buildCounts = {};
       world.healPulses = [];
       world.explosions = [];
       world.beams = [];
@@ -2998,7 +3006,7 @@
       const cam = world.camera || { x: 0, y: 0 };
       const wx = e.clientX + cam.x;
       const wy = e.clientY + cam.y;
-      buildGhost = { x: wx, y: wy, valid: canAffordBuild(buildingDefs[buildMode].cost) && isValidPlacement(wx, wy) };
+      buildGhost = { x: wx, y: wy, valid: canAffordBuild(scaledCost(buildMode)) && isValidPlacement(wx, wy) };
     });
 
     // Attack button (X for desktop, button for mobile)
@@ -3261,8 +3269,8 @@
     // Periods now driven by the structure's "speed" upgrade track
     function sUp(s, key) { return (s.up && s.up[key]) || 0; }
     function treeGenPeriod(s) {
-      // 5 min base, -38s per speed level, min 24s
-      return Math.max(24000, 300000 - sUp(s, 'speed') * 38000);
+      // ~1 min base, -7s per speed level, min 20s
+      return Math.max(20000, 60000 - sUp(s, 'speed') * 7000);
     }
     function minePeriod(s) {
       // 60s base, -8s per speed level, min 8s
@@ -3275,11 +3283,11 @@
       const bigTreeTypes = ['tree-willow','tree-maple','tree-oak']; // higher wood yield
       const stoneTypes = ['stone-pebble','stone-boulder','stone-large','stone-mossy','stone-slate'];
       world.structures.forEach(s => {
-        // Passive resource trickle (every ~6s) from the "passive" track
+        // Passive resource trickle (every ~11s) from the "passive" track — kept modest
         const pas = sUp(s, 'passive');
         if (pas > 0) {
           s.passiveTimer = (s.passiveTimer || 0) + 16;
-          if (s.passiveTimer >= 6000) {
+          if (s.passiveTimer >= 11000) {
             s.passiveTimer = 0;
             const res = s.type === 'tree-gen' ? 'wood' : 'stone';
             playerInventory[res] = (playerInventory[res] || 0) + pas;
@@ -3386,6 +3394,14 @@
             ctx.beginPath();
             ctx.arc(s.x, s.y - 2, 26, -Math.PI / 2, -Math.PI / 2 + ratio * Math.PI * 2);
             ctx.stroke();
+            // Seconds remaining
+            const secs = Math.max(0, Math.ceil((period - s.timer) / 1000));
+            ctx.fillStyle = '#eafff0';
+            ctx.font = 'bold 11px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 3;
+            ctx.strokeText(`${secs}s`, s.x, s.y - 30);
+            ctx.fillText(`${secs}s`, s.x, s.y - 30);
           }
 
           // Level badge
@@ -3457,6 +3473,16 @@
           ctx.beginPath();
           ctx.arc(s.x, s.y, 28, -Math.PI / 2, -Math.PI / 2 + ratio * Math.PI * 2);
           ctx.stroke();
+          // Seconds remaining (only while actively mining — no uncollected rock)
+          if (!(s.childDeco && world.decorations.includes(s.childDeco))) {
+            const secs = Math.max(0, Math.ceil((period - s.timer) / 1000));
+            ctx.fillStyle = '#fff5d6';
+            ctx.font = 'bold 11px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 3;
+            ctx.strokeText(`${secs}s`, s.x, s.y - 30);
+            ctx.fillText(`${secs}s`, s.x, s.y - 30);
+          }
 
           // Level badge
           ctx.fillStyle = 'rgba(20, 12, 5, 0.85)';
@@ -3530,15 +3556,63 @@
         hp: 160,
         color: '#3a2a4a', accent: '#7df9ff',
         desc: 'Store energy to revive your hero on death.'
+      },
+      helperhouse: {
+        name: 'Helper House', icon: '🏠', kind: 'helperhouse', projectile: null,
+        cost: { wood: 140, stone: 90, power: 40 },
+        hp: 180,
+        color: '#6a4a2a', accent: '#d8b070',
+        desc: 'Recruit harvesters & fighters to help you.'
+      },
+      // Buildable resource structures (placed into world.structures)
+      treeplot: {
+        name: 'Tree Grove', icon: '🌳', kind: 'structure', structureType: 'tree-gen',
+        cost: { wood: 50, stone: 20 },
+        color: '#4d8a35', accent: '#7dd37c',
+        desc: 'Grows trees beside it to harvest for wood.'
+      },
+      mineplot: {
+        name: 'Stone Mine', icon: '⛏️', kind: 'structure', structureType: 'mine',
+        cost: { wood: 20, stone: 50 },
+        color: '#6a5a4a', accent: '#cdbfae',
+        desc: 'Grows rocks beside it to harvest for stone.'
       }
     };
     // Which build tab each building belongs to
     const buildCategories = {
-      defense: { label: '⚔ Defense', items: ['watchtower', 'crossbow', 'catapult', 'firelauncher', 'laser', 'bomber'] },
-      support: { label: '✨ Support', items: ['heal', 'revive'] }
+      defense:  { label: '⚔ Defense',  items: ['watchtower', 'crossbow', 'catapult', 'firelauncher', 'laser', 'bomber'] },
+      resource: { label: '⛏ Resource', items: ['treeplot', 'mineplot'] },
+      support:  { label: '✨ Support',  items: ['heal', 'revive'] },
+      helpers:  { label: '👷 Helpers',  items: ['helperhouse'] }
     };
-    const buildTabOrder = ['defense', 'support'];
+    const buildTabOrder = ['defense', 'resource', 'support', 'helpers'];
     let activeBuildTab = 'defense';
+
+    // Each build of a type costs more; each type has a limit (transport will be exempt later)
+    const BUILD_LIMITS = {
+      watchtower: 5, crossbow: 4, catapult: 4, firelauncher: 4, laser: 3, bomber: 3,
+      heal: 3, revive: 3, helperhouse: 3, treeplot: 5, mineplot: 5
+    };
+    const BUILD_COST_GROWTH = 1.4; // +40% per existing copy of that type
+    function buildCountOf(type) { return (world.buildCounts && world.buildCounts[type]) || 0; }
+    function buildLimitOf(type) { return BUILD_LIMITS[type] != null ? BUILD_LIMITS[type] : 99; }
+    function scaledCost(type) {
+      const base = buildingDefs[type].cost || {};
+      const mult = Math.pow(BUILD_COST_GROWTH, buildCountOf(type));
+      const c = {};
+      for (const k in base) c[k] = Math.ceil(base[k] * mult);
+      return c;
+    }
+
+    // Helper unit base stats + recruit costs
+    const HELPER_BASE = {
+      harvester: { hp: 40, speed: 1.5, power: 1, range: 26, rate: 26, cost: { wood: 30, stone: 10, power: 20 }, icon: '🪓' },
+      fighter:   { hp: 65, speed: 1.7, power: 6, range: 30, rate: 30, cost: { wood: 40, stone: 25, power: 40 }, icon: '⚔️' }
+    };
+    const HELPERS_PER_HOUSE = 3;
+    function helperSpeed(h) { const b = HELPER_BASE[h.kind]; return b.speed * (1 + 0.12 * (h.home ? up(h.home, 'speed') : 0)); }
+    function helperPower(h) { const b = HELPER_BASE[h.kind]; return b.power * (1 + 0.25 * (h.home ? up(h.home, 'power') : 0)); }
+    function helperMaxHp(h) { const b = HELPER_BASE[h.kind]; return Math.round(b.hp + 20 * (h.home ? up(h.home, 'hp') : 0)); }
 
     // Upgrade tracks shown in a building's upgrade menu. Each track has its own level.
     const buildingUpgradeDefs = {
@@ -3571,6 +3645,11 @@
       house: [
         { key: 'maxHp',   name: 'Fortify',       icon: '❤️', desc: '+150 max HP per level',       max: 8, base: 60 },
         { key: 'regen',   name: 'Auto-Repair',   icon: '🔧', desc: 'Base slowly heals itself',    max: 5, base: 90 }
+      ],
+      helperhouse: [
+        { key: 'speed',   name: 'Helper Speed',  icon: '⏩', desc: '+12% helper move speed',      max: 5, base: 60 },
+        { key: 'power',   name: 'Helper Power',  icon: '💪', desc: '+25% chop & combat power',    max: 6, base: 70 },
+        { key: 'hp',      name: 'Helper Vitality', icon: '❤️', desc: '+20 helper max HP',          max: 6, base: 50 }
       ]
     };
     function upgradeCost(track, level) { return track.base * (level + 1); } // in energy ⚡
@@ -3646,7 +3725,12 @@
     function placeBuilding(type, x, y) {
       const def = buildingDefs[type];
       if (!def) return;
-      if (!canAffordBuild(def.cost)) {
+      if (buildCountOf(type) >= buildLimitOf(type)) {
+        world.floatingText.push({ x, y: y - 20, vy: -0.7, life: 55, text: `Limit reached (${buildLimitOf(type)})`, color: '#e74c3c' });
+        return;
+      }
+      const cost = scaledCost(type);
+      if (!canAffordBuild(cost)) {
         flashResBars();
         world.floatingText.push({ x, y: y - 20, vy: -0.7, life: 55, text: 'Need more 🪵🪨⚡', color: '#e74c3c' });
         return;
@@ -3655,7 +3739,21 @@
         world.floatingText.push({ x, y: y - 20, vy: -0.7, life: 55, text: 'Cannot build here', color: '#e74c3c' });
         return;
       }
-      payCost(def.cost);
+      payCost(cost);
+      world.buildCounts[type] = buildCountOf(type) + 1;
+      // Resource structures live in world.structures, not world.buildings
+      if (def.kind === 'structure') {
+        const s = {
+          type: def.structureType, x, y, timer: 0, passiveTimer: 0,
+          up: def.structureType === 'tree-gen' ? { speed: 0, big: 0, passive: 0 } : { speed: 0, gem: 0, passive: 0 }
+        };
+        if (def.structureType === 'tree-gen') s.childDeco = null;
+        world.structures.push(s);
+        if (world.stats) world.stats.built++;
+        updateResourceBars();
+        world.floatingText.push({ x, y: y - 28, vy: -0.6, life: 60, text: `${def.icon} built!`, color: '#7bed9f' });
+        return;
+      }
       const b = {
         type, x, y, cooldown: 0, hitFlash: 0, aimAngle: -Math.PI / 2,
         up: { damage: 0, fireRate: 0, archer: 0, ammo: 0, maxHp: 0 }
@@ -3710,6 +3808,30 @@
         if (!maxed) row.addEventListener('click', () => buyUpgrade(tr));
         rows.appendChild(row);
       });
+      // Helper House: recruit harvesters & fighters
+      if (info.def && info.def.kind === 'helperhouse') {
+        const myHelpers = (world.helpers || []).filter(h => h.home === b).length;
+        const cap = HELPERS_PER_HOUSE;
+        ['harvester', 'fighter'].forEach(kind => {
+          const base = HELPER_BASE[kind];
+          const full = myHelpers >= cap;
+          const afford = canAffordBuild(base.cost);
+          const costStr = [
+            base.cost.wood ? `🪵${base.cost.wood}` : '',
+            base.cost.stone ? `🪨${base.cost.stone}` : '',
+            base.cost.power ? `⚡${base.cost.power}` : ''
+          ].filter(Boolean).join(' ');
+          const row = document.createElement('div');
+          row.className = 'upgrade-row' + (full ? ' maxed' : (afford ? '' : ' cant'));
+          row.innerHTML =
+            `<div class="ur-icon">${base.icon}</div>` +
+            `<div class="ur-info"><div class="ur-name">Recruit ${kind === 'harvester' ? 'Harvester' : 'Fighter'}</div>` +
+            `<div class="ur-desc">${kind === 'harvester' ? 'Chops trees & rocks for you' : 'Fights nearby enemies'} · ${myHelpers}/${cap}</div></div>` +
+            `<div class="ur-buy">${full ? 'FULL' : costStr}</div>`;
+          if (!full) row.addEventListener('click', () => recruitHelper(b, kind));
+          rows.appendChild(row);
+        });
+      }
       // Revive tower: special actions to store revive charges and heal the hero
       if (info.def && info.def.kind === 'revive') {
         const chargeRow = document.createElement('div');
@@ -3763,6 +3885,12 @@
         b.hp += (nm - b.maxHp);
         b.maxHp = nm;
       }
+      // Helper "Vitality" upgrade: raise max HP of this house's helpers
+      if (tr.key === 'hp' && buildingDefs[b.type] && buildingDefs[b.type].kind === 'helperhouse') {
+        (world.helpers || []).forEach(h => {
+          if (h.home === b) { const nm = helperMaxHp(h); h.hp += (nm - h.maxHp); h.maxHp = nm; }
+        });
+      }
       updateResourceBars();
       world.floatingText.push({ x: f.x, y: f.y - 2, vy: -0.7, life: 60, text: `${tr.icon} ${tr.name}!`, color: '#fbbf24' });
       renderUpgradePanel();
@@ -3810,6 +3938,132 @@
       updateResourceBars();
       world.floatingText.push({ x: p.x, y: p.y - 34, vy: -0.6, life: 55, text: '💉 +HP', color: '#7bed9f' });
       renderUpgradePanel();
+    }
+
+    // ===== HELPERS (recruited units) =====
+    function recruitHelper(b, kind) {
+      const base = HELPER_BASE[kind];
+      const mine = (world.helpers || []).filter(h => h.home === b).length;
+      if (mine >= HELPERS_PER_HOUSE) return;
+      if (!canAffordBuild(base.cost)) {
+        flashResBars();
+        world.floatingText.push({ x: b.x, y: b.y - 30, vy: -0.7, life: 55, text: 'Need more 🪵🪨⚡', color: '#e74c3c' });
+        return;
+      }
+      payCost(base.cost);
+      const h = {
+        kind, home: b,
+        x: b.x + (Math.random() - 0.5) * 30, y: b.y + 24 + (Math.random() - 0.5) * 10,
+        vx: 0, vy: 0, facing: 1, target: null, attackCooldown: 0, swing: 0, hitFlash: 0
+      };
+      h.maxHp = helperMaxHp(h);
+      h.hp = h.maxHp;
+      world.helpers.push(h);
+      updateResourceBars();
+      world.floatingText.push({ x: b.x, y: b.y - 30, vy: -0.6, life: 60, text: `${base.icon} recruited!`, color: '#7bed9f' });
+      renderUpgradePanel();
+    }
+
+    function updateHelpers() {
+      if (!world.helpers) return;
+      const hx = world.house.x, hy = world.house.y;
+      for (let i = world.helpers.length - 1; i >= 0; i--) {
+        const h = world.helpers[i];
+        if (h.hitFlash > 0) h.hitFlash--;
+        if (h.attackCooldown > 0) h.attackCooldown--;
+        if (h.swing > 0) h.swing--;
+        if (h.hp <= 0) {
+          world.floatingText.push({ x: h.x, y: h.y - 14, vy: -0.7, life: 55, text: '☠ helper lost', color: '#e74c3c' });
+          world.helpers.splice(i, 1);
+          continue;
+        }
+        const base = HELPER_BASE[h.kind];
+        const speed = helperSpeed(h);
+        // Find a target
+        if (h.kind === 'fighter') {
+          let best = 360, tgt = null;
+          world.enemies.forEach(e => { const d = Math.hypot(e.x - h.x, e.y - h.y); if (d < best) { best = d; tgt = e; } });
+          h.target = tgt;
+        } else {
+          // Harvester targets the nearest tree/rock inside owned land
+          if (!h.target || !world.decorations.includes(h.target)) {
+            let best = 420, tgt = null;
+            world.decorations.forEach(d => {
+              if (!isPositionInOwnedArea(d.x, d.y)) return;
+              const dist = Math.hypot(d.x - h.x, d.y - h.y);
+              if (dist < best) { best = dist; tgt = d; }
+            });
+            h.target = tgt;
+          }
+        }
+
+        const tgt = h.target;
+        if (tgt) {
+          const dx = tgt.x - h.x, dy = tgt.y - h.y;
+          const dist = Math.hypot(dx, dy) || 1;
+          h.facing = dx >= 0 ? 1 : -1;
+          if (dist > base.range) {
+            h.x += dx / dist * speed;
+            h.y += dy / dist * speed;
+          } else if (h.attackCooldown <= 0) {
+            h.swing = 10;
+            h.attackCooldown = base.rate;
+            if (h.kind === 'fighter') {
+              hitEnemy(tgt, Math.round(helperPower(h)));
+            } else {
+              hitDecoration(tgt, Math.max(1, Math.round(helperPower(h))));
+              if (!world.decorations.includes(tgt)) h.target = null;
+            }
+          }
+        } else {
+          // Idle — drift back toward the base
+          const dx = hx - h.x, dy = (hy + 30) - h.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist > 40) { h.x += dx / dist * speed * 0.5; h.y += dy / dist * speed * 0.5; h.facing = dx >= 0 ? 1 : -1; }
+        }
+      }
+    }
+
+    function drawHelpers() {
+      if (!world.helpers) return;
+      world.helpers.forEach(h => {
+        const base = HELPER_BASE[h.kind];
+        const flash = h.hitFlash > 0;
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.beginPath(); ctx.ellipse(h.x, h.y + 9, 8, 3, 0, 0, Math.PI * 2); ctx.fill();
+        // Body
+        ctx.fillStyle = flash ? '#fff' : (h.kind === 'fighter' ? '#7a8a9a' : '#8a6a3a');
+        ctx.beginPath(); ctx.arc(h.x, h.y, 7, 0, Math.PI * 2); ctx.fill();
+        // Head
+        ctx.fillStyle = '#f0d0a8';
+        ctx.beginPath(); ctx.arc(h.x, h.y - 8, 4, 0, Math.PI * 2); ctx.fill();
+        // Tool (swings when acting)
+        const sw = h.swing > 0 ? Math.sin((10 - h.swing) / 10 * Math.PI) * 0.8 : 0;
+        ctx.save();
+        ctx.translate(h.x + h.facing * 6, h.y - 2);
+        ctx.rotate(h.facing * (0.4 + sw));
+        if (h.kind === 'fighter') {
+          ctx.strokeStyle = '#d8d8e0'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -12); ctx.stroke();
+        } else {
+          ctx.strokeStyle = '#8b6f47'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -10); ctx.stroke();
+          ctx.fillStyle = '#b0b0b8';
+          ctx.beginPath(); ctx.moveTo(-3, -10); ctx.lineTo(4, -12); ctx.lineTo(4, -8); ctx.closePath(); ctx.fill();
+        }
+        ctx.restore();
+        // Badge icon
+        ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(base.icon, h.x, h.y - 14);
+        // HP bar if hurt
+        if (h.hp < h.maxHp) {
+          const r = Math.max(0, h.hp / h.maxHp);
+          ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(h.x - 9, h.y - 20, 18, 3);
+          ctx.fillStyle = r > 0.5 ? '#4d8a35' : (r > 0.25 ? '#fbbf24' : '#e74c3c');
+          ctx.fillRect(h.x - 8.5, h.y - 19.5, 17 * r, 2);
+        }
+      });
     }
 
     function updateBuildings() {
@@ -3957,6 +4211,12 @@
         ctx.closePath(); ctx.fill();
         ctx.fillStyle = 'rgba(255,255,255,0.7)';
         ctx.beginPath(); ctx.moveTo(b.x, fy - 12); ctx.lineTo(b.x + 3, fy - 3); ctx.lineTo(b.x - 2, fy - 1); ctx.closePath(); ctx.fill();
+      } else if (def.kind === 'structure') {
+        // Ghost preview for buildable resource structures
+        ctx.fillStyle = flash ? '#fff' : def.color;
+        ctx.beginPath(); ctx.ellipse(b.x, b.y, 18, 12, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.font = '18px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(def.icon, b.x, b.y + 6);
       } else if (def.kind === 'revive') {
         // Revive tower — obelisk with floating runes, glow scales with stored charges
         const charges = b.charges || 0;
@@ -4040,7 +4300,7 @@
         // Range ring + validity tint
         ctx.strokeStyle = ghostValid ? 'rgba(123,237,159,0.8)' : 'rgba(231,76,60,0.8)';
         ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(b.x, b.y, def.kind === 'heal' ? 60 : def.range, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(b.x, b.y, def.kind === 'heal' ? 60 : (def.range || 50), 0, Math.PI * 2); ctx.stroke();
         ctx.fillStyle = ghostValid ? 'rgba(123,237,159,0.12)' : 'rgba(231,76,60,0.18)';
         ctx.beginPath(); ctx.arc(b.x, b.y, 30, 0, Math.PI * 2); ctx.fill();
         return;
@@ -4129,10 +4389,12 @@
       const items = (buildCategories[activeBuildTab] || buildCategories.defense).items;
       items.forEach(type => {
         const def = buildingDefs[type];
-        const afford = canAffordBuild(def.cost);
+        const count = buildCountOf(type), limit = buildLimitOf(type);
+        const full = count >= limit;
+        const c = scaledCost(type);
+        const afford = canAffordBuild(c);
         const card = document.createElement('div');
-        card.className = 'build-card' + (afford ? '' : ' unaffordable');
-        const c = def.cost;
+        card.className = 'build-card' + (full || !afford ? ' unaffordable' : '');
         const parts = [];
         if (c.wood)  parts.push(`<span class="${(playerInventory.wood||0)  >= c.wood  ? '' : 'bad'}">🪵${c.wood}</span>`);
         if (c.stone) parts.push(`<span class="${(playerInventory.stone||0) >= c.stone ? '' : 'bad'}">🪨${c.stone}</span>`);
@@ -4141,10 +4403,12 @@
         card.innerHTML = `
           <div class="build-card-icon">${def.icon}</div>
           <div class="build-card-name">${def.name}</div>
-          <div class="build-card-cost">${parts.join('')}</div>`;
+          <div class="build-card-cost">${full ? 'MAX' : parts.join('')}</div>
+          <div class="build-card-count">${count}/${limit}</div>`;
         card.title = def.desc;
         card.addEventListener('click', () => {
-          if (!canAffordBuild(def.cost)) { flashResBars(); return; }
+          if (full) { world.floatingText && flashResBars(); return; }
+          if (!canAffordBuild(scaledCost(type))) { flashResBars(); return; }
           startPlacing(type);
         });
         list.appendChild(card);
@@ -4361,6 +4625,13 @@
           world.buildings.forEach(b => {
             const db = Math.hypot(b.x - e.x, b.y - e.y);
             if (db < def.visionRange && db < dist) { target = b; dist = db; }
+          });
+        }
+        // ...and recruited helpers
+        if (world.helpers) {
+          world.helpers.forEach(hp => {
+            const dh = Math.hypot(hp.x - e.x, hp.y - e.y);
+            if (dh < def.visionRange && dh < dist) { target = hp; dist = dh; }
           });
         }
 
@@ -6092,6 +6363,7 @@
         updatePlayer();
         updateStructures();
         updateBuildings();
+        updateHelpers();
         updateWaves();
         updateEnemies();
         updateProjectiles();
@@ -6115,6 +6387,7 @@
         drawHouse();
         drawStructures();
         drawBuildings();
+        drawHelpers();
         drawEnemies();
         drawPlayer();
         drawProjectiles();
@@ -6281,8 +6554,8 @@
     }
 
     function ensureSectionsAround(sections, centerRow, centerCol, radius) {
-      const rng = (i) => ((Math.sin(i * 78.233 + 0.5) * 43758.5453) % 1 + 1) % 1;
-      let idx = sections.length;
+      // Truly random each game (each tile is generated only once, so this never
+      // retro-changes tiles you've already seen)
       const bb = (world && world.ownedBBox) ? world.ownedBBox : { minCol: 0, maxCol: 1, minRow: 0, maxRow: 1 };
       for (let r = centerRow - radius; r <= centerRow + radius; r++) {
         for (let c = centerCol - radius; c <= centerCol + radius; c++) {
@@ -6293,21 +6566,20 @@
 
           // Quest chance grows with tier: 8% at tier 1, +8% per tier, capped 50%
           const questChance = Math.min(0.5, 0.08 + (tier - 1) * 0.08);
-          if (rng(idx * 7 + 999) < questChance) {
+          if (Math.random() < questChance) {
             const quest = makeQuest(tier);
             sections.push({
               row: r, col: c, type: 'quest', quest, questText: quest.text
             });
           } else {
             const cost = {
-              wood: 15 + 15 * tier + Math.floor(rng(idx * 13 + 1000) * 15),
-              stone: 8 + 8 * tier + Math.floor(rng(idx * 13 + 2000) * 12),
+              wood: 15 + 15 * tier + Math.floor(Math.random() * 15),
+              stone: 8 + 8 * tier + Math.floor(Math.random() * 12),
               // Gems only on far-out land, rare and cheap (1, occasionally 2)
-              gems: (tier > 3 && rng(idx * 13 + 3000) < 0.5) ? (rng(idx * 13 + 4000) < 0.25 ? 2 : 1) : 0
+              gems: (tier > 3 && Math.random() < 0.5) ? (Math.random() < 0.25 ? 2 : 1) : 0
             };
             sections.push({ row: r, col: c, type: 'buy', cost });
           }
-          idx++;
         }
       }
     }
