@@ -2951,6 +2951,7 @@
       // Player-built defensive buildings + their visual effects
       world.buildings = [];
       world.helpers = [];
+      world.roads = [];
       world.buildCounts = {};
       world.healPulses = [];
       world.explosions = [];
@@ -3028,7 +3029,7 @@
       const cam = world.camera || { x: 0, y: 0 };
       const wx = e.clientX + cam.x;
       const wy = e.clientY + cam.y;
-      buildGhost = { x: wx, y: wy, valid: canAffordBuild(scaledCost(buildMode)) && isValidPlacement(wx, wy) };
+      buildGhost = { x: wx, y: wy, valid: canAffordBuild(scaledCost(buildMode)) && isValidPlacement(wx, wy, buildMode) };
     });
 
     // Attack button (X for desktop, button for mobile)
@@ -3600,16 +3601,23 @@
         cost: { wood: 20, stone: 50 },
         color: '#6a5a4a', accent: '#cdbfae',
         desc: 'Grows rocks beside it to harvest for stone.'
+      },
+      road: {
+        name: 'Speed Road', icon: '🛤️', kind: 'road',
+        cost: { wood: 5 }, noScale: true,
+        color: '#5a4a3a', accent: '#8b7355',
+        desc: 'Ride a cart along it — move much faster. Flat cost, no limit.'
       }
     };
     // Which build tab each building belongs to
     const buildCategories = {
-      defense:  { label: '⚔ Defense',  items: ['watchtower', 'crossbow', 'catapult', 'firelauncher', 'laser', 'bomber'] },
-      resource: { label: '⛏ Resource', items: ['treeplot', 'mineplot'] },
-      support:  { label: '✨ Support',  items: ['heal', 'revive'] },
-      helpers:  { label: '👷 Helpers',  items: ['helperhouse'] }
+      defense:   { label: '⚔ Defense',   items: ['watchtower', 'crossbow', 'catapult', 'firelauncher', 'laser', 'bomber'] },
+      resource:  { label: '⛏ Resource',  items: ['treeplot', 'mineplot'] },
+      support:   { label: '✨ Support',   items: ['heal', 'revive'] },
+      helpers:   { label: '👷 Helpers',   items: ['helperhouse'] },
+      transport: { label: '🛤 Transport', items: ['road'] }
     };
-    const buildTabOrder = ['defense', 'resource', 'support', 'helpers'];
+    const buildTabOrder = ['defense', 'resource', 'support', 'helpers', 'transport'];
     let activeBuildTab = 'defense';
 
     // Each build of a type costs more; each type has a limit (transport will be exempt later)
@@ -3621,7 +3629,9 @@
     function buildCountOf(type) { return (world.buildCounts && world.buildCounts[type]) || 0; }
     function buildLimitOf(type) { return BUILD_LIMITS[type] != null ? BUILD_LIMITS[type] : 99; }
     function scaledCost(type) {
-      const base = buildingDefs[type].cost || {};
+      const def = buildingDefs[type];
+      const base = def.cost || {};
+      if (def.noScale) return { ...base }; // transport etc. keep a flat cost
       const mult = Math.pow(BUILD_COST_GROWTH, buildCountOf(type));
       const c = {};
       for (const k in base) c[k] = Math.ceil(base[k] * mult);
@@ -3730,9 +3740,11 @@
     let buildMode = null;        // building type currently being placed
     let buildGhost = null;       // {x, y, valid} world-space ghost while placing
 
-    function isValidPlacement(x, y) {
+    function isValidPlacement(x, y, type) {
       if (!world) return false;
       if (!isPositionInOwnedArea(x, y)) return false;
+      // Roads can be laid freely (even right next to buildings)
+      if (type && buildingDefs[type] && buildingDefs[type].kind === 'road') return true;
       // Keep clear of the shelter
       if (Math.hypot(x - world.house.x, y - world.house.y) < 70) return false;
       // Keep clear of resource structures
@@ -3759,12 +3771,19 @@
         world.floatingText.push({ x, y: y - 20, vy: -0.7, life: 55, text: 'Need more 🪵🪨⚡', color: '#e74c3c' });
         return;
       }
-      if (!isValidPlacement(x, y)) {
+      if (!isValidPlacement(x, y, type)) {
         world.floatingText.push({ x, y: y - 20, vy: -0.7, life: 55, text: 'Cannot build here', color: '#e74c3c' });
         return;
       }
       payCost(cost);
       world.buildCounts[type] = buildCountOf(type) + 1;
+      // Roads: just a walkable tile that speeds you up
+      if (def.kind === 'road') {
+        world.roads.push({ x, y });
+        SFX.build();
+        world.floatingText.push({ x, y: y - 24, vy: -0.6, life: 50, text: '🛤️', color: '#cdbfae' });
+        return;
+      }
       // Resource structures live in world.structures, not world.buildings
       if (def.kind === 'structure') {
         const s = {
@@ -4245,6 +4264,13 @@
         ctx.beginPath(); ctx.ellipse(b.x, b.y, 18, 12, 0, 0, Math.PI * 2); ctx.fill();
         ctx.font = '18px sans-serif'; ctx.textAlign = 'center';
         ctx.fillText(def.icon, b.x, b.y + 6);
+      } else if (def.kind === 'road') {
+        // Ghost preview for road segment
+        ctx.fillStyle = '#5a4a38';
+        ctx.fillRect(b.x - 18, b.y - 7, 36, 14);
+        ctx.strokeStyle = '#9a8a78'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(b.x - 18, b.y - 4); ctx.lineTo(b.x + 18, b.y - 4); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(b.x - 18, b.y + 4); ctx.lineTo(b.x + 18, b.y + 4); ctx.stroke();
       } else if (def.kind === 'revive') {
         // Revive tower — obelisk with floating runes, glow scales with stored charges
         const charges = b.charges || 0;
@@ -5207,18 +5233,23 @@
       return items;
     }
 
+    // Terrain-specific spawn pools (mountains are rich in stone & gems, rivers in wood)
+    const MOUNTAIN_POOL = ['stone-large', 'stone-slate', 'stone-boulder', 'stone-large', 'stone-slate', 'gem-green', 'gem-red', 'gem-blue'];
+    const RIVER_POOL = ['bush-round', 'bush-berry', 'bush-thorny', 'bush-yellow', 'tree-willow', 'tree-birch'];
     function addDecorationsForSection(sec) {
       const ts = world.tileSize;
       const sectionPx = ts * 3;
       const sx = world.originX + sec.col * sectionPx;
       const sy = world.originY + sec.row * sectionPx;
-      const pool = spawnPool();
+      let pool = spawnPool(), density = 0.18;
+      if (sec.terrain === 'mountain') { pool = MOUNTAIN_POOL; density = 0.32; }
+      else if (sec.terrain === 'river') { pool = RIVER_POOL; density = 0.30; }
       for (let r = 0; r < 3; r++) {
         for (let c = 0; c < 3; c++) {
           const tx = sx + c * ts + ts / 2 + (Math.random() - 0.5) * 12;
           const ty = sy + r * ts + ts / 2 + (Math.random() - 0.5) * 12;
           if (isReservedArea(tx, ty)) continue;
-          if (Math.random() < 0.18) {
+          if (Math.random() < density) {
             const type = pool[Math.floor(Math.random() * pool.length)];
             world.decorations.push(spawnDecoration(type, tx, ty));
           }
@@ -6195,6 +6226,20 @@
       ctx.ellipse(p.x, p.y + 17, 9, 3, 0, 0, Math.PI * 2);
       ctx.fill();
 
+      // Minecart when riding a Speed Road
+      if (p.onRoad) {
+        ctx.fillStyle = '#6a4a2a';
+        ctx.fillRect(p.x - 11, p.y + 12, 22, 7);
+        ctx.fillStyle = '#3a2a1a';
+        ctx.fillRect(p.x - 11, p.y + 12, 22, 2);
+        ctx.fillStyle = '#2a2018';
+        ctx.beginPath(); ctx.arc(p.x - 6, p.y + 20, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x + 6, p.y + 20, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath(); ctx.arc(p.x - 6, p.y + 20, 1, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x + 6, p.y + 20, 1, 0, Math.PI * 2); ctx.fill();
+      }
+
       // === Legs (animated swing when moving) ===
       // Back leg (further when walking)
       ctx.fillStyle = '#2a1a0a';
@@ -6442,8 +6487,16 @@
       // Normalize diagonal
       if (dx !== 0 && dy !== 0) { dx *= 0.707; dy *= 0.707; }
 
-      p.vx = dx * p.speed;
-      p.vy = dy * p.speed;
+      // Speed Road: hop on a cart and zoom
+      p.onRoad = false;
+      if (world.roads) {
+        for (const rd of world.roads) {
+          if ((p.x - rd.x) ** 2 + (p.y - rd.y) ** 2 < 900) { p.onRoad = true; break; }
+        }
+      }
+      const boost = p.onRoad ? 2.3 : 1;
+      p.vx = dx * p.speed * boost;
+      p.vy = dy * p.speed * boost;
 
       // Update facing direction
       if (dx > 0) p.facing = 1;
@@ -6477,6 +6530,23 @@
       } else {
         world.camera.y = Math.max(fY - padding, Math.min(fY + fH + padding - canvas.height, world.camera.y));
       }
+    }
+
+    function drawRoads() {
+      if (!world.roads) return;
+      world.roads.forEach(rd => {
+        // Gravel bed
+        ctx.fillStyle = '#5a4a38';
+        ctx.fillRect(rd.x - 18, rd.y - 7, 36, 14);
+        // Ties
+        ctx.fillStyle = '#3a2a1a';
+        for (let i = -14; i <= 14; i += 7) ctx.fillRect(rd.x + i - 1.5, rd.y - 7, 3, 14);
+        // Rails
+        ctx.strokeStyle = '#9a8a78';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(rd.x - 18, rd.y - 4); ctx.lineTo(rd.x + 18, rd.y - 4); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(rd.x - 18, rd.y + 4); ctx.lineTo(rd.x + 18, rd.y + 4); ctx.stroke();
+      });
     }
 
     function drawDayNight() {
@@ -6538,6 +6608,7 @@
         ctx.save();
         ctx.translate(-Math.round(world.camera.x), -Math.round(world.camera.y));
         drawGround();
+        drawRoads();
         drawDecorations();
         drawHouse();
         drawStructures();
@@ -6720,12 +6791,18 @@
           const dc = c < bb.minCol ? bb.minCol - c : (c > bb.maxCol ? c - bb.maxCol : 0);
           const tier = Math.max(1, Math.max(dr, dc));
 
+          // Special terrain: mountains (stone+gems) or rivers (wood)
+          let terrain = 'plain';
+          const tr = Math.random();
+          if (tr < 0.15) terrain = 'mountain';
+          else if (tr < 0.27) terrain = 'river';
+
           // Quest chance grows with tier: 8% at tier 1, +8% per tier, capped 50%
           const questChance = Math.min(0.5, 0.08 + (tier - 1) * 0.08);
           if (Math.random() < questChance) {
             const quest = makeQuest(tier);
             sections.push({
-              row: r, col: c, type: 'quest', quest, questText: quest.text
+              row: r, col: c, type: 'quest', quest, questText: quest.text, terrain
             });
           } else {
             const cost = {
@@ -6734,7 +6811,7 @@
               // Gems only on far-out land, rare and cheap (1, occasionally 2)
               gems: (tier > 3 && Math.random() < 0.5) ? (Math.random() < 0.25 ? 2 : 1) : 0
             };
-            sections.push({ row: r, col: c, type: 'buy', cost });
+            sections.push({ row: r, col: c, type: 'buy', cost, terrain });
           }
         }
       }
@@ -6992,6 +7069,18 @@
             exCtx.fillStyle = 'rgba(192, 132, 252, 0.7)';
             exCtx.fillText('ACCEPT', cx, y + c - 4);
           }
+        }
+
+        // Special terrain marker (mountains / rivers)
+        if (sec.terrain === 'mountain' || sec.terrain === 'river') {
+          exCtx.save();
+          exCtx.fillStyle = sec.terrain === 'mountain' ? 'rgba(120, 130, 150, 0.22)' : 'rgba(70, 130, 200, 0.25)';
+          exCtx.fillRect(x, y, c, c);
+          exCtx.globalAlpha = 0.95;
+          exCtx.font = '13px sans-serif';
+          exCtx.textAlign = 'left';
+          exCtx.fillText(sec.terrain === 'mountain' ? '⛰️' : '🌊', x + 3, y + 14);
+          exCtx.restore();
         }
       });
 
