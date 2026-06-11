@@ -1408,6 +1408,122 @@
       font-size: 0.75rem;
     }
 
+    /* Building upgrade menu */
+    .upgrade-panel {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(5, 10, 5, 0.6);
+      backdrop-filter: blur(3px);
+      z-index: 9;
+      animation: fadeIn 0.2s ease-out;
+    }
+    .upgrade-panel.open { display: flex; }
+    .upgrade-card {
+      width: 360px;
+      max-width: 92vw;
+      max-height: 85vh;
+      overflow-y: auto;
+      background: linear-gradient(180deg, rgba(60, 45, 25, 0.98), rgba(28, 19, 8, 0.98));
+      border: 2px solid #8b6f47;
+      border-radius: 14px;
+      padding: 1.1rem 1.2rem 1.2rem;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(251, 191, 36, 0.2);
+    }
+    .upgrade-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      border-bottom: 1px solid #5a4530;
+      padding-bottom: 0.6rem;
+      margin-bottom: 0.7rem;
+    }
+    .upgrade-head #upgradeTitle {
+      font-family: "Cinzel", Georgia, serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: #fff5d6;
+    }
+    .upgrade-level {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: #fbbf24;
+      background: rgba(20, 12, 5, 0.7);
+      border: 1px solid rgba(251, 191, 36, 0.5);
+      border-radius: 6px;
+      padding: 0.15rem 0.5rem;
+    }
+    .upgrade-rows { display: flex; flex-direction: column; gap: 0.5rem; }
+    .upgrade-row {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      background: rgba(40, 28, 14, 0.7);
+      border: 1px solid #6a523a;
+      border-radius: 9px;
+      padding: 0.55rem 0.7rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .upgrade-row:hover { border-color: #fbbf24; background: rgba(70, 50, 26, 0.85); }
+    .upgrade-row.maxed { opacity: 0.6; cursor: default; }
+    .upgrade-row.maxed:hover { border-color: #6a523a; background: rgba(40, 28, 14, 0.7); }
+    .upgrade-row.cant { opacity: 0.65; }
+    .ur-icon { font-size: 1.5rem; flex-shrink: 0; width: 1.8rem; text-align: center; }
+    .ur-info { flex: 1; min-width: 0; }
+    .ur-name { font-size: 0.9rem; font-weight: 700; color: #fff5d6; letter-spacing: 0.04em; }
+    .ur-desc { font-size: 0.72rem; color: #b89968; margin-bottom: 0.3rem; }
+    .ur-dots { display: flex; gap: 3px; }
+    .ud { width: 9px; height: 9px; border-radius: 50%; background: rgba(255, 255, 255, 0.15); }
+    .ud.on { background: linear-gradient(135deg, #fbbf24, #f59e0b); box-shadow: 0 0 5px rgba(251, 191, 36, 0.7); }
+    .ur-buy {
+      flex-shrink: 0;
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      color: #fbbf24;
+      background: rgba(20, 12, 5, 0.7);
+      border: 1px solid rgba(251, 191, 36, 0.45);
+      border-radius: 7px;
+      padding: 0.4rem 0.6rem;
+      min-width: 52px;
+      text-align: center;
+    }
+    .upgrade-row.maxed .ur-buy { color: #b89968; border-color: #6a523a; }
+    .upgrade-actions {
+      display: flex;
+      gap: 0.6rem;
+      margin-top: 0.9rem;
+    }
+    .upgrade-restore, .upgrade-close-btn {
+      flex: 1;
+      padding: 0.65rem;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .upgrade-restore {
+      background: linear-gradient(180deg, rgba(40, 110, 70, 0.9), rgba(20, 70, 45, 0.95));
+      border: 2px solid #4d8a35;
+      color: #eafff0;
+    }
+    .upgrade-restore:hover:not(:disabled) { border-color: #7bed9f; }
+    .upgrade-restore:disabled { opacity: 0.45; cursor: not-allowed; }
+    .upgrade-close-btn {
+      background: rgba(40, 30, 15, 0.7);
+      border: 2px solid #8b6f47;
+      color: #fff5d6;
+    }
+    .upgrade-close-btn:hover { border-color: #fbbf24; }
+
     /* Game screen */
     .game-screen {
       position: fixed;
@@ -1950,6 +2066,21 @@
       <div class="build-panel-title">⚒ Build · materials + energy</div>
       <div class="build-list" id="buildList"></div>
       <button class="build-panel-close" id="buildCloseBtn">Close</button>
+    </div>
+
+    <!-- Building upgrade menu -->
+    <div class="upgrade-panel" id="upgradePanel">
+      <div class="upgrade-card">
+        <div class="upgrade-head">
+          <span id="upgradeTitle">Building</span>
+          <span class="upgrade-level" id="upgradeLevel">Lv 1</span>
+        </div>
+        <div class="upgrade-rows" id="upgradeRows"></div>
+        <div class="upgrade-actions">
+          <button class="upgrade-restore" id="upgradeRestoreBtn">❤️ Restore HP</button>
+          <button class="upgrade-close-btn" id="upgradeCloseBtn">Close</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -2584,6 +2715,7 @@
     function handleKeyDown(e) {
       if (!gameRunning) return;
       if (e.key === 'Escape' && buildMode) { cancelPlacing(); e.preventDefault(); return; }
+      if (e.key === 'Escape' && upgradeTarget) { closeUpgradeMenu(); e.preventDefault(); return; }
       if (exploreScreen && exploreScreen.style.display === 'block') return;
       const key = keyAlias[e.key] || e.key;
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) {
@@ -2665,9 +2797,10 @@
       world.healPulses = [];
       world.explosions = [];
       world.beams = [];
-      // Reset any build/placement mode from a previous run
+      // Reset any build/placement/upgrade UI from a previous run
       cancelPlacing();
       closeBuildPanel();
+      closeUpgradeMenu();
       // Permanent structures near shelter — tree grower + stone mine
       world.structures = [
         {
@@ -2709,9 +2842,9 @@
         return;
       }
 
-      // Upgrade a defensive building
+      // Open the upgrade menu for a defensive building
       for (const b of (world.buildings || [])) {
-        if ((wx - b.x) ** 2 + (wy - b.y) ** 2 < 1400) { tryUpgradeBuilding(b); return; }
+        if ((wx - b.x) ** 2 + (wy - b.y) ** 2 < 1400) { openUpgradeMenu(b); return; }
       }
       // Upgrade a resource structure
       for (const s of (world.structures || [])) {
@@ -3300,14 +3433,38 @@
     // Display order in the build menu
     const buildOrder = ['watchtower', 'heal', 'crossbow', 'catapult', 'firelauncher', 'laser', 'bomber'];
 
-    // Per-level derived stats — buildings get STRONGER and FASTER when upgraded.
-    function bMaxHp(b)    { const d = buildingDefs[b.type]; return Math.round(d.hp * (1 + 0.35 * (b.level - 1))); }
-    function bDamage(b)   { const d = buildingDefs[b.type]; return Math.round((d.damage || 0) * (1 + 0.30 * (b.level - 1))); }
-    function bRange(b)    { const d = buildingDefs[b.type]; return d.range + (b.level - 1) * 15; }
-    function bFireRate(b) { const d = buildingDefs[b.type]; return Math.max(12, Math.round(d.fireRate * Math.pow(0.85, b.level - 1))); }
-    function bHeal(b)     { const d = buildingDefs[b.type]; return Math.round((d.healAmount || 0) * (1 + 0.40 * (b.level - 1))); }
-    function bAoe(b)      { const d = buildingDefs[b.type]; return d.aoe ? d.aoe + (b.level - 1) * 8 : 0; }
-    function buildingUpgradeCost(b) { return 60 * b.level; } // in energy ⚡
+    // Upgrade tracks shown in a building's upgrade menu. Each track has its own level.
+    const buildingUpgradeDefs = {
+      tower: [
+        { key: 'damage',   name: 'Stronger',     icon: '⚔️', desc: '+30% damage per level',  max: 6, base: 60 },
+        { key: 'fireRate', name: 'Faster Fire',  icon: '💨', desc: '15% faster shooting',     max: 6, base: 60 },
+        { key: 'archer',   name: 'Extra Archer', icon: '🏹', desc: '+1 enemy hit per volley', max: 3, base: 140 },
+        { key: 'ammo',     name: 'Special Ammo', icon: '✨', desc: 'Explosive splash rounds',  max: 1, base: 260 },
+        { key: 'maxHp',    name: 'More Max HP',  icon: '❤️', desc: '+35% max HP per level',   max: 6, base: 50 }
+      ],
+      heal: [
+        { key: 'damage',   name: 'Stronger Heal', icon: '💖', desc: '+40% healing per level', max: 6, base: 60 },
+        { key: 'fireRate', name: 'Faster Pulse',  icon: '💨', desc: '15% faster pulses',      max: 6, base: 60 },
+        { key: 'maxHp',    name: 'More Max HP',   icon: '❤️', desc: '+35% max HP per level',  max: 6, base: 50 }
+      ]
+    };
+    function upgradeCost(track, level) { return track.base * (level + 1); } // in energy ⚡
+    const RESTORE_COST = 40; // energy ⚡ to fully repair a building
+
+    function up(b, key) { return (b.up && b.up[key]) || 0; }
+    // Display level = 1 + total upgrade points spent across all tracks
+    function bTotalLevel(b) {
+      const u = b.up || {};
+      return 1 + (u.damage || 0) + (u.fireRate || 0) + (u.archer || 0) + (u.ammo || 0) + (u.maxHp || 0);
+    }
+    // Derived stats from the per-track upgrade levels
+    function bMaxHp(b)    { const d = buildingDefs[b.type]; return Math.round(d.hp * (1 + 0.35 * up(b, 'maxHp'))); }
+    function bDamage(b)   { const d = buildingDefs[b.type]; let dmg = (d.damage || 0) * (1 + 0.30 * up(b, 'damage')); if (up(b, 'ammo')) dmg *= 1.25; return Math.round(dmg); }
+    function bRange(b)    { const d = buildingDefs[b.type]; return d.range; }
+    function bFireRate(b) { const d = buildingDefs[b.type]; return Math.max(10, Math.round(d.fireRate * Math.pow(0.85, up(b, 'fireRate')))); }
+    function bHeal(b)     { const d = buildingDefs[b.type]; return Math.round((d.healAmount || 0) * (1 + 0.40 * up(b, 'damage'))); }
+    function bArchers(b)  { return 1 + up(b, 'archer'); }
+    function bAoe(b)      { const d = buildingDefs[b.type]; let aoe = d.aoe || 0; if (up(b, 'ammo') && !aoe) aoe = 35; return aoe ? Math.round(aoe * (1 + 0.10 * up(b, 'damage'))) : 0; }
 
     function canAffordBuild(cost) {
       return (playerInventory.wood || 0) >= (cost.wood || 0)
@@ -3359,7 +3516,10 @@
         return;
       }
       payCost(def.cost);
-      const b = { type, x, y, level: 1, cooldown: 0, hitFlash: 0, aimAngle: -Math.PI / 2 };
+      const b = {
+        type, x, y, cooldown: 0, hitFlash: 0, aimAngle: -Math.PI / 2,
+        up: { damage: 0, fireRate: 0, archer: 0, ammo: 0, maxHp: 0 }
+      };
       b.maxHp = bMaxHp(b);
       b.hp = b.maxHp;
       world.buildings.push(b);
@@ -3368,24 +3528,80 @@
       world.floatingText.push({ x, y: y - 28, vy: -0.6, life: 60, text: `${def.icon} built!`, color: '#7bed9f' });
     }
 
-    function tryUpgradeBuilding(b) {
-      const cost = buildingUpgradeCost(b);
-      if (b.level >= 5) {
-        world.floatingText.push({ x: b.x, y: b.y - 30, vy: -0.7, life: 55, text: 'MAX LEVEL', color: '#fbbf24' });
-        return;
-      }
+    // --- Building upgrade menu ---
+    let upgradeTarget = null; // building whose menu is open
+
+    function openUpgradeMenu(b) {
+      upgradeTarget = b;
+      closeBuildPanel();
+      renderUpgradePanel();
+      document.getElementById('upgradePanel').classList.add('open');
+    }
+    function closeUpgradeMenu() {
+      upgradeTarget = null;
+      const p = document.getElementById('upgradePanel');
+      if (p) p.classList.remove('open');
+    }
+    function renderUpgradePanel() {
+      const b = upgradeTarget;
+      if (!b) return;
+      const def = buildingDefs[b.type];
+      document.getElementById('upgradeTitle').textContent = `${def.icon} ${def.name}`;
+      document.getElementById('upgradeLevel').textContent = `Lv ${bTotalLevel(b)}`;
+      const rows = document.getElementById('upgradeRows');
+      rows.innerHTML = '';
+      const tracks = buildingUpgradeDefs[def.kind] || buildingUpgradeDefs.tower;
+      tracks.forEach(tr => {
+        const lvl = up(b, tr.key);
+        const maxed = lvl >= tr.max;
+        const cost = upgradeCost(tr, lvl);
+        const afford = (playerInventory.power || 0) >= cost;
+        const row = document.createElement('div');
+        row.className = 'upgrade-row' + (maxed ? ' maxed' : (afford ? '' : ' cant'));
+        const dots = Array.from({ length: tr.max }, (_, i) => `<span class="ud ${i < lvl ? 'on' : ''}"></span>`).join('');
+        row.innerHTML =
+          `<div class="ur-icon">${tr.icon}</div>` +
+          `<div class="ur-info"><div class="ur-name">${tr.name}</div><div class="ur-desc">${tr.desc}</div><div class="ur-dots">${dots}</div></div>` +
+          `<div class="ur-buy">${maxed ? 'MAX' : '⚡' + cost}</div>`;
+        if (!maxed) row.addEventListener('click', () => buyUpgrade(tr));
+        rows.appendChild(row);
+      });
+      const rb = document.getElementById('upgradeRestoreBtn');
+      const damaged = b.hp < b.maxHp;
+      rb.textContent = damaged ? `❤️ Restore HP (⚡${RESTORE_COST})` : '❤️ HP full';
+      rb.disabled = !damaged;
+    }
+    function buyUpgrade(tr) {
+      const b = upgradeTarget;
+      if (!b) return;
+      const lvl = up(b, tr.key);
+      if (lvl >= tr.max) return;
+      const cost = upgradeCost(tr, lvl);
       if ((playerInventory.power || 0) < cost) {
         flashResBars();
         world.floatingText.push({ x: b.x, y: b.y - 30, vy: -0.7, life: 55, text: `Need ${cost} ⚡`, color: '#e74c3c' });
         return;
       }
       playerInventory.power -= cost;
-      b.level++;
-      const newMax = bMaxHp(b);
-      b.hp += (newMax - b.maxHp); // heal by the gained max
-      b.maxHp = newMax;
+      b.up[tr.key] = lvl + 1;
+      if (tr.key === 'maxHp') { const nm = bMaxHp(b); b.hp += (nm - b.maxHp); b.maxHp = nm; }
       updateResourceBars();
-      world.floatingText.push({ x: b.x, y: b.y - 32, vy: -0.7, life: 70, text: `Lvl ${b.level} ✦ stronger & faster`, color: '#fbbf24' });
+      world.floatingText.push({ x: b.x, y: b.y - 32, vy: -0.7, life: 60, text: `${tr.icon} ${tr.name}!`, color: '#fbbf24' });
+      renderUpgradePanel();
+    }
+    function restoreBuilding() {
+      const b = upgradeTarget;
+      if (!b || b.hp >= b.maxHp) return;
+      if ((playerInventory.power || 0) < RESTORE_COST) {
+        flashResBars();
+        world.floatingText.push({ x: b.x, y: b.y - 30, vy: -0.7, life: 55, text: `Need ${RESTORE_COST} ⚡`, color: '#e74c3c' });
+        return;
+      }
+      playerInventory.power -= RESTORE_COST;
+      b.hp = b.maxHp;
+      updateResourceBars();
+      world.floatingText.push({ x: b.x, y: b.y - 32, vy: -0.7, life: 60, text: '❤️ Repaired!', color: '#7bed9f' });
+      renderUpgradePanel();
     }
 
     function updateBuildings() {
@@ -3395,6 +3611,7 @@
         if (b.hitFlash > 0) b.hitFlash--;
         if (b.hp <= 0) {
           world.floatingText.push({ x: b.x, y: b.y - 20, vy: -0.7, life: 55, text: '💥 destroyed', color: '#e74c3c' });
+          if (upgradeTarget === b) closeUpgradeMenu();
           world.buildings.splice(i, 1);
           continue;
         }
@@ -3436,26 +3653,40 @@
     function fireTower(b, target) {
       const def = buildingDefs[b.type];
       const dmg = bDamage(b);
-      const ox = b.x, oy = b.y - 26;
-      if (def.projectile === 'laser') {
-        // Instant hitscan beam
-        hitEnemy(target, dmg);
-        world.beams = world.beams || [];
-        world.beams.push({ x1: ox, y1: oy, x2: target.x, y2: target.y, life: 8, totalLife: 8, color: def.accent });
-        return;
-      }
       const aoe = bAoe(b);
-      const dx = target.x - ox, dy = target.y - oy;
-      const dist = Math.hypot(dx, dy) || 1;
-      const speed = (def.projectile === 'bomb' || def.projectile === 'rock') ? 6.5 : 9;
-      world.projectiles.push({
-        x: ox, y: oy,
-        vx: dx / dist * speed, vy: dy / dist * speed,
-        target: target, targetType: 'enemy',
-        weapon: 'tower-' + def.projectile,
-        damage: dmg, aoe: aoe,
-        tx: target.x, ty: target.y, // ballistic aim point
-        fromTower: true, life: 130
+      const special = up(b, 'ammo') > 0;
+      const ox = b.x, oy = b.y - 26;
+
+      // "Extra Archer" upgrade lets a tower strike several enemies at once
+      const targets = [target];
+      const extras = bArchers(b) - 1;
+      if (extras > 0) {
+        world.enemies
+          .filter(e => e !== target && Math.hypot(e.x - b.x, e.y - b.y) < bRange(b))
+          .sort((a, c) => Math.hypot(a.x - b.x, a.y - b.y) - Math.hypot(c.x - b.x, c.y - b.y))
+          .slice(0, extras)
+          .forEach(e => targets.push(e));
+      }
+
+      targets.forEach(tg => {
+        if (def.projectile === 'laser') {
+          hitEnemy(tg, dmg);
+          world.beams = world.beams || [];
+          world.beams.push({ x1: ox, y1: oy, x2: tg.x, y2: tg.y, life: 8, totalLife: 8, color: special ? '#ff5cf0' : def.accent });
+        } else {
+          const dx = tg.x - ox, dy = tg.y - oy;
+          const dist = Math.hypot(dx, dy) || 1;
+          const speed = (def.projectile === 'bomb' || def.projectile === 'rock') ? 6.5 : 9;
+          world.projectiles.push({
+            x: ox, y: oy,
+            vx: dx / dist * speed, vy: dy / dist * speed,
+            target: tg, targetType: 'enemy',
+            weapon: 'tower-' + def.projectile,
+            damage: dmg, aoe: aoe, special: special,
+            tx: tg.x, ty: tg.y, // ballistic aim point
+            fromTower: true, life: 130
+          });
+        }
       });
     }
 
@@ -3575,7 +3806,7 @@
       ctx.fillStyle = '#fbbf24';
       ctx.font = 'bold 9px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(`Lv ${b.level}`, b.x, b.y + 23);
+      ctx.fillText(`Lv ${bTotalLevel(b)}`, b.x, b.y + 23);
     }
 
     // Visual effects from buildings: explosions, laser beams, heal pulses
@@ -3690,6 +3921,13 @@
       if (closeBtn) closeBtn.addEventListener('click', closeBuildPanel);
       const cancelBtn = document.getElementById('placeCancelBtn');
       if (cancelBtn) cancelBtn.addEventListener('click', cancelPlacing);
+      const upCloseBtn = document.getElementById('upgradeCloseBtn');
+      if (upCloseBtn) upCloseBtn.addEventListener('click', closeUpgradeMenu);
+      const upRestoreBtn = document.getElementById('upgradeRestoreBtn');
+      if (upRestoreBtn) upRestoreBtn.addEventListener('click', restoreBuilding);
+      // Click the dim backdrop (outside the card) to close
+      const upPanel = document.getElementById('upgradePanel');
+      if (upPanel) upPanel.addEventListener('click', (e) => { if (e.target === upPanel) closeUpgradeMenu(); });
     })();
 
     // ===== WAVES & ENEMIES =====
