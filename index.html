@@ -5758,6 +5758,8 @@
         updateWaves();
         updateEnemies();
         updateProjectiles();
+        // Keep quest progress live + auto-claim finished quests (~every 0.5s)
+        if (world.time % 480 < 16) checkQuestCompletion();
         if (world.house.hitFlash > 0) world.house.hitFlash--;
         if (world.player.hitFlash > 0) world.player.hitFlash--;
         updateCamera();
@@ -5867,6 +5869,58 @@
         const q = sec.quest;
         if (q.type === 'survive' && q.progress < q.amount) q.progress++;
       });
+      checkQuestCompletion();
+    }
+
+    // Turn a finished quest section into owned land (used by both manual & auto claim)
+    function claimQuestSection(sec) {
+      if (!sec || sec.type !== 'quest') return false;
+      const q = sec.quest;
+      if (!q || !q.started || q.progress < q.amount) return false;
+      sec.type = 'owned';
+      delete sec.quest;
+      delete sec.questText;
+      if (world && world.ownedBBox) {
+        const bb = world.ownedBBox;
+        bb.minCol = Math.min(bb.minCol, sec.col);
+        bb.maxCol = Math.max(bb.maxCol, sec.col);
+        bb.minRow = Math.min(bb.minRow, sec.row);
+        bb.maxRow = Math.max(bb.maxRow, sec.row);
+        recomputeFieldBBox();
+        addDecorationsForSection(sec);
+      }
+      ensureSectionsAround(exState.sections, sec.row, sec.col, 6);
+      return true;
+    }
+
+    // Keep quest progress live and auto-claim any quest that's finished
+    function checkQuestCompletion() {
+      if (!exState.sections) return;
+      refreshGatherQuests();
+      let claimed = 0;
+      exState.sections.forEach(sec => {
+        if (sec.type === 'quest' && sec.quest && sec.quest.started && sec.quest.progress >= sec.quest.amount) {
+          const txt = sec.quest.text;
+          if (claimQuestSection(sec)) { claimed++; questToast(`✓ Quest complete: ${txt} — land claimed!`); }
+        }
+      });
+      if (claimed && exploreScreen && exploreScreen.style.display === 'block') drawExplore();
+    }
+
+    let questToastTimer = null;
+    function questToast(msg) {
+      if (world && world.player && world.floatingText) {
+        world.floatingText.push({ x: world.player.x, y: world.player.y - 42, vy: -0.5, life: 130, text: '✓ Quest complete!', color: '#fbbf24' });
+      }
+      const hint = document.getElementById('gameHint');
+      if (hint) {
+        hint.textContent = msg;
+        hint.style.color = '#fbbf24';
+        if (questToastTimer) clearTimeout(questToastTimer);
+        questToastTimer = setTimeout(() => { hint.textContent = 'Arrows/WASD move · X attacks'; hint.style.color = ''; }, 4000);
+      }
+      const exHint = document.getElementById('exploreHint');
+      if (exHint) exHint.textContent = msg;
     }
 
     function makeQuest(tier) {
@@ -6263,21 +6317,7 @@
             drawExplore();
           } else {
             refreshGatherQuests();
-            if (q.progress >= q.amount) {
-              // Claim
-              sec.type = 'owned';
-              delete sec.quest;
-              delete sec.questText;
-              if (world && world.ownedBBox) {
-                const bb = world.ownedBBox;
-                bb.minCol = Math.min(bb.minCol, sec.col);
-                bb.maxCol = Math.max(bb.maxCol, sec.col);
-                bb.minRow = Math.min(bb.minRow, sec.row);
-                bb.maxRow = Math.max(bb.maxRow, sec.row);
-                recomputeFieldBBox();
-                addDecorationsForSection(sec);
-              }
-              ensureSectionsAround(exState.sections, sec.row, sec.col, 6);
+            if (claimQuestSection(sec)) {
               drawExplore();
               if (hint) hint.textContent = `✓ Quest complete! Land claimed.`;
             } else {
