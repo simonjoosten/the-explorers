@@ -1262,6 +1262,152 @@
       background: rgba(220, 50, 50, 1);
     }
 
+    /* Build button — sits above the attack button (dpad occupies bottom-right) */
+    .build-btn {
+      position: absolute;
+      bottom: 11rem;
+      left: 2rem;
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: rgba(60, 120, 50, 0.9);
+      border: 3px solid #fbbf24;
+      color: #fff5d6;
+      font-size: 1.6rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      z-index: 6;
+      touch-action: none;
+      user-select: none;
+      box-shadow: 0 4px 15px rgba(50, 120, 50, 0.5);
+      transition: transform 0.1s;
+    }
+    .build-btn:active, .build-btn.pressed {
+      transform: scale(0.9);
+      background: rgba(80, 150, 60, 1);
+    }
+    .build-btn.active {
+      background: rgba(80, 150, 60, 1);
+      box-shadow: 0 0 22px rgba(251, 191, 36, 0.8);
+    }
+
+    /* Build panel */
+    .build-panel {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      background: linear-gradient(180deg, rgba(40, 28, 14, 0) 0%, rgba(30, 20, 10, 0.96) 22%);
+      padding: 2rem 1rem 1.2rem;
+      z-index: 8;
+      animation: fadeIn 0.25s ease-out;
+    }
+    .build-panel.open { display: flex; }
+    .build-panel-title {
+      font-family: "Cinzel", Georgia, serif;
+      font-size: 1rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: #fbbf24;
+      margin-bottom: 0.8rem;
+      text-shadow: 0 0 10px rgba(251, 191, 36, 0.4);
+    }
+    .build-list {
+      display: flex;
+      gap: 0.7rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 1000px;
+    }
+    .build-card {
+      width: 132px;
+      background: linear-gradient(180deg, rgba(60, 45, 25, 0.92), rgba(30, 20, 8, 0.95));
+      border: 2px solid #8b6f47;
+      border-radius: 10px;
+      padding: 0.7rem 0.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.18s;
+    }
+    .build-card:hover {
+      transform: translateY(-4px);
+      border-color: #fbbf24;
+      box-shadow: 0 8px 22px rgba(251, 191, 36, 0.3);
+    }
+    .build-card.unaffordable {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .build-card.unaffordable:hover { transform: none; box-shadow: none; border-color: #8b6f47; }
+    .build-card-icon { font-size: 1.9rem; line-height: 1; margin-bottom: 0.25rem; }
+    .build-card-name {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #fff5d6;
+      margin-bottom: 0.3rem;
+      min-height: 2.2em;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .build-card-cost {
+      display: flex;
+      gap: 0.45rem;
+      justify-content: center;
+      font-size: 0.72rem;
+      color: #e8dcc0;
+    }
+    .build-card-cost .bad { color: #e74c3c; }
+    .build-panel-close {
+      margin-top: 0.9rem;
+      background: rgba(40, 30, 15, 0.7);
+      border: 2px solid #8b6f47;
+      color: #fff5d6;
+      padding: 0.5rem 1.6rem;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.8rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .build-panel-close:hover { border-color: #fbbf24; }
+
+    /* Placement banner */
+    .place-banner {
+      position: absolute;
+      top: 5.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: none;
+      align-items: center;
+      gap: 0.8rem;
+      background: rgba(30, 20, 10, 0.92);
+      border: 2px solid #fbbf24;
+      border-radius: 30px;
+      padding: 0.55rem 1.3rem;
+      color: #fff5d6;
+      font-size: 0.85rem;
+      letter-spacing: 0.08em;
+      z-index: 7;
+      box-shadow: 0 0 18px rgba(251, 191, 36, 0.4);
+    }
+    .place-banner.show { display: flex; }
+    .place-banner button {
+      background: rgba(180, 30, 30, 0.85);
+      border: 1px solid #fbbf24;
+      color: #fff5d6;
+      border-radius: 20px;
+      padding: 0.25rem 0.8rem;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.75rem;
+    }
+
     /* Game screen */
     .game-screen {
       position: fixed;
@@ -1791,6 +1937,20 @@
       <button class="dpad-btn dpad-down"  data-key="ArrowDown">↓</button>
     </div>
     <button class="attack-btn" id="attackBtn">⚔</button>
+    <button class="build-btn" id="buildBtn">🔨</button>
+
+    <!-- Placement banner -->
+    <div class="place-banner" id="placeBanner">
+      <span id="placeBannerText">Tap to place</span>
+      <button id="placeCancelBtn">✕ Cancel</button>
+    </div>
+
+    <!-- Build panel -->
+    <div class="build-panel" id="buildPanel">
+      <div class="build-panel-title">⚒ Build · materials + energy</div>
+      <div class="build-list" id="buildList"></div>
+      <button class="build-panel-close" id="buildCloseBtn">Close</button>
+    </div>
   </div>
 
   <!-- Explore overlay -->
@@ -2423,6 +2583,7 @@
 
     function handleKeyDown(e) {
       if (!gameRunning) return;
+      if (e.key === 'Escape' && buildMode) { cancelPlacing(); e.preventDefault(); return; }
       if (exploreScreen && exploreScreen.style.display === 'block') return;
       const key = keyAlias[e.key] || e.key;
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) {
@@ -2498,6 +2659,15 @@
       world.house.hp = 200;
       world.house.maxHp = 200;
       world.house.hitFlash = 0;
+      world.house.level = 1;
+      // Player-built defensive buildings + their visual effects
+      world.buildings = [];
+      world.healPulses = [];
+      world.explosions = [];
+      world.beams = [];
+      // Reset any build/placement mode from a previous run
+      cancelPlacing();
+      closeBuildPanel();
       // Permanent structures near shelter — tree grower + stone mine
       world.structures = [
         {
@@ -2524,22 +2694,62 @@
       canvas.focus();
       gameLoop();
     }
-    // Refocus + try upgrade structure on click
+    // Refocus + place building / upgrade structures & buildings on click
     canvas.addEventListener('click', (e) => {
       canvas.focus();
-      if (!world || !world.structures) return;
+      if (!world) return;
       const cam = world.camera || { x: 0, y: 0 };
       const wx = e.clientX + cam.x;
       const wy = e.clientY + cam.y;
-      for (const s of world.structures) {
-        const dx = wx - s.x;
-        const dy = wy - s.y;
-        if (dx * dx + dy * dy < 1200) { // ~35px click radius
-          tryUpgradeStructure(s);
-          return;
-        }
+
+      // Placement mode — drop the selected building here
+      if (buildMode) {
+        placeBuilding(buildMode, wx, wy);
+        cancelPlacing();
+        return;
       }
+
+      // Upgrade a defensive building
+      for (const b of (world.buildings || [])) {
+        if ((wx - b.x) ** 2 + (wy - b.y) ** 2 < 1400) { tryUpgradeBuilding(b); return; }
+      }
+      // Upgrade a resource structure
+      for (const s of (world.structures || [])) {
+        if ((wx - s.x) ** 2 + (wy - s.y) ** 2 < 1200) { tryUpgradeStructure(s); return; }
+      }
+      // Upgrade the shelter itself (stronger base)
+      if ((wx - world.house.x) ** 2 + (wy - world.house.y) ** 2 < 2500) { tryUpgradeHouse(); return; }
     });
+
+    // Ghost preview follows the cursor while placing
+    canvas.addEventListener('mousemove', (e) => {
+      if (!buildMode || !world) return;
+      const cam = world.camera || { x: 0, y: 0 };
+      const wx = e.clientX + cam.x;
+      const wy = e.clientY + cam.y;
+      buildGhost = { x: wx, y: wy, valid: canAffordBuild(buildingDefs[buildMode].cost) && isValidPlacement(wx, wy) };
+    });
+
+    function tryUpgradeHouse() {
+      const h = world.house;
+      h.level = h.level || 1;
+      const cost = 80 * h.level;
+      if (h.level >= 5) {
+        world.floatingText.push({ x: h.x, y: h.y - 50, vy: -0.7, life: 55, text: 'BASE MAX', color: '#fbbf24' });
+        return;
+      }
+      if ((playerInventory.power || 0) < cost) {
+        flashResBars();
+        world.floatingText.push({ x: h.x, y: h.y - 50, vy: -0.7, life: 55, text: `Need ${cost} ⚡`, color: '#e74c3c' });
+        return;
+      }
+      playerInventory.power -= cost;
+      h.level++;
+      h.maxHp += 100;
+      h.hp += 100;
+      updateResourceBars();
+      world.floatingText.push({ x: h.x, y: h.y - 54, vy: -0.7, life: 70, text: `Base Lvl ${h.level} ✦ +100 HP`, color: '#fbbf24' });
+    }
 
     // Attack button (X for desktop, button for mobile)
     const attackBtn = document.getElementById('attackBtn');
@@ -2639,6 +2849,33 @@
         pr.y += pr.vy;
         pr.life--;
 
+        if (pr.fromTower) {
+          if (pr.aoe > 0) {
+            // Ballistic: explode on contact with any enemy, near aim point, or at end of life
+            let hit = false;
+            for (const en of world.enemies) {
+              if ((en.x - pr.x) ** 2 + (en.y - pr.y) ** 2 < 196) { hit = true; break; }
+            }
+            if (!hit && (pr.tx - pr.x) ** 2 + (pr.ty - pr.y) ** 2 < 144) hit = true;
+            if (hit || pr.life <= 0) {
+              explodeAoE(pr);
+              world.projectiles.splice(i, 1);
+            }
+            continue;
+          } else {
+            // Direct shot — home onto the target enemy
+            if (world.enemies.includes(pr.target)) {
+              if ((pr.x - pr.target.x) ** 2 + (pr.y - pr.target.y) ** 2 < 400) {
+                hitEnemy(pr.target, pr.damage);
+                world.projectiles.splice(i, 1);
+                continue;
+              }
+            }
+            if (pr.life <= 0) world.projectiles.splice(i, 1);
+            continue;
+          }
+        }
+
         if (pr.hostile) {
           // Enemy projectile — hits player/house
           const t = pr.target;
@@ -2674,6 +2911,31 @@
 
     function drawProjectiles() {
       world.projectiles.forEach(pr => {
+        if (pr.fromTower) {
+          const ang = Math.atan2(pr.vy, pr.vx);
+          if (pr.weapon === 'tower-arrow' || pr.weapon === 'tower-bolt') {
+            ctx.save(); ctx.translate(pr.x, pr.y); ctx.rotate(ang);
+            ctx.fillStyle = '#8b6f47'; ctx.fillRect(-11, -0.5, 16, pr.weapon === 'tower-bolt' ? 2 : 1);
+            ctx.fillStyle = '#d4d4dc';
+            ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(1, -3); ctx.lineTo(1, 3); ctx.closePath(); ctx.fill();
+            ctx.restore();
+          } else if (pr.weapon === 'tower-fire') {
+            const g = ctx.createRadialGradient(pr.x, pr.y, 0, pr.x, pr.y, 14);
+            g.addColorStop(0, 'rgba(255,180,60,0.9)'); g.addColorStop(0.5, 'rgba(255,100,30,0.6)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(pr.x, pr.y, 14, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#ffe08a'; ctx.beginPath(); ctx.arc(pr.x, pr.y, 4, 0, Math.PI * 2); ctx.fill();
+          } else if (pr.weapon === 'tower-rock') {
+            ctx.fillStyle = '#7a6a58';
+            ctx.beginPath(); ctx.arc(pr.x, pr.y, 6, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#5a4a3a'; ctx.beginPath(); ctx.arc(pr.x - 2, pr.y - 2, 2, 0, Math.PI * 2); ctx.fill();
+          } else if (pr.weapon === 'tower-bomb') {
+            ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(pr.x, pr.y, 7, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#ffcf40'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(pr.x, pr.y - 7); ctx.lineTo(pr.x + 3, pr.y - 11); ctx.stroke();
+            ctx.fillStyle = '#ff6b3a'; ctx.beginPath(); ctx.arc(pr.x + 3, pr.y - 11, 2, 0, Math.PI * 2); ctx.fill();
+          }
+          return;
+        }
         if (pr.weapon === 'bow' || pr.weapon === 'crossbow') {
           // Arrow
           const ang = Math.atan2(pr.vy, pr.vx);
@@ -2759,6 +3021,7 @@
     function updateStructures() {
       if (!world.structures) return;
       const treeTypes = ['tree-oak','tree-pine','tree-birch','tree-maple','tree-willow'];
+      const stoneTypes = ['stone-pebble','stone-boulder','stone-large','stone-mossy','stone-slate'];
       world.structures.forEach(s => {
         if (s.type === 'tree-gen') {
           const childExists = s.childDeco && world.decorations.includes(s.childDeco);
@@ -2785,15 +3048,28 @@
             s.timer = 0;
           }
         } else if (s.type === 'mine') {
-          s.timer += 16;
-          const period = minePeriod(s.level);
-          if (s.timer >= period) {
-            playerInventory.stone = (playerInventory.stone || 0) + 1;
-            updateResourceBars();
-            world.floatingText.push({
-              x: s.x, y: s.y - 18, vy: -0.7, life: 55,
-              text: '+1 🪨', color: '#fff5d6'
-            });
+          // Like the tree generator, the mine grows a random rock next to it that you harvest
+          const childExists = s.childDeco && world.decorations.includes(s.childDeco);
+          if (!childExists) {
+            s.childDeco = null;
+            s.timer += 16;
+            const period = minePeriod(s.level);
+            if (s.timer >= period) {
+              const type = stoneTypes[Math.floor(Math.random() * stoneTypes.length)];
+              // Spawn the rock just to the right of the mine entrance
+              const tx = s.x + 30 + (Math.random() - 0.5) * 6;
+              const ty = s.y + 2 + (Math.random() - 0.5) * 6;
+              const child = spawnDecoration(type, tx, ty);
+              world.decorations.push(child);
+              world.decorations.sort((a, b) => a.y - b.y);
+              s.childDeco = child;
+              s.timer = 0;
+              world.floatingText.push({
+                x: s.x, y: s.y - 18, vy: -0.6, life: 60,
+                text: '🪨 mined!', color: '#cdbfae'
+              });
+            }
+          } else {
             s.timer = 0;
           }
         }
@@ -2968,6 +3244,454 @@
       });
     }
 
+    // ===== BUILDINGS (towers, heal shrine, defenses) =====
+    // Costs use materials (wood 🪵 + stone 🪨) and energy (power ⚡).
+    const buildingDefs = {
+      watchtower: {
+        name: 'Watchtower', icon: '🏹', kind: 'tower', projectile: 'arrow',
+        cost: { wood: 60, stone: 20, power: 0 },
+        hp: 120, range: 220, damage: 8, fireRate: 60,
+        color: '#7a5a36', accent: '#c9a063',
+        desc: 'Archer tower with steady arrow fire.'
+      },
+      crossbow: {
+        name: 'Mega Crossbow', icon: '🎯', kind: 'tower', projectile: 'bolt',
+        cost: { wood: 120, stone: 60, power: 40 },
+        hp: 160, range: 285, damage: 22, fireRate: 78,
+        color: '#6a4a2a', accent: '#d4d4dc',
+        desc: 'Heavy bolts — hard hits at long range.'
+      },
+      catapult: {
+        name: 'Ballistic Catapult', icon: '💥', kind: 'tower', projectile: 'rock',
+        cost: { wood: 100, stone: 140, power: 60 },
+        hp: 200, range: 300, damage: 26, fireRate: 115, aoe: 70,
+        color: '#7a5a3a', accent: '#9a9a9a',
+        desc: 'Lobs boulders — splash on clusters.'
+      },
+      firelauncher: {
+        name: 'Fire Launcher', icon: '🔥', kind: 'tower', projectile: 'fire',
+        cost: { wood: 80, stone: 80, power: 120 },
+        hp: 150, range: 240, damage: 15, fireRate: 52, aoe: 50,
+        color: '#7a2a1a', accent: '#ff7340',
+        desc: 'Gouts of flame that scorch an area.'
+      },
+      laser: {
+        name: 'Laser Tower', icon: '⚡', kind: 'tower', projectile: 'laser',
+        cost: { wood: 40, stone: 120, power: 220 },
+        hp: 140, range: 320, damage: 30, fireRate: 42,
+        color: '#2a3a5a', accent: '#7df9ff',
+        desc: 'Instant beam — pierces the dark.'
+      },
+      bomber: {
+        name: 'Bomber Launcher', icon: '💣', kind: 'tower', projectile: 'bomb',
+        cost: { wood: 120, stone: 120, power: 180 },
+        hp: 180, range: 300, damage: 42, fireRate: 145, aoe: 95,
+        color: '#3a3a3a', accent: '#ffcf40',
+        desc: 'Massive bombs — huge splash, slow reload.'
+      },
+      heal: {
+        name: 'Heal Shrine', icon: '💚', kind: 'heal', projectile: null,
+        cost: { wood: 100, stone: 100, power: 80 },
+        hp: 140, range: 99999, healAmount: 6, fireRate: 90,
+        color: '#1f5a3a', accent: '#7bed9f',
+        desc: 'Pulses healing to base, towers & heroes.'
+      }
+    };
+    // Display order in the build menu
+    const buildOrder = ['watchtower', 'heal', 'crossbow', 'catapult', 'firelauncher', 'laser', 'bomber'];
+
+    // Per-level derived stats — buildings get STRONGER and FASTER when upgraded.
+    function bMaxHp(b)    { const d = buildingDefs[b.type]; return Math.round(d.hp * (1 + 0.35 * (b.level - 1))); }
+    function bDamage(b)   { const d = buildingDefs[b.type]; return Math.round((d.damage || 0) * (1 + 0.30 * (b.level - 1))); }
+    function bRange(b)    { const d = buildingDefs[b.type]; return d.range + (b.level - 1) * 15; }
+    function bFireRate(b) { const d = buildingDefs[b.type]; return Math.max(12, Math.round(d.fireRate * Math.pow(0.85, b.level - 1))); }
+    function bHeal(b)     { const d = buildingDefs[b.type]; return Math.round((d.healAmount || 0) * (1 + 0.40 * (b.level - 1))); }
+    function bAoe(b)      { const d = buildingDefs[b.type]; return d.aoe ? d.aoe + (b.level - 1) * 8 : 0; }
+    function buildingUpgradeCost(b) { return 60 * b.level; } // in energy ⚡
+
+    function canAffordBuild(cost) {
+      return (playerInventory.wood || 0) >= (cost.wood || 0)
+          && (playerInventory.stone || 0) >= (cost.stone || 0)
+          && (playerInventory.power || 0) >= (cost.power || 0);
+    }
+    function payCost(cost) {
+      playerInventory.wood  -= (cost.wood  || 0);
+      playerInventory.stone -= (cost.stone || 0);
+      playerInventory.power -= (cost.power || 0);
+    }
+    function flashResBars() {
+      ['gameResBar', 'exploreResBar'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.classList.remove('res-flash'); void el.offsetWidth; el.classList.add('res-flash'); }
+      });
+    }
+
+    // --- Build mode + placement ---
+    let buildMode = null;        // building type currently being placed
+    let buildGhost = null;       // {x, y, valid} world-space ghost while placing
+
+    function isValidPlacement(x, y) {
+      if (!world) return false;
+      if (!isPositionInOwnedArea(x, y)) return false;
+      // Keep clear of the shelter
+      if (Math.hypot(x - world.house.x, y - world.house.y) < 70) return false;
+      // Keep clear of resource structures
+      for (const s of (world.structures || [])) {
+        if (Math.hypot(x - s.x, y - s.y) < 55) return false;
+      }
+      // Keep clear of other buildings
+      for (const b of (world.buildings || [])) {
+        if (Math.hypot(x - b.x, y - b.y) < 55) return false;
+      }
+      return true;
+    }
+
+    function placeBuilding(type, x, y) {
+      const def = buildingDefs[type];
+      if (!def) return;
+      if (!canAffordBuild(def.cost)) {
+        flashResBars();
+        world.floatingText.push({ x, y: y - 20, vy: -0.7, life: 55, text: 'Need more 🪵🪨⚡', color: '#e74c3c' });
+        return;
+      }
+      if (!isValidPlacement(x, y)) {
+        world.floatingText.push({ x, y: y - 20, vy: -0.7, life: 55, text: 'Cannot build here', color: '#e74c3c' });
+        return;
+      }
+      payCost(def.cost);
+      const b = { type, x, y, level: 1, cooldown: 0, hitFlash: 0, aimAngle: -Math.PI / 2 };
+      b.maxHp = bMaxHp(b);
+      b.hp = b.maxHp;
+      world.buildings.push(b);
+      world.buildings.sort((a, c) => a.y - c.y);
+      updateResourceBars();
+      world.floatingText.push({ x, y: y - 28, vy: -0.6, life: 60, text: `${def.icon} built!`, color: '#7bed9f' });
+    }
+
+    function tryUpgradeBuilding(b) {
+      const cost = buildingUpgradeCost(b);
+      if (b.level >= 5) {
+        world.floatingText.push({ x: b.x, y: b.y - 30, vy: -0.7, life: 55, text: 'MAX LEVEL', color: '#fbbf24' });
+        return;
+      }
+      if ((playerInventory.power || 0) < cost) {
+        flashResBars();
+        world.floatingText.push({ x: b.x, y: b.y - 30, vy: -0.7, life: 55, text: `Need ${cost} ⚡`, color: '#e74c3c' });
+        return;
+      }
+      playerInventory.power -= cost;
+      b.level++;
+      const newMax = bMaxHp(b);
+      b.hp += (newMax - b.maxHp); // heal by the gained max
+      b.maxHp = newMax;
+      updateResourceBars();
+      world.floatingText.push({ x: b.x, y: b.y - 32, vy: -0.7, life: 70, text: `Lvl ${b.level} ✦ stronger & faster`, color: '#fbbf24' });
+    }
+
+    function updateBuildings() {
+      if (!world.buildings) return;
+      for (let i = world.buildings.length - 1; i >= 0; i--) {
+        const b = world.buildings[i];
+        if (b.hitFlash > 0) b.hitFlash--;
+        if (b.hp <= 0) {
+          world.floatingText.push({ x: b.x, y: b.y - 20, vy: -0.7, life: 55, text: '💥 destroyed', color: '#e74c3c' });
+          world.buildings.splice(i, 1);
+          continue;
+        }
+        if (b.cooldown > 0) { b.cooldown--; continue; }
+        const def = buildingDefs[b.type];
+        if (def.kind === 'heal') {
+          healAll(b, bHeal(b));
+          b.cooldown = bFireRate(b);
+        } else {
+          // Find nearest enemy in range
+          let target = null, best = bRange(b);
+          world.enemies.forEach(e => {
+            const d = Math.hypot(e.x - b.x, e.y - b.y);
+            if (d < best) { best = d; target = e; }
+          });
+          if (target) {
+            b.aimAngle = Math.atan2(target.y - (b.y - 26), target.x - b.x);
+            fireTower(b, target);
+            b.cooldown = bFireRate(b);
+          }
+        }
+      }
+    }
+
+    function healAll(src, amt) {
+      const targets = [world.house, world.player, ...(world.buildings || [])];
+      if (world.helpers) targets.push(...world.helpers);
+      let healed = 0;
+      targets.forEach(t => {
+        if (t && t.hp < (t.maxHp || 0)) { t.hp = Math.min(t.maxHp, t.hp + amt); healed++; }
+      });
+      world.healPulses = world.healPulses || [];
+      world.healPulses.push({ x: src.x, y: src.y - 20, r: 18, life: 28, totalLife: 28 });
+      if (healed) {
+        world.floatingText.push({ x: src.x, y: src.y - 34, vy: -0.6, life: 45, text: `+${amt} 💚`, color: '#7bed9f' });
+      }
+    }
+
+    function fireTower(b, target) {
+      const def = buildingDefs[b.type];
+      const dmg = bDamage(b);
+      const ox = b.x, oy = b.y - 26;
+      if (def.projectile === 'laser') {
+        // Instant hitscan beam
+        hitEnemy(target, dmg);
+        world.beams = world.beams || [];
+        world.beams.push({ x1: ox, y1: oy, x2: target.x, y2: target.y, life: 8, totalLife: 8, color: def.accent });
+        return;
+      }
+      const aoe = bAoe(b);
+      const dx = target.x - ox, dy = target.y - oy;
+      const dist = Math.hypot(dx, dy) || 1;
+      const speed = (def.projectile === 'bomb' || def.projectile === 'rock') ? 6.5 : 9;
+      world.projectiles.push({
+        x: ox, y: oy,
+        vx: dx / dist * speed, vy: dy / dist * speed,
+        target: target, targetType: 'enemy',
+        weapon: 'tower-' + def.projectile,
+        damage: dmg, aoe: aoe,
+        tx: target.x, ty: target.y, // ballistic aim point
+        fromTower: true, life: 130
+      });
+    }
+
+    function explodeAoE(pr) {
+      world.enemies.forEach(en => {
+        if (Math.hypot(en.x - pr.x, en.y - pr.y) < pr.aoe) hitEnemy(en, pr.damage);
+      });
+      world.explosions = world.explosions || [];
+      world.explosions.push({ x: pr.x, y: pr.y, max: pr.aoe, life: 20, totalLife: 20, fire: pr.weapon === 'tower-fire' });
+    }
+
+    function drawBuildings() {
+      if (!world.buildings) return;
+      const t = world.time;
+      world.buildings.forEach(b => drawOneBuilding(b, false));
+      // Ghost preview while placing
+      if (buildMode && buildGhost) {
+        ctx.globalAlpha = 0.55;
+        drawOneBuilding({ type: buildMode, x: buildGhost.x, y: buildGhost.y, level: 1, aimAngle: -Math.PI / 2 }, true, buildGhost.valid);
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    function drawOneBuilding(b, isGhost, ghostValid) {
+      const def = buildingDefs[b.type];
+      const t = world.time;
+      const flash = b.hitFlash > 0;
+      // Shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.beginPath(); ctx.ellipse(b.x, b.y + 14, 22, 6, 0, 0, Math.PI * 2); ctx.fill();
+
+      if (def.kind === 'heal') {
+        // Heal shrine — glowing fountain/crystal
+        const pulse = 0.5 + Math.sin(t * 0.005) * 0.5;
+        const glow = ctx.createRadialGradient(b.x, b.y - 10, 0, b.x, b.y - 10, 34);
+        glow.addColorStop(0, `rgba(123, 237, 159, ${0.35 + pulse * 0.25})`);
+        glow.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath(); ctx.arc(b.x, b.y - 10, 34, 0, Math.PI * 2); ctx.fill();
+        // Stone basin
+        ctx.fillStyle = flash ? '#fff' : '#5a6a55';
+        ctx.beginPath(); ctx.ellipse(b.x, b.y + 6, 18, 8, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = flash ? '#fff' : '#3a4a38';
+        ctx.beginPath(); ctx.ellipse(b.x, b.y + 2, 13, 5, 0, 0, Math.PI * 2); ctx.fill();
+        // Floating crystal
+        const fy = b.y - 16 + Math.sin(t * 0.004) * 2;
+        ctx.fillStyle = flash ? '#fff' : '#7bed9f';
+        ctx.beginPath();
+        ctx.moveTo(b.x, fy - 12); ctx.lineTo(b.x + 7, fy); ctx.lineTo(b.x, fy + 10); ctx.lineTo(b.x - 7, fy);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.beginPath(); ctx.moveTo(b.x, fy - 12); ctx.lineTo(b.x + 3, fy - 3); ctx.lineTo(b.x - 2, fy - 1); ctx.closePath(); ctx.fill();
+      } else {
+        // Generic defensive tower: tapered stone/wood body + battlements + aiming barrel
+        const baseCol = flash ? '#fff' : def.color;
+        const accCol = flash ? '#fff' : def.accent;
+        // Body
+        ctx.fillStyle = baseCol;
+        ctx.beginPath();
+        ctx.moveTo(b.x - 16, b.y + 12);
+        ctx.lineTo(b.x - 12, b.y - 22);
+        ctx.lineTo(b.x + 12, b.y - 22);
+        ctx.lineTo(b.x + 16, b.y + 12);
+        ctx.closePath(); ctx.fill();
+        // Vertical shading
+        ctx.fillStyle = 'rgba(0,0,0,0.18)';
+        ctx.beginPath();
+        ctx.moveTo(b.x + 4, b.y + 12); ctx.lineTo(b.x + 6, b.y - 22); ctx.lineTo(b.x + 12, b.y - 22); ctx.lineTo(b.x + 16, b.y + 12);
+        ctx.closePath(); ctx.fill();
+        // Battlement platform
+        ctx.fillStyle = accCol;
+        ctx.fillRect(b.x - 17, b.y - 28, 34, 8);
+        ctx.fillStyle = baseCol;
+        [-15, -6, 3, 12].forEach(dx => ctx.fillRect(b.x + dx, b.y - 33, 6, 6));
+        // Aiming barrel/weapon, rotates toward target
+        const ang = b.aimAngle != null ? b.aimAngle : -Math.PI / 2;
+        ctx.save();
+        ctx.translate(b.x, b.y - 26);
+        ctx.rotate(ang);
+        if (def.projectile === 'arrow' || def.projectile === 'bolt') {
+          ctx.strokeStyle = accCol; ctx.lineWidth = def.projectile === 'bolt' ? 4 : 3;
+          ctx.beginPath(); ctx.moveTo(-4, 0); ctx.lineTo(14, 0); ctx.stroke();
+        } else if (def.projectile === 'laser') {
+          ctx.fillStyle = accCol;
+          ctx.fillRect(-2, -3, 16, 6);
+          ctx.fillStyle = '#fff';
+          ctx.beginPath(); ctx.arc(14, 0, 2.5, 0, Math.PI * 2); ctx.fill();
+        } else {
+          // catapult / fire / bomb — a stubby launcher
+          ctx.fillStyle = '#2a2018';
+          ctx.fillRect(-3, -4, 15, 8);
+          ctx.fillStyle = accCol;
+          ctx.beginPath(); ctx.arc(13, 0, 4, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.restore();
+        // Type icon floating above
+        ctx.font = '14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(def.icon, b.x, b.y - 38);
+      }
+
+      if (isGhost) {
+        // Range ring + validity tint
+        ctx.strokeStyle = ghostValid ? 'rgba(123,237,159,0.8)' : 'rgba(231,76,60,0.8)';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(b.x, b.y, def.kind === 'heal' ? 60 : def.range, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = ghostValid ? 'rgba(123,237,159,0.12)' : 'rgba(231,76,60,0.18)';
+        ctx.beginPath(); ctx.arc(b.x, b.y, 30, 0, Math.PI * 2); ctx.fill();
+        return;
+      }
+
+      // Level badge
+      ctx.fillStyle = 'rgba(20, 12, 5, 0.85)';
+      ctx.fillRect(b.x - 14, b.y + 14, 28, 12);
+      ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 1;
+      ctx.strokeRect(b.x - 14, b.y + 14, 28, 12);
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(`Lv ${b.level}`, b.x, b.y + 23);
+    }
+
+    // Visual effects from buildings: explosions, laser beams, heal pulses
+    function drawBuildingEffects() {
+      // Laser beams
+      if (world.beams) {
+        for (let i = world.beams.length - 1; i >= 0; i--) {
+          const beam = world.beams[i];
+          beam.life--;
+          if (beam.life <= 0) { world.beams.splice(i, 1); continue; }
+          const a = beam.life / beam.totalLife;
+          ctx.strokeStyle = beam.color;
+          ctx.globalAlpha = a;
+          ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(beam.x1, beam.y1); ctx.lineTo(beam.x2, beam.y2); ctx.stroke();
+          ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.moveTo(beam.x1, beam.y1); ctx.lineTo(beam.x2, beam.y2); ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+      }
+      // Explosions
+      if (world.explosions) {
+        for (let i = world.explosions.length - 1; i >= 0; i--) {
+          const ex = world.explosions[i];
+          ex.life--;
+          if (ex.life <= 0) { world.explosions.splice(i, 1); continue; }
+          const p = 1 - ex.life / ex.totalLife;
+          const r = ex.max * (0.4 + p * 0.6);
+          const g = ctx.createRadialGradient(ex.x, ex.y, 0, ex.x, ex.y, r);
+          if (ex.fire) {
+            g.addColorStop(0, `rgba(255,200,80,${0.8 * (1 - p)})`);
+            g.addColorStop(0.5, `rgba(255,110,40,${0.6 * (1 - p)})`);
+          } else {
+            g.addColorStop(0, `rgba(255,240,180,${0.8 * (1 - p)})`);
+            g.addColorStop(0.5, `rgba(255,160,60,${0.6 * (1 - p)})`);
+          }
+          g.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = g;
+          ctx.beginPath(); ctx.arc(ex.x, ex.y, r, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      // Heal pulses (expanding green rings)
+      if (world.healPulses) {
+        for (let i = world.healPulses.length - 1; i >= 0; i--) {
+          const hp = world.healPulses[i];
+          hp.life--;
+          if (hp.life <= 0) { world.healPulses.splice(i, 1); continue; }
+          const p = 1 - hp.life / hp.totalLife;
+          ctx.strokeStyle = `rgba(123,237,159,${0.6 * (1 - p)})`;
+          ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.arc(hp.x, hp.y, hp.r + p * 80, 0, Math.PI * 2); ctx.stroke();
+        }
+      }
+    }
+
+    // --- Build menu wiring ---
+    function renderBuildList() {
+      const list = document.getElementById('buildList');
+      if (!list) return;
+      list.innerHTML = '';
+      buildOrder.forEach(type => {
+        const def = buildingDefs[type];
+        const afford = canAffordBuild(def.cost);
+        const card = document.createElement('div');
+        card.className = 'build-card' + (afford ? '' : ' unaffordable');
+        const parts = [];
+        if (def.cost.wood)  parts.push(`<span class="${(playerInventory.wood||0)  >= def.cost.wood  ? '' : 'bad'}">🪵${def.cost.wood}</span>`);
+        if (def.cost.stone) parts.push(`<span class="${(playerInventory.stone||0) >= def.cost.stone ? '' : 'bad'}">🪨${def.cost.stone}</span>`);
+        if (def.cost.power) parts.push(`<span class="${(playerInventory.power||0) >= def.cost.power ? '' : 'bad'}">⚡${def.cost.power}</span>`);
+        card.innerHTML = `
+          <div class="build-card-icon">${def.icon}</div>
+          <div class="build-card-name">${def.name}</div>
+          <div class="build-card-cost">${parts.join('')}</div>`;
+        card.title = def.desc;
+        card.addEventListener('click', () => {
+          if (!canAffordBuild(def.cost)) { flashResBars(); return; }
+          startPlacing(type);
+        });
+        list.appendChild(card);
+      });
+    }
+    function openBuildPanel() {
+      renderBuildList();
+      document.getElementById('buildPanel').classList.add('open');
+      document.getElementById('buildBtn').classList.add('active');
+    }
+    function closeBuildPanel() {
+      document.getElementById('buildPanel').classList.remove('open');
+      document.getElementById('buildBtn').classList.remove('active');
+    }
+    function startPlacing(type) {
+      buildMode = type;
+      buildGhost = null;
+      closeBuildPanel();
+      const banner = document.getElementById('placeBanner');
+      document.getElementById('placeBannerText').textContent = `Tap the ground to place ${buildingDefs[type].icon} ${buildingDefs[type].name}`;
+      banner.classList.add('show');
+    }
+    function cancelPlacing() {
+      buildMode = null;
+      buildGhost = null;
+      document.getElementById('placeBanner').classList.remove('show');
+    }
+    (function wireBuildUI() {
+      const buildBtn = document.getElementById('buildBtn');
+      if (buildBtn) buildBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (buildMode) { cancelPlacing(); return; }
+        const panel = document.getElementById('buildPanel');
+        if (panel.classList.contains('open')) closeBuildPanel(); else openBuildPanel();
+      });
+      const closeBtn = document.getElementById('buildCloseBtn');
+      if (closeBtn) closeBtn.addEventListener('click', closeBuildPanel);
+      const cancelBtn = document.getElementById('placeCancelBtn');
+      if (cancelBtn) cancelBtn.addEventListener('click', cancelPlacing);
+    })();
+
     // ===== WAVES & ENEMIES =====
     function randomSpawnPosition() {
       // Pick random side of the owned bbox and spawn just outside
@@ -3129,6 +3853,13 @@
         let target = null, dist = Infinity;
         if (distP < def.visionRange) { target = world.player; dist = distP; }
         if (distH < def.visionRange && distH < dist) { target = world.house; dist = distH; }
+        // Nearby player-built buildings are also valid targets
+        if (world.buildings) {
+          world.buildings.forEach(b => {
+            const db = Math.hypot(b.x - e.x, b.y - e.y);
+            if (db < def.visionRange && db < dist) { target = b; dist = db; }
+          });
+        }
 
         if (!target) {
           // Wander toward center of owned area
@@ -3295,6 +4026,16 @@
         ctx.fillStyle = ratio > 0.5 ? '#4d8a35' : (ratio > 0.25 ? '#fbbf24' : '#e74c3c');
         ctx.fillRect(h.x - 39, h.y - 69, 78 * ratio, 5);
       }
+      // Building HP bars (only if damaged)
+      (world.buildings || []).forEach(b => {
+        if (b.hp < b.maxHp) {
+          const ratio = Math.max(0, b.hp / b.maxHp);
+          ctx.fillStyle = 'rgba(0,0,0,0.7)';
+          ctx.fillRect(b.x - 18, b.y - 46, 36, 5);
+          ctx.fillStyle = ratio > 0.5 ? '#4d8a35' : (ratio > 0.25 ? '#fbbf24' : '#e74c3c');
+          ctx.fillRect(b.x - 17, b.y - 45, 34 * ratio, 3);
+        }
+      });
     }
 
     function drawSwingArc() {
@@ -4775,6 +5516,7 @@
         world.time += 16;
         updatePlayer();
         updateStructures();
+        updateBuildings();
         updateWaves();
         updateEnemies();
         updateProjectiles();
@@ -4793,9 +5535,11 @@
         drawDecorations();
         drawHouse();
         drawStructures();
+        drawBuildings();
         drawEnemies();
         drawPlayer();
         drawProjectiles();
+        drawBuildingEffects();
         drawSwingArc();
         drawHpBars();
         drawFloatingText();
