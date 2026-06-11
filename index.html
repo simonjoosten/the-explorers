@@ -1660,6 +1660,66 @@
     }
     .gameover-btn.primary:hover { box-shadow: 0 8px 24px rgba(251, 191, 36, 0.45); }
 
+    /* Pause button + group */
+    .top-left-group { display: flex; gap: 0.5rem; align-items: center; pointer-events: auto; }
+    .game-pause {
+      background: rgba(20, 30, 12, 0.8);
+      border: 2px solid #4d3a20;
+      color: #fff5d6;
+      font-size: 1rem;
+      width: 40px; height: 38px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      backdrop-filter: blur(10px);
+      transition: border-color 0.2s;
+    }
+    .game-pause:hover { border-color: #fbbf24; }
+
+    /* Pause / settings screen */
+    .pause-screen {
+      position: fixed; inset: 0; display: none;
+      align-items: center; justify-content: center;
+      background: rgba(5, 10, 5, 0.8);
+      backdrop-filter: blur(6px);
+      z-index: 55;
+      animation: fadeIn 0.2s ease-out;
+    }
+    .pause-screen.show { display: flex; }
+    .pause-card {
+      width: 340px; max-width: 90vw;
+      background: linear-gradient(180deg, rgba(50, 38, 20, 0.98), rgba(24, 16, 8, 0.98));
+      border: 2px solid #8b6f47;
+      border-radius: 16px;
+      padding: 1.6rem 1.5rem;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+    }
+    .pause-card h2 {
+      font-family: "Cinzel", Georgia, serif;
+      font-size: 1.6rem; letter-spacing: 0.2em; text-transform: uppercase;
+      background: linear-gradient(180deg, #fff5d6, #fbbf24); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 1.2rem;
+    }
+    .pause-options { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1.2rem; }
+    .pause-toggle {
+      padding: 0.7rem; border-radius: 8px;
+      background: rgba(40, 30, 15, 0.7); border: 2px solid #8b6f47; color: #fff5d6;
+      font-family: inherit; font-size: 0.9rem; letter-spacing: 0.05em; cursor: pointer; transition: all 0.15s;
+    }
+    .pause-toggle:hover { border-color: #fbbf24; }
+    .pause-toggle.off { opacity: 0.55; }
+    .pause-actions { display: flex; flex-direction: column; gap: 0.6rem; }
+    .pause-btn {
+      padding: 0.8rem; border-radius: 10px;
+      font-family: inherit; font-size: 0.9rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
+      background: rgba(40, 30, 15, 0.7); border: 2px solid #8b6f47; color: #fff5d6; transition: all 0.15s;
+    }
+    .pause-btn:hover { border-color: #fbbf24; }
+    .pause-btn.primary { background: linear-gradient(180deg, #fbbf24, #d97706); border-color: #fde68a; color: #1a1408; }
+    .pause-btn.danger { border-color: #8b4747; color: #ffb0b0; }
+    .pause-btn.danger:hover { border-color: #e74c3c; }
+
     /* Game screen */
     .game-screen {
       position: fixed;
@@ -2142,7 +2202,10 @@
   <div class="game-screen" id="gameScreen">
     <canvas id="gameCanvas" tabindex="0"></canvas>
     <div class="game-top-bar">
-      <button class="game-explore" id="exploreBtn">🗺️ Explore</button>
+      <div class="top-left-group">
+        <button class="game-explore" id="exploreBtn">🗺️ Explore</button>
+        <button class="game-pause" id="pauseBtn" title="Pause">⏸</button>
+      </div>
       <div class="resource-bar" id="gameResBar">
         <div class="res-item"><span class="res-icon" style="color:#fbbf24;text-shadow:0 0 8px rgba(251,191,36,0.7)">⚡</span><span id="resPower">0</span></div>
         <div class="res-item"><span class="res-icon">🪵</span><span id="resWood">0</span></div>
@@ -2218,6 +2281,21 @@
           <button class="upgrade-restore" id="upgradeRestoreBtn">❤️ Restore HP</button>
           <button class="upgrade-close-btn" id="upgradeCloseBtn">Close</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pause / settings menu -->
+  <div class="pause-screen" id="pauseScreen">
+    <div class="pause-card">
+      <h2>⏸ Paused</h2>
+      <div class="pause-options">
+        <button class="pause-toggle" id="toggleSoundBtn">🔊 Sound: On</button>
+        <button class="pause-toggle" id="toggleMusicBtn">🎵 Music: On</button>
+      </div>
+      <div class="pause-actions">
+        <button class="pause-btn primary" id="resumeBtn">▶ Resume</button>
+        <button class="pause-btn danger" id="leaveBtn">⌂ Leave Match</button>
       </div>
     </div>
   </div>
@@ -2872,6 +2950,9 @@
       if (!gameRunning) return;
       if (e.key === 'Escape' && buildMode) { cancelPlacing(); e.preventDefault(); return; }
       if (e.key === 'Escape' && upgradeTarget) { closeUpgradeMenu(); e.preventDefault(); return; }
+      if ((e.key === 'Escape' || e.key === 'p' || e.key === 'P') && world && !world.gameOver) {
+        setPaused(!world.paused); e.preventDefault(); return;
+      }
       if (exploreScreen && exploreScreen.style.display === 'block') return;
       const key = keyAlias[e.key] || e.key;
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) {
@@ -2991,6 +3072,7 @@
       gameRunning = true;
       keysPressed.clear();
       updateResourceBars();
+      SFX.startMusic();
       // Ensure canvas gets keyboard focus
       if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
       canvas.focus();
@@ -3828,6 +3910,11 @@
     }
     const REVIVE_CHARGE_COST = 120; // energy ⚡ per stored revive
     const HERO_HEAL_COST = 30;      // energy ⚡ to heal the hero ~50%
+    // Repair cost: cheap for small buildings, scales with the base's big HP pool
+    function restoreCostFor(o) {
+      if (world && o === world.house) return Math.ceil((o.maxHp || 200) * 0.15);
+      return RESTORE_COST;
+    }
 
     function renderUpgradePanel() {
       const b = upgradeTarget;
@@ -3905,7 +3992,7 @@
       } else {
         rb.style.display = '';
         const damaged = b.hp < b.maxHp;
-        rb.textContent = damaged ? `❤️ Restore HP (⚡${RESTORE_COST})` : '❤️ HP full';
+        rb.textContent = damaged ? `❤️ Restore HP (⚡${restoreCostFor(b)})` : '❤️ HP full';
         rb.disabled = !damaged;
       }
     }
@@ -3945,12 +4032,13 @@
       const b = upgradeTarget;
       if (!b || b.hp >= b.maxHp) return;
       const f = fxAt(b);
-      if ((playerInventory.power || 0) < RESTORE_COST) {
+      const cost = restoreCostFor(b);
+      if ((playerInventory.power || 0) < cost) {
         flashResBars();
-        world.floatingText.push({ x: f.x, y: f.y, vy: -0.7, life: 55, text: `Need ${RESTORE_COST} ⚡`, color: '#e74c3c' });
+        world.floatingText.push({ x: f.x, y: f.y, vy: -0.7, life: 55, text: `Need ${cost} ⚡`, color: '#e74c3c' });
         return;
       }
-      playerInventory.power -= RESTORE_COST;
+      playerInventory.power -= cost;
       b.hp = b.maxHp;
       updateResourceBars();
       world.floatingText.push({ x: f.x, y: f.y - 2, vy: -0.7, life: 60, text: '❤️ Repaired!', color: '#7bed9f' });
@@ -4553,13 +4641,14 @@
 
     // ===== SOUND (tiny Web Audio synth — no external files) =====
     const SFX = (function () {
-      let actx = null, muted = false;
+      let actx = null, sfxOn = true, musicOn = true, musicTimer = null, mstep = 0;
       function ctx() {
         if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { actx = null; } }
         return actx;
       }
+      // One-shot effect tone (richer: tiny detuned layer)
       function tone(freq, dur, type, vol, when) {
-        if (muted) return;
+        if (!sfxOn) return;
         const ac = ctx(); if (!ac) return;
         const t0 = ac.currentTime + (when || 0);
         const o = ac.createOscillator(), g = ac.createGain();
@@ -4570,10 +4659,44 @@
         o.connect(g); g.connect(ac.destination);
         o.start(t0); o.stop(t0 + dur + 0.02);
       }
+      // Background music note
+      function mnote(freq, dur, type, vol) {
+        if (!musicOn) return;
+        const ac = ctx(); if (!ac) return;
+        const t0 = ac.currentTime;
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.type = type || 'triangle'; o.frequency.value = freq;
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.linearRampToValueAtTime(vol || 0.04, t0 + 0.05);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+        o.connect(g); g.connect(ac.destination);
+        o.start(t0); o.stop(t0 + dur + 0.03);
+      }
+      // Gentle A-minor pentatonic loop with a soft bass
+      const MEL  = [440, 523, 659, 587, 523, 440, 392, 440, 659, 784, 659, 587, 523, 440, 392, 330];
+      const BASS = [110, 0, 165, 0, 131, 0, 98, 0, 110, 0, 165, 0, 147, 0, 110, 0];
+      function stepMusic() {
+        const f = MEL[mstep % MEL.length];
+        if (f) mnote(f, 0.34, 'triangle', 0.03);
+        const bf = BASS[mstep % BASS.length];
+        if (bf) mnote(bf, 0.5, 'sine', 0.045);
+        mstep++;
+      }
+      function startMusic() {
+        if (musicTimer || !musicOn) return;
+        const ac = ctx(); if (ac && ac.state === 'suspended') ac.resume();
+        musicTimer = setInterval(stepMusic, 300);
+      }
+      function stopMusic() { if (musicTimer) { clearInterval(musicTimer); musicTimer = null; } }
       return {
         resume() { const ac = ctx(); if (ac && ac.state === 'suspended') ac.resume(); },
-        toggle() { muted = !muted; return muted; },
-        isMuted() { return muted; },
+        startMusic, stopMusic,
+        sfxEnabled() { return sfxOn; },
+        musicEnabled() { return musicOn; },
+        setSfx(on) { sfxOn = on; },
+        setMusic(on) { musicOn = on; if (on) startMusic(); else stopMusic(); },
+        toggle() { sfxOn = !sfxOn; return !sfxOn; }, // returns muted (back-compat for mute button)
+        isMuted() { return !sfxOn; },
         attack()   { tone(210, 0.07, 'square', 0.10); },
         hit()      { tone(150, 0.05, 'sawtooth', 0.08); },
         build()    { tone(330, 0.09, 'triangle', 0.14); tone(440, 0.11, 'triangle', 0.12, 0.07); },
@@ -4581,7 +4704,7 @@
         enemyDie() { tone(120, 0.10, 'sawtooth', 0.10); },
         coin()     { tone(880, 0.05, 'triangle', 0.08); tone(1175, 0.07, 'triangle', 0.07, 0.04); },
         wave()     { tone(294, 0.16, 'square', 0.15); tone(294, 0.16, 'square', 0.15, 0.2); },
-        boss()     { tone(70, 0.5, 'sawtooth', 0.18); tone(98, 0.5, 'square', 0.12, 0.1); },
+        boss()     { tone(70, 0.5, 'sawtooth', 0.18); tone(98, 0.5, 'square', 0.12, 0.1); tone(140, 0.4, 'sawtooth', 0.12, 0.2); },
         revive()   { tone(440, 0.1, 'triangle', 0.13); tone(660, 0.12, 'triangle', 0.12, 0.1); tone(880, 0.15, 'triangle', 0.11, 0.2); },
         gameover() { tone(330, 0.3, 'sawtooth', 0.15); tone(247, 0.3, 'sawtooth', 0.14, 0.25); tone(165, 0.5, 'sawtooth', 0.14, 0.5); }
       };
@@ -4600,16 +4723,21 @@
       const def = enemyTypes[typeKey];
       if (!def) return;
       const pos = randomSpawnPosition();
-      // Night makes enemies tougher
+      const w = world.waveNumber || 1;
+      // Per-wave scaling: tougher, harder-hitting, slightly faster each wave
+      const waveHp = 1 + 0.10 * (w - 1);
+      const waveDmg = 1 + 0.06 * (w - 1);
+      const waveSpd = Math.min(1.6, 1 + 0.025 * (w - 1));
+      // Night makes enemies tougher too
       const night = isNight();
-      const hpMul = night ? 1.45 : 1;
-      let hp = Math.round(def.hp * hpMul);
-      if (def.boss) hp = Math.round(hp * (0.6 + 0.4 * (world.waveNumber / 5))); // bosses scale with wave
+      let hp = Math.round(def.hp * (night ? 1.45 : 1) * waveHp);
+      if (def.boss) hp = Math.round(hp * (0.6 + 0.4 * (w / 5))); // bosses scale extra with wave
       world.enemies.push({
         type: typeKey,
         x: pos.x, y: pos.y,
         hp: hp, maxHp: hp,
-        dmgMul: night ? 1.45 : 1,
+        dmgMul: (night ? 1.45 : 1) * waveDmg,
+        speedMul: (night ? 1.1 : 1) * waveSpd,
         attackCooldown: 0,
         facing: 1,
         hitFlash: 0,
@@ -4628,10 +4756,12 @@
       if (isBossWave) totalEnemies = Math.max(4, Math.floor(totalEnemies * 0.6));
       // Available types scale with wave number
       const types = ['goblin'];
-      if (w >= 2) types.push('wolf');
+      if (w >= 2) types.push('wolf', 'bat');
       if (w >= 3) types.push('skeleton', 'slime');
-      if (w >= 4) types.push('imp');
+      if (w >= 4) types.push('imp', 'shaman');
       if (w >= 5) types.push('orc');
+      if (w >= 6) types.push('brute');
+      if (w >= 8) types.push('shaman', 'brute'); // weight tougher foes later
 
       // Show alert
       const alert = document.getElementById('waveAlert');
@@ -4643,8 +4773,12 @@
       alert.classList.add('show');
       if (isBossWave) SFX.boss(); else SFX.wave();
 
-      // Boss spawns first on boss waves
-      if (isBossWave) setTimeout(() => { if (gameRunning) spawnEnemy('boss'); }, 400);
+      // Boss spawns first on boss waves — cycle through the boss roster
+      const bossType = BOSS_TYPES[((w / 5) - 1) % BOSS_TYPES.length];
+      if (isBossWave) {
+        document.getElementById('waveAlertSub').textContent = `👺 ${enemyTypes[bossType].name} approaches!`;
+        setTimeout(() => { if (gameRunning) spawnEnemy(bossType); }, 400);
+      }
 
       // Spawn the rest staggered
       for (let i = 0; i < totalEnemies; i++) {
@@ -4766,13 +4900,14 @@
           });
         }
 
+        const sm = e.speedMul || 1;
         if (!target) {
           // Wander toward center of owned area
           const cdist = Math.hypot(centerX - e.x, centerY - e.y);
           if (cdist > 8) {
             const ang = Math.atan2(centerY - e.y, centerX - e.x);
-            e.x += Math.cos(ang) * def.speed * 0.6;
-            e.y += Math.sin(ang) * def.speed * 0.6;
+            e.x += Math.cos(ang) * def.speed * sm * 0.6;
+            e.y += Math.sin(ang) * def.speed * sm * 0.6;
             e.facing = Math.cos(ang) >= 0 ? 1 : -1;
           }
           continue;
@@ -4780,8 +4915,8 @@
 
         if (dist > def.range) {
           // Move toward target — wolves do a periodic lunge dash
-          let moveSpeed = def.speed;
-          if (def.attackType === 'lunge' && e.lungeFrames > 0) moveSpeed = def.speed * 2.2;
+          let moveSpeed = def.speed * sm;
+          if (def.attackType === 'lunge' && e.lungeFrames > 0) moveSpeed = def.speed * sm * 2.2;
           const ang = Math.atan2(target.y - e.y, target.x - e.x);
           e.x += Math.cos(ang) * moveSpeed;
           e.y += Math.sin(ang) * moveSpeed;
@@ -5109,6 +5244,36 @@
       });
     })();
 
+    // ===== PAUSE / SETTINGS =====
+    function setPaused(p) {
+      if (!world) return;
+      world.paused = p;
+      const ps = document.getElementById('pauseScreen');
+      if (ps) ps.classList.toggle('show', p);
+      if (p) {
+        const sb = document.getElementById('toggleSoundBtn');
+        const mb = document.getElementById('toggleMusicBtn');
+        if (sb) { sb.textContent = `🔊 Sound: ${SFX.sfxEnabled() ? 'On' : 'Off'}`; sb.classList.toggle('off', !SFX.sfxEnabled()); }
+        if (mb) { mb.textContent = `🎵 Music: ${SFX.musicEnabled() ? 'On' : 'Off'}`; mb.classList.toggle('off', !SFX.musicEnabled()); }
+      }
+    }
+    function leaveMatch() {
+      setPaused(false);
+      stopGame();
+      SFX.stopMusic();
+      if (typeof mpLeave === 'function') mpLeave();
+      document.getElementById('pauseScreen').classList.remove('show');
+      document.getElementById('gameScreen').style.display = 'none';
+      document.getElementById('homeScreen').style.display = 'flex';
+    }
+    (function wirePause() {
+      const pb = document.getElementById('pauseBtn'); if (pb) pb.addEventListener('click', () => setPaused(true));
+      const rb = document.getElementById('resumeBtn'); if (rb) rb.addEventListener('click', () => setPaused(false));
+      const lb = document.getElementById('leaveBtn'); if (lb) lb.addEventListener('click', leaveMatch);
+      const sb = document.getElementById('toggleSoundBtn'); if (sb) sb.addEventListener('click', () => { SFX.setSfx(!SFX.sfxEnabled()); setPaused(true); });
+      const mb = document.getElementById('toggleMusicBtn'); if (mb) mb.addEventListener('click', () => { SFX.setMusic(!SFX.musicEnabled()); setPaused(true); });
+    })();
+
     // ===== ENEMIES =====
     // Each enemy ALWAYS drops some power. lootChance is the extra chance for wood/stone.
     const enemyTypes = {
@@ -5154,6 +5319,27 @@
         color: '#2ed573', accent: '#0a6a3a',
         powerDrop: 30, lootChance: 0.40, lootTable: { wood: 2 }
       },
+      bat: {
+        name: 'Bat', emoji: '🦇',
+        hp: 7, speed: 2.1, damage: 3, attackRate: 40, range: 24,
+        visionRange: 380, attackType: 'lunge',
+        color: '#4a3a5a', accent: '#2a1a3a',
+        powerDrop: 35, lootChance: 0.35, lootTable: { wood: 1 }
+      },
+      brute: {
+        name: 'Brute', emoji: '👹',
+        hp: 55, speed: 0.6, damage: 12, attackRate: 90, range: 36,
+        visionRange: 300, attackType: 'melee',
+        color: '#8a3a2a', accent: '#4a1a10',
+        powerDrop: 110, lootChance: 0.7, lootTable: { stone: 4 }
+      },
+      shaman: {
+        name: 'Shaman', emoji: '🔮',
+        hp: 22, speed: 0.9, damage: 9, attackRate: 75, range: 200,
+        visionRange: 380, attackType: 'fireball',
+        color: '#3a8a6a', accent: '#1a4a30',
+        powerDrop: 70, lootChance: 0.5, lootTable: { wood: 2 }
+      },
       boss: {
         name: 'Warlord', emoji: '👺',
         hp: 300, speed: 0.5, damage: 16, attackRate: 70, range: 42,
@@ -5161,8 +5347,25 @@
         color: '#7a2d6a', accent: '#3a103a',
         powerDrop: 400, lootChance: 1.0, lootTable: { stone: 12, wood: 12 },
         gemDrop: 3, scale: 2.4, boss: true
+      },
+      golem: {
+        name: 'Stone Golem', emoji: '🗿',
+        hp: 520, speed: 0.35, damage: 24, attackRate: 95, range: 48,
+        visionRange: 460, attackType: 'melee',
+        color: '#6a6a72', accent: '#3a3a42',
+        powerDrop: 500, lootChance: 1.0, lootTable: { stone: 24 },
+        gemDrop: 4, scale: 2.8, boss: true
+      },
+      wraith: {
+        name: 'Wraith King', emoji: '👻',
+        hp: 260, speed: 1.0, damage: 14, attackRate: 55, range: 230,
+        visionRange: 540, attackType: 'fireball',
+        color: '#5a3a8a', accent: '#2a1a4a',
+        powerDrop: 450, lootChance: 1.0, lootTable: { wood: 16, stone: 8 },
+        gemDrop: 3, scale: 2.2, boss: true
       }
     };
+    const BOSS_TYPES = ['boss', 'golem', 'wraith'];
 
     function spawnPool() {
       const pool = [];
@@ -6583,6 +6786,7 @@
 
     function gameLoop() {
       if (!gameRunning) return;
+      if (world.paused) { animationId = requestAnimationFrame(gameLoop); return; }
       try {
         world.time += 16;
         updatePlayer();
