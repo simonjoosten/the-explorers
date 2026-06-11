@@ -1316,6 +1316,28 @@
       margin-bottom: 0.8rem;
       text-shadow: 0 0 10px rgba(251, 191, 36, 0.4);
     }
+    .build-tabs {
+      display: flex;
+      gap: 0.4rem;
+      justify-content: center;
+      margin-bottom: 0.8rem;
+    }
+    .build-tab {
+      background: rgba(40, 30, 15, 0.7);
+      border: 2px solid #6a523a;
+      color: #b89968;
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.4rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .build-tab:hover { color: #fff5d6; border-color: #8b6f47; }
+    .build-tab.active { color: #fbbf24; border-color: #fbbf24; background: rgba(80, 55, 30, 0.85); }
     .build-list {
       display: flex;
       gap: 0.7rem;
@@ -1523,6 +1545,93 @@
       color: #fff5d6;
     }
     .upgrade-close-btn:hover { border-color: #fbbf24; }
+
+    /* Game over screen */
+    .gameover-screen {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(ellipse at center, rgba(60, 10, 10, 0.85) 0%, rgba(5, 5, 8, 0.96) 80%);
+      backdrop-filter: blur(6px);
+      z-index: 60;
+      animation: fadeIn 0.5s ease-out;
+    }
+    .gameover-screen.show { display: flex; }
+    .gameover-card {
+      width: 420px;
+      max-width: 92vw;
+      max-height: 90vh;
+      overflow-y: auto;
+      text-align: center;
+      background: linear-gradient(180deg, rgba(45, 25, 25, 0.97), rgba(20, 12, 12, 0.98));
+      border: 2px solid #8b4747;
+      border-radius: 16px;
+      padding: 2rem 1.8rem;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(231, 76, 60, 0.25);
+    }
+    .gameover-skull { font-size: 3.2rem; margin-bottom: 0.3rem; filter: drop-shadow(0 0 14px rgba(231,76,60,0.5)); }
+    .gameover-card h2 {
+      font-family: "Cinzel", Georgia, serif;
+      font-size: 2.1rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      background: linear-gradient(180deg, #ffd6d6, #e74c3c, #a01a1a);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.4rem;
+    }
+    .gameover-reason { color: #e8c8c0; font-style: italic; margin-bottom: 1.3rem; letter-spacing: 0.04em; }
+    .gameover-score {
+      display: flex; flex-direction: column; align-items: center;
+      margin-bottom: 1.3rem;
+    }
+    .gameover-score-label { font-size: 0.75rem; letter-spacing: 0.4em; color: #b89968; }
+    .gameover-score-value {
+      font-family: "Cinzel", Georgia, serif;
+      font-size: 3rem; font-weight: 900;
+      background: linear-gradient(180deg, #fff5d6, #fbbf24, #d97706);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 12px rgba(251,191,36,0.4));
+      line-height: 1.1;
+    }
+    .gameover-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.4rem 1rem;
+      background: rgba(20, 12, 8, 0.6);
+      border: 1px solid #5a4530;
+      border-radius: 10px;
+      padding: 0.9rem 1.1rem;
+      margin-bottom: 1.4rem;
+    }
+    .gameover-stat { display: flex; justify-content: space-between; font-size: 0.85rem; color: #e8dcc0; }
+    .gameover-stat .gs-label { color: #b89968; letter-spacing: 0.05em; }
+    .gameover-stat .gs-val { font-weight: 700; color: #fff5d6; }
+    .gameover-actions { display: flex; gap: 0.7rem; }
+    .gameover-btn {
+      flex: 1;
+      padding: 0.8rem;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      background: rgba(40, 30, 15, 0.7);
+      border: 2px solid #8b6f47;
+      color: #fff5d6;
+      transition: all 0.15s;
+    }
+    .gameover-btn:hover { border-color: #fbbf24; }
+    .gameover-btn.primary {
+      background: linear-gradient(180deg, #fbbf24, #d97706);
+      border-color: #fde68a;
+      color: #1a1408;
+    }
+    .gameover-btn.primary:hover { box-shadow: 0 8px 24px rgba(251, 191, 36, 0.45); }
 
     /* Game screen */
     .game-screen {
@@ -2064,6 +2173,7 @@
     <!-- Build panel -->
     <div class="build-panel" id="buildPanel">
       <div class="build-panel-title">⚒ Build · materials + energy</div>
+      <div class="build-tabs" id="buildTabs"></div>
       <div class="build-list" id="buildList"></div>
       <button class="build-panel-close" id="buildCloseBtn">Close</button>
     </div>
@@ -2080,6 +2190,24 @@
           <button class="upgrade-restore" id="upgradeRestoreBtn">❤️ Restore HP</button>
           <button class="upgrade-close-btn" id="upgradeCloseBtn">Close</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game over screen -->
+  <div class="gameover-screen" id="gameOverScreen">
+    <div class="gameover-card">
+      <div class="gameover-skull">💀</div>
+      <h2 id="gameOverTitle">Game Over</h2>
+      <p class="gameover-reason" id="gameOverReason">Your hero has fallen.</p>
+      <div class="gameover-score">
+        <span class="gameover-score-label">SCORE</span>
+        <span class="gameover-score-value" id="gameOverScore">0</span>
+      </div>
+      <div class="gameover-stats" id="gameOverStats"></div>
+      <div class="gameover-actions">
+        <button class="gameover-btn primary" id="gameOverRetryBtn">↻ Play Again</button>
+        <button class="gameover-btn" id="gameOverMenuBtn">⌂ Main Menu</button>
       </div>
     </div>
   </div>
@@ -2806,15 +2934,25 @@
         {
           type: 'tree-gen',
           x: world.house.x - 130, y: world.house.y + 0,
-          level: 1, timer: 0,
-          childDeco: null
+          timer: 0, passiveTimer: 0, childDeco: null,
+          up: { speed: 0, big: 0, passive: 0 }
         },
         {
           type: 'mine',
           x: world.house.x + 130, y: world.house.y + 0,
-          level: 1, timer: 0
+          timer: 0, passiveTimer: 0,
+          up: { speed: 0, gem: 0, passive: 0 }
         }
       ];
+      // Base shelter upgrade state + run stats for the game-over screen
+      world.house.up = { maxHp: 0, regen: 0 };
+      world.house.regenTimer = 0;
+      world.stats = { kills: 0, waves: 0, built: 0, startTime: world.time };
+      world.gameOver = false;
+      world.player.invuln = 0;
+      // Make sure a leftover game-over screen is hidden on (re)start
+      const goScreen = document.getElementById('gameOverScreen');
+      if (goScreen) goScreen.classList.remove('show');
       recomputeFieldBBox();
       world.decorations = generateDecorations();
       world.camera.x = world.player.x - canvas.width / 2;
@@ -2846,12 +2984,12 @@
       for (const b of (world.buildings || [])) {
         if ((wx - b.x) ** 2 + (wy - b.y) ** 2 < 1400) { openUpgradeMenu(b); return; }
       }
-      // Upgrade a resource structure
+      // Open the upgrade menu for a resource structure
       for (const s of (world.structures || [])) {
-        if ((wx - s.x) ** 2 + (wy - s.y) ** 2 < 1200) { tryUpgradeStructure(s); return; }
+        if ((wx - s.x) ** 2 + (wy - s.y) ** 2 < 1200) { openUpgradeMenu(s); return; }
       }
-      // Upgrade the shelter itself (stronger base)
-      if ((wx - world.house.x) ** 2 + (wy - world.house.y) ** 2 < 2500) { tryUpgradeHouse(); return; }
+      // Open the upgrade menu for the shelter itself
+      if ((wx - world.house.x) ** 2 + (wy - world.house.y) ** 2 < 2500) { openUpgradeMenu(world.house); return; }
     });
 
     // Ghost preview follows the cursor while placing
@@ -2862,27 +3000,6 @@
       const wy = e.clientY + cam.y;
       buildGhost = { x: wx, y: wy, valid: canAffordBuild(buildingDefs[buildMode].cost) && isValidPlacement(wx, wy) };
     });
-
-    function tryUpgradeHouse() {
-      const h = world.house;
-      h.level = h.level || 1;
-      const cost = 80 * h.level;
-      if (h.level >= 5) {
-        world.floatingText.push({ x: h.x, y: h.y - 50, vy: -0.7, life: 55, text: 'BASE MAX', color: '#fbbf24' });
-        return;
-      }
-      if ((playerInventory.power || 0) < cost) {
-        flashResBars();
-        world.floatingText.push({ x: h.x, y: h.y - 50, vy: -0.7, life: 55, text: `Need ${cost} ⚡`, color: '#e74c3c' });
-        return;
-      }
-      playerInventory.power -= cost;
-      h.level++;
-      h.maxHp += 100;
-      h.hp += 100;
-      updateResourceBars();
-      world.floatingText.push({ x: h.x, y: h.y - 54, vy: -0.7, life: 70, text: `Base Lvl ${h.level} ✦ +100 HP`, color: '#fbbf24' });
-    }
 
     // Attack button (X for desktop, button for mobile)
     const attackBtn = document.getElementById('attackBtn');
@@ -3016,8 +3133,10 @@
             const dx = pr.x - t.x;
             const dy = pr.y - t.y;
             if (dx * dx + dy * dy < 280) {
-              t.hp = Math.max(0, (t.hp || 0) - pr.damage);
-              t.hitFlash = 10;
+              if (!(t === world.player && world.player.invuln > 0)) {
+                t.hp = Math.max(0, (t.hp || 0) - pr.damage);
+                t.hitFlash = 10;
+              }
               world.projectiles.splice(i, 1);
               continue;
             }
@@ -3139,32 +3258,45 @@
     }
 
     // ===== STRUCTURES (tree gen + mine) =====
-    function treeGenPeriod(level) {
-      // 5 min at lvl 1, -30s per level, min 30s
-      return Math.max(30000, 300000 - (level - 1) * 30000);
+    // Periods now driven by the structure's "speed" upgrade track
+    function sUp(s, key) { return (s.up && s.up[key]) || 0; }
+    function treeGenPeriod(s) {
+      // 5 min base, -38s per speed level, min 24s
+      return Math.max(24000, 300000 - sUp(s, 'speed') * 38000);
     }
-    function minePeriod(level) {
-      // 60s at lvl 1, -5s per level, min 10s
-      return Math.max(10000, 60000 - (level - 1) * 5000);
-    }
-    function structureUpgradeCost(s) {
-      return 50 * s.level;
+    function minePeriod(s) {
+      // 60s base, -8s per speed level, min 8s
+      return Math.max(8000, 60000 - sUp(s, 'speed') * 8000);
     }
 
     function updateStructures() {
       if (!world.structures) return;
       const treeTypes = ['tree-oak','tree-pine','tree-birch','tree-maple','tree-willow'];
+      const bigTreeTypes = ['tree-willow','tree-maple','tree-oak']; // higher wood yield
       const stoneTypes = ['stone-pebble','stone-boulder','stone-large','stone-mossy','stone-slate'];
       world.structures.forEach(s => {
+        // Passive resource trickle (every ~6s) from the "passive" track
+        const pas = sUp(s, 'passive');
+        if (pas > 0) {
+          s.passiveTimer = (s.passiveTimer || 0) + 16;
+          if (s.passiveTimer >= 6000) {
+            s.passiveTimer = 0;
+            const res = s.type === 'tree-gen' ? 'wood' : 'stone';
+            playerInventory[res] = (playerInventory[res] || 0) + pas;
+            updateResourceBars();
+            world.floatingText.push({ x: s.x, y: s.y - 36, vy: -0.6, life: 50, text: `+${pas} ${res === 'wood' ? '🪵' : '🪨'}`, color: '#cde8a0' });
+          }
+        }
+
         if (s.type === 'tree-gen') {
           const childExists = s.childDeco && world.decorations.includes(s.childDeco);
           if (!childExists) {
             s.childDeco = null;
             s.timer += 16;
-            const period = treeGenPeriod(s.level);
-            if (s.timer >= period) {
-              const type = treeTypes[Math.floor(Math.random() * treeTypes.length)];
-              // Spawn child tree just next to the generator
+            if (s.timer >= treeGenPeriod(s)) {
+              // "big" track raises the chance of a high-yield tree
+              const pool = (Math.random() < sUp(s, 'big') * 0.18) ? bigTreeTypes : treeTypes;
+              const type = pool[Math.floor(Math.random() * pool.length)];
               const tx = s.x - 28 + (Math.random() - 0.5) * 6;
               const ty = s.y - 4 + (Math.random() - 0.5) * 6;
               const child = spawnDecoration(type, tx, ty);
@@ -3172,24 +3304,18 @@
               world.decorations.sort((a, b) => a.y - b.y);
               s.childDeco = child;
               s.timer = 0;
-              world.floatingText.push({
-                x: s.x, y: s.y - 30, vy: -0.6, life: 60,
-                text: '🌳 grown!', color: '#4d8a35'
-              });
+              world.floatingText.push({ x: s.x, y: s.y - 30, vy: -0.6, life: 60, text: '🌳 grown!', color: '#4d8a35' });
             }
           } else {
             s.timer = 0;
           }
         } else if (s.type === 'mine') {
-          // Like the tree generator, the mine grows a random rock next to it that you harvest
           const childExists = s.childDeco && world.decorations.includes(s.childDeco);
           if (!childExists) {
             s.childDeco = null;
             s.timer += 16;
-            const period = minePeriod(s.level);
-            if (s.timer >= period) {
+            if (s.timer >= minePeriod(s)) {
               const type = stoneTypes[Math.floor(Math.random() * stoneTypes.length)];
-              // Spawn the rock just to the right of the mine entrance
               const tx = s.x + 30 + (Math.random() - 0.5) * 6;
               const ty = s.y + 2 + (Math.random() - 0.5) * 6;
               const child = spawnDecoration(type, tx, ty);
@@ -3197,51 +3323,20 @@
               world.decorations.sort((a, b) => a.y - b.y);
               s.childDeco = child;
               s.timer = 0;
-              world.floatingText.push({
-                x: s.x, y: s.y - 18, vy: -0.6, life: 60,
-                text: '🪨 mined!', color: '#cdbfae'
-              });
+              world.floatingText.push({ x: s.x, y: s.y - 18, vy: -0.6, life: 60, text: '🪨 mined!', color: '#cdbfae' });
+              // "gem" track: chance to also yield a random gem
+              if (Math.random() < sUp(s, 'gem') * 0.10) {
+                const gk = ['gemGreen', 'gemRed', 'gemBlue'][Math.floor(Math.random() * 3)];
+                playerInventory[gk] = (playerInventory[gk] || 0) + 1;
+                updateResourceBars();
+                const gc = { gemGreen: '#2ed573', gemRed: '#e74c3c', gemBlue: '#3498db' }[gk];
+                world.floatingText.push({ x: s.x + 30, y: s.y - 26, vy: -0.7, life: 65, text: '+1 ◆', color: gc });
+              }
             }
           } else {
             s.timer = 0;
           }
         }
-      });
-    }
-
-    function tryUpgradeStructure(s) {
-      const cost = structureUpgradeCost(s);
-      const flash = () => {
-        ['gameResBar', 'exploreResBar'].forEach(id => {
-          const el = document.getElementById(id);
-          if (el) { el.classList.remove('res-flash'); void el.offsetWidth; el.classList.add('res-flash'); }
-        });
-      };
-      // Check max level
-      const period = s.type === 'tree-gen' ? treeGenPeriod(s.level) : minePeriod(s.level);
-      const minP = s.type === 'tree-gen' ? 30000 : 10000;
-      if (period <= minP) {
-        world.floatingText.push({
-          x: s.x, y: s.y - 22, vy: -0.7, life: 55,
-          text: 'MAX LEVEL', color: '#fbbf24'
-        });
-        return;
-      }
-      if ((playerInventory.power || 0) < cost) {
-        flash();
-        world.floatingText.push({
-          x: s.x, y: s.y - 22, vy: -0.7, life: 55,
-          text: `Need ${cost} ⚡`, color: '#e74c3c'
-        });
-        return;
-      }
-      playerInventory.power -= cost;
-      s.level++;
-      updateResourceBars();
-      const saved = s.type === 'mine' ? 5 : 30;
-      world.floatingText.push({
-        x: s.x, y: s.y - 24, vy: -0.7, life: 70,
-        text: `Lvl ${s.level} ✦ -${saved}s`, color: '#fbbf24'
       });
     }
 
@@ -3281,7 +3376,7 @@
           // Progress ring (if no child)
           const childExists = s.childDeco && world.decorations.includes(s.childDeco);
           if (!childExists) {
-            const period = treeGenPeriod(s.level);
+            const period = treeGenPeriod(s);
             const ratio = Math.min(1, s.timer / period);
             ctx.strokeStyle = 'rgba(0,0,0,0.5)';
             ctx.lineWidth = 4;
@@ -3302,7 +3397,7 @@
           ctx.fillStyle = '#fbbf24';
           ctx.font = 'bold 9px sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText(`Lv ${s.level}`, s.x, s.y + 25);
+          ctx.fillText(`Lv ${totalUpLevel(s)}`, s.x, s.y + 25);
         } else if (s.type === 'mine') {
           // Ground shadow
           ctx.fillStyle = 'rgba(0,0,0,0.4)';
@@ -3352,7 +3447,7 @@
           ctx.closePath(); ctx.fill();
 
           // Progress ring around entrance
-          const period = minePeriod(s.level);
+          const period = minePeriod(s);
           const ratio = Math.min(1, s.timer / period);
           ctx.strokeStyle = 'rgba(0,0,0,0.5)';
           ctx.lineWidth = 4;
@@ -3372,7 +3467,7 @@
           ctx.fillStyle = '#fbbf24';
           ctx.font = 'bold 9px sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText(`Lv ${s.level}`, s.x, s.y + 25);
+          ctx.fillText(`Lv ${totalUpLevel(s)}`, s.x, s.y + 25);
         }
       });
     }
@@ -3397,7 +3492,7 @@
       catapult: {
         name: 'Ballistic Catapult', icon: '💥', kind: 'tower', projectile: 'rock',
         cost: { wood: 100, stone: 140, power: 60 },
-        hp: 200, range: 300, damage: 26, fireRate: 115, aoe: 70,
+        hp: 200, range: 290, damage: 20, fireRate: 125, aoe: 65,
         color: '#7a5a3a', accent: '#9a9a9a',
         desc: 'Lobs boulders — splash on clusters.'
       },
@@ -3411,14 +3506,14 @@
       laser: {
         name: 'Laser Tower', icon: '⚡', kind: 'tower', projectile: 'laser',
         cost: { wood: 40, stone: 120, power: 220 },
-        hp: 140, range: 320, damage: 30, fireRate: 42,
+        hp: 130, range: 270, damage: 13, fireRate: 70,
         color: '#2a3a5a', accent: '#7df9ff',
-        desc: 'Instant beam — pierces the dark.'
+        desc: 'Instant beam — accurate but light.'
       },
       bomber: {
         name: 'Bomber Launcher', icon: '💣', kind: 'tower', projectile: 'bomb',
         cost: { wood: 120, stone: 120, power: 180 },
-        hp: 180, range: 300, damage: 42, fireRate: 145, aoe: 95,
+        hp: 180, range: 290, damage: 32, fireRate: 160, aoe: 90,
         color: '#3a3a3a', accent: '#ffcf40',
         desc: 'Massive bombs — huge splash, slow reload.'
       },
@@ -3428,16 +3523,28 @@
         hp: 140, range: 99999, healAmount: 6, fireRate: 90,
         color: '#1f5a3a', accent: '#7bed9f',
         desc: 'Pulses healing to base, towers & heroes.'
+      },
+      revive: {
+        name: 'Revive Tower', icon: '🪦', kind: 'revive', projectile: null,
+        cost: { stone: 140, gems: 1 },
+        hp: 160,
+        color: '#3a2a4a', accent: '#7df9ff',
+        desc: 'Store energy to revive your hero on death.'
       }
     };
-    // Display order in the build menu
-    const buildOrder = ['watchtower', 'heal', 'crossbow', 'catapult', 'firelauncher', 'laser', 'bomber'];
+    // Which build tab each building belongs to
+    const buildCategories = {
+      defense: { label: '⚔ Defense', items: ['watchtower', 'crossbow', 'catapult', 'firelauncher', 'laser', 'bomber'] },
+      support: { label: '✨ Support', items: ['heal', 'revive'] }
+    };
+    const buildTabOrder = ['defense', 'support'];
+    let activeBuildTab = 'defense';
 
     // Upgrade tracks shown in a building's upgrade menu. Each track has its own level.
     const buildingUpgradeDefs = {
       tower: [
-        { key: 'damage',   name: 'Stronger',     icon: '⚔️', desc: '+30% damage per level',  max: 6, base: 60 },
-        { key: 'fireRate', name: 'Faster Fire',  icon: '💨', desc: '15% faster shooting',     max: 6, base: 60 },
+        { key: 'damage',   name: 'Stronger',     icon: '⚔️', desc: '+22% damage per level',  max: 6, base: 60 },
+        { key: 'fireRate', name: 'Faster Fire',  icon: '💨', desc: '12% faster shooting',     max: 6, base: 60 },
         { key: 'archer',   name: 'Extra Archer', icon: '🏹', desc: '+1 enemy hit per volley', max: 3, base: 140 },
         { key: 'ammo',     name: 'Special Ammo', icon: '✨', desc: 'Explosive splash rounds',  max: 1, base: 260 },
         { key: 'maxHp',    name: 'More Max HP',  icon: '❤️', desc: '+35% max HP per level',   max: 6, base: 50 }
@@ -3446,6 +3553,24 @@
         { key: 'damage',   name: 'Stronger Heal', icon: '💖', desc: '+40% healing per level', max: 6, base: 60 },
         { key: 'fireRate', name: 'Faster Pulse',  icon: '💨', desc: '15% faster pulses',      max: 6, base: 60 },
         { key: 'maxHp',    name: 'More Max HP',   icon: '❤️', desc: '+35% max HP per level',  max: 6, base: 50 }
+      ],
+      revive: [
+        { key: 'maxHp',    name: 'More Max HP',   icon: '❤️', desc: '+35% max HP per level',  max: 5, base: 50 }
+      ],
+      // Resource structures & the base reuse the same generic menu
+      treegen: [
+        { key: 'speed',   name: 'Faster Growth', icon: '⏩', desc: 'Trees grow quicker',        max: 6, base: 50 },
+        { key: 'big',     name: 'Bigger Trees',  icon: '🌲', desc: '+chance of high-yield trees', max: 5, base: 70 },
+        { key: 'passive', name: 'Passive Wood',  icon: '🪵', desc: '+1 wood every 6s',           max: 5, base: 60 }
+      ],
+      mine: [
+        { key: 'speed',   name: 'Faster Mining', icon: '⏩', desc: 'Rocks appear quicker',        max: 6, base: 50 },
+        { key: 'gem',     name: 'Gem Chance',    icon: '◆',  desc: '+chance to also yield a gem',  max: 5, base: 90 },
+        { key: 'passive', name: 'Passive Stone', icon: '🪨', desc: '+1 stone every 6s',           max: 5, base: 60 }
+      ],
+      house: [
+        { key: 'maxHp',   name: 'Fortify',       icon: '❤️', desc: '+150 max HP per level',       max: 8, base: 60 },
+        { key: 'regen',   name: 'Auto-Repair',   icon: '🔧', desc: 'Base slowly heals itself',    max: 5, base: 90 }
       ]
     };
     function upgradeCost(track, level) { return track.base * (level + 1); } // in energy ⚡
@@ -3453,15 +3578,28 @@
 
     function up(b, key) { return (b.up && b.up[key]) || 0; }
     // Display level = 1 + total upgrade points spent across all tracks
-    function bTotalLevel(b) {
-      const u = b.up || {};
-      return 1 + (u.damage || 0) + (u.fireRate || 0) + (u.archer || 0) + (u.ammo || 0) + (u.maxHp || 0);
+    function totalUpLevel(o) {
+      const u = o.up || {};
+      let n = 0;
+      for (const k in u) n += (u[k] || 0);
+      return 1 + n;
+    }
+    function houseMaxHp(h) { return 200 + 150 * up(h, 'maxHp'); }
+    // Resolve the upgrade menu config for ANY upgradeable object
+    function upgInfo(o) {
+      if (!o) return null;
+      if (o === world.house) return { tracks: buildingUpgradeDefs.house, title: '🏰 Base Shelter', hasHp: true };
+      const bdef = buildingDefs[o.type];
+      if (bdef) return { tracks: buildingUpgradeDefs[bdef.kind] || buildingUpgradeDefs.tower, title: `${bdef.icon} ${bdef.name}`, hasHp: true, def: bdef };
+      if (o.type === 'tree-gen') return { tracks: buildingUpgradeDefs.treegen, title: '🌳 Tree Grove', hasHp: false };
+      if (o.type === 'mine')     return { tracks: buildingUpgradeDefs.mine,    title: '⛏️ Stone Mine', hasHp: false };
+      return null;
     }
     // Derived stats from the per-track upgrade levels
     function bMaxHp(b)    { const d = buildingDefs[b.type]; return Math.round(d.hp * (1 + 0.35 * up(b, 'maxHp'))); }
-    function bDamage(b)   { const d = buildingDefs[b.type]; let dmg = (d.damage || 0) * (1 + 0.30 * up(b, 'damage')); if (up(b, 'ammo')) dmg *= 1.25; return Math.round(dmg); }
+    function bDamage(b)   { const d = buildingDefs[b.type]; let dmg = (d.damage || 0) * (1 + 0.22 * up(b, 'damage')); if (up(b, 'ammo')) dmg *= 1.2; return Math.round(dmg); }
     function bRange(b)    { const d = buildingDefs[b.type]; return d.range; }
-    function bFireRate(b) { const d = buildingDefs[b.type]; return Math.max(10, Math.round(d.fireRate * Math.pow(0.85, up(b, 'fireRate')))); }
+    function bFireRate(b) { const d = buildingDefs[b.type]; return Math.max(14, Math.round(d.fireRate * Math.pow(0.88, up(b, 'fireRate')))); }
     function bHeal(b)     { const d = buildingDefs[b.type]; return Math.round((d.healAmount || 0) * (1 + 0.40 * up(b, 'damage'))); }
     function bArchers(b)  { return 1 + up(b, 'archer'); }
     function bAoe(b)      { const d = buildingDefs[b.type]; let aoe = d.aoe || 0; if (up(b, 'ammo') && !aoe) aoe = 35; return aoe ? Math.round(aoe * (1 + 0.10 * up(b, 'damage'))) : 0; }
@@ -3469,12 +3607,14 @@
     function canAffordBuild(cost) {
       return (playerInventory.wood || 0) >= (cost.wood || 0)
           && (playerInventory.stone || 0) >= (cost.stone || 0)
-          && (playerInventory.power || 0) >= (cost.power || 0);
+          && (playerInventory.power || 0) >= (cost.power || 0)
+          && totalGems() >= (cost.gems || 0);
     }
     function payCost(cost) {
       playerInventory.wood  -= (cost.wood  || 0);
       playerInventory.stone -= (cost.stone || 0);
       playerInventory.power -= (cost.power || 0);
+      if (cost.gems) deductGems(cost.gems);
     }
     function flashResBars() {
       ['gameResBar', 'exploreResBar'].forEach(id => {
@@ -3524,6 +3664,7 @@
       b.hp = b.maxHp;
       world.buildings.push(b);
       world.buildings.sort((a, c) => a.y - c.y);
+      if (world.stats) world.stats.built++;
       updateResourceBars();
       world.floatingText.push({ x, y: y - 28, vy: -0.6, life: 60, text: `${def.icon} built!`, color: '#7bed9f' });
     }
@@ -3542,16 +3683,19 @@
       const p = document.getElementById('upgradePanel');
       if (p) p.classList.remove('open');
     }
+    const REVIVE_CHARGE_COST = 120; // energy ⚡ per stored revive
+    const HERO_HEAL_COST = 30;      // energy ⚡ to heal the hero ~50%
+
     function renderUpgradePanel() {
       const b = upgradeTarget;
       if (!b) return;
-      const def = buildingDefs[b.type];
-      document.getElementById('upgradeTitle').textContent = `${def.icon} ${def.name}`;
-      document.getElementById('upgradeLevel').textContent = `Lv ${bTotalLevel(b)}`;
+      const info = upgInfo(b);
+      if (!info) return;
+      document.getElementById('upgradeTitle').textContent = info.title;
+      document.getElementById('upgradeLevel').textContent = `Lv ${totalUpLevel(b)}`;
       const rows = document.getElementById('upgradeRows');
       rows.innerHTML = '';
-      const tracks = buildingUpgradeDefs[def.kind] || buildingUpgradeDefs.tower;
-      tracks.forEach(tr => {
+      info.tracks.forEach(tr => {
         const lvl = up(b, tr.key);
         const maxed = lvl >= tr.max;
         const cost = upgradeCost(tr, lvl);
@@ -3566,41 +3710,105 @@
         if (!maxed) row.addEventListener('click', () => buyUpgrade(tr));
         rows.appendChild(row);
       });
+      // Revive tower: special actions to store revive charges and heal the hero
+      if (info.def && info.def.kind === 'revive') {
+        const chargeRow = document.createElement('div');
+        chargeRow.className = 'upgrade-row';
+        chargeRow.innerHTML =
+          `<div class="ur-icon">✨</div>` +
+          `<div class="ur-info"><div class="ur-name">Store Revive</div><div class="ur-desc">Charges: ${b.charges || 0} · revive at 50% HP on death</div></div>` +
+          `<div class="ur-buy">⚡${REVIVE_CHARGE_COST}</div>`;
+        chargeRow.addEventListener('click', () => storeRevive());
+        rows.appendChild(chargeRow);
+      }
+      if (info.def && (info.def.kind === 'revive' || info.def.kind === 'heal')) {
+        const healRow = document.createElement('div');
+        const need = world.player.hp < world.player.maxHp;
+        healRow.className = 'upgrade-row' + (need ? '' : ' maxed');
+        healRow.innerHTML =
+          `<div class="ur-icon">💉</div>` +
+          `<div class="ur-info"><div class="ur-name">Heal Hero</div><div class="ur-desc">Restore ~50% of your hero's HP</div></div>` +
+          `<div class="ur-buy">${need ? '⚡' + HERO_HEAL_COST : 'FULL'}</div>`;
+        if (need) healRow.addEventListener('click', () => healHero());
+        rows.appendChild(healRow);
+      }
       const rb = document.getElementById('upgradeRestoreBtn');
-      const damaged = b.hp < b.maxHp;
-      rb.textContent = damaged ? `❤️ Restore HP (⚡${RESTORE_COST})` : '❤️ HP full';
-      rb.disabled = !damaged;
+      if (!info.hasHp) {
+        rb.style.display = 'none';
+      } else {
+        rb.style.display = '';
+        const damaged = b.hp < b.maxHp;
+        rb.textContent = damaged ? `❤️ Restore HP (⚡${RESTORE_COST})` : '❤️ HP full';
+        rb.disabled = !damaged;
+      }
     }
+    function fxAt(o) { return { x: o.x || 0, y: (o.y || 0) - 30 }; }
     function buyUpgrade(tr) {
       const b = upgradeTarget;
       if (!b) return;
       const lvl = up(b, tr.key);
       if (lvl >= tr.max) return;
       const cost = upgradeCost(tr, lvl);
+      const f = fxAt(b);
       if ((playerInventory.power || 0) < cost) {
         flashResBars();
-        world.floatingText.push({ x: b.x, y: b.y - 30, vy: -0.7, life: 55, text: `Need ${cost} ⚡`, color: '#e74c3c' });
+        world.floatingText.push({ x: f.x, y: f.y, vy: -0.7, life: 55, text: `Need ${cost} ⚡`, color: '#e74c3c' });
         return;
       }
       playerInventory.power -= cost;
+      if (!b.up) b.up = {};
       b.up[tr.key] = lvl + 1;
-      if (tr.key === 'maxHp') { const nm = bMaxHp(b); b.hp += (nm - b.maxHp); b.maxHp = nm; }
+      if (tr.key === 'maxHp') {
+        const nm = (b === world.house) ? houseMaxHp(b) : bMaxHp(b);
+        b.hp += (nm - b.maxHp);
+        b.maxHp = nm;
+      }
       updateResourceBars();
-      world.floatingText.push({ x: b.x, y: b.y - 32, vy: -0.7, life: 60, text: `${tr.icon} ${tr.name}!`, color: '#fbbf24' });
+      world.floatingText.push({ x: f.x, y: f.y - 2, vy: -0.7, life: 60, text: `${tr.icon} ${tr.name}!`, color: '#fbbf24' });
       renderUpgradePanel();
     }
     function restoreBuilding() {
       const b = upgradeTarget;
       if (!b || b.hp >= b.maxHp) return;
+      const f = fxAt(b);
       if ((playerInventory.power || 0) < RESTORE_COST) {
         flashResBars();
-        world.floatingText.push({ x: b.x, y: b.y - 30, vy: -0.7, life: 55, text: `Need ${RESTORE_COST} ⚡`, color: '#e74c3c' });
+        world.floatingText.push({ x: f.x, y: f.y, vy: -0.7, life: 55, text: `Need ${RESTORE_COST} ⚡`, color: '#e74c3c' });
         return;
       }
       playerInventory.power -= RESTORE_COST;
       b.hp = b.maxHp;
       updateResourceBars();
-      world.floatingText.push({ x: b.x, y: b.y - 32, vy: -0.7, life: 60, text: '❤️ Repaired!', color: '#7bed9f' });
+      world.floatingText.push({ x: f.x, y: f.y - 2, vy: -0.7, life: 60, text: '❤️ Repaired!', color: '#7bed9f' });
+      renderUpgradePanel();
+    }
+    function storeRevive() {
+      const b = upgradeTarget;
+      if (!b) return;
+      const f = fxAt(b);
+      if ((playerInventory.power || 0) < REVIVE_CHARGE_COST) {
+        flashResBars();
+        world.floatingText.push({ x: f.x, y: f.y, vy: -0.7, life: 55, text: `Need ${REVIVE_CHARGE_COST} ⚡`, color: '#e74c3c' });
+        return;
+      }
+      playerInventory.power -= REVIVE_CHARGE_COST;
+      b.charges = (b.charges || 0) + 1;
+      updateResourceBars();
+      world.floatingText.push({ x: f.x, y: f.y - 2, vy: -0.7, life: 60, text: '✨ Revive stored!', color: '#7df9ff' });
+      renderUpgradePanel();
+    }
+    function healHero() {
+      const p = world.player;
+      if (!p || p.hp >= p.maxHp) return;
+      if ((playerInventory.power || 0) < HERO_HEAL_COST) {
+        flashResBars();
+        world.floatingText.push({ x: p.x, y: p.y - 30, vy: -0.7, life: 55, text: `Need ${HERO_HEAL_COST} ⚡`, color: '#e74c3c' });
+        return;
+      }
+      playerInventory.power -= HERO_HEAL_COST;
+      p.hp = Math.min(p.maxHp, p.hp + Math.ceil(p.maxHp * 0.5));
+      updateResourceBars();
+      world.floatingText.push({ x: p.x, y: p.y - 34, vy: -0.6, life: 55, text: '💉 +HP', color: '#7bed9f' });
       renderUpgradePanel();
     }
 
@@ -3615,12 +3823,13 @@
           world.buildings.splice(i, 1);
           continue;
         }
-        if (b.cooldown > 0) { b.cooldown--; continue; }
         const def = buildingDefs[b.type];
+        if (def.kind === 'revive') continue; // passive — only acts on hero death
+        if (b.cooldown > 0) { b.cooldown--; continue; }
         if (def.kind === 'heal') {
           healAll(b, bHeal(b));
           b.cooldown = bFireRate(b);
-        } else {
+        } else if (def.projectile) {
           // Find nearest enemy in range
           let target = null, best = bRange(b);
           world.enemies.forEach(e => {
@@ -3632,6 +3841,15 @@
             fireTower(b, target);
             b.cooldown = bFireRate(b);
           }
+        }
+      }
+      // Base auto-repair (house "regen" upgrade)
+      const h = world.house;
+      if (h && up(h, 'regen') > 0 && h.hp < h.maxHp) {
+        h.regenTimer = (h.regenTimer || 0) + 16;
+        if (h.regenTimer >= 1000) {
+          h.regenTimer = 0;
+          h.hp = Math.min(h.maxHp, h.hp + up(h, 'regen') * 3);
         }
       }
     }
@@ -3739,6 +3957,36 @@
         ctx.closePath(); ctx.fill();
         ctx.fillStyle = 'rgba(255,255,255,0.7)';
         ctx.beginPath(); ctx.moveTo(b.x, fy - 12); ctx.lineTo(b.x + 3, fy - 3); ctx.lineTo(b.x - 2, fy - 1); ctx.closePath(); ctx.fill();
+      } else if (def.kind === 'revive') {
+        // Revive tower — obelisk with floating runes, glow scales with stored charges
+        const charges = b.charges || 0;
+        const pulse = 0.5 + Math.sin(t * 0.004) * 0.5;
+        if (charges > 0) {
+          const glow = ctx.createRadialGradient(b.x, b.y - 14, 0, b.x, b.y - 14, 36);
+          glow.addColorStop(0, `rgba(125, 249, 255, ${0.25 + pulse * 0.3})`);
+          glow.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = glow;
+          ctx.beginPath(); ctx.arc(b.x, b.y - 14, 36, 0, Math.PI * 2); ctx.fill();
+        }
+        // Stone obelisk
+        ctx.fillStyle = flash ? '#fff' : '#4a3a5a';
+        ctx.beginPath();
+        ctx.moveTo(b.x - 10, b.y + 12); ctx.lineTo(b.x - 6, b.y - 26); ctx.lineTo(b.x, b.y - 34);
+        ctx.lineTo(b.x + 6, b.y - 26); ctx.lineTo(b.x + 10, b.y + 12);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.beginPath(); ctx.moveTo(b.x + 2, b.y + 12); ctx.lineTo(b.x + 4, b.y - 26); ctx.lineTo(b.x + 6, b.y - 26); ctx.lineTo(b.x + 10, b.y + 12); ctx.closePath(); ctx.fill();
+        // Glowing rune
+        ctx.fillStyle = flash ? '#fff' : (charges > 0 ? '#7df9ff' : '#5a6a7a');
+        ctx.font = 'bold 12px serif'; ctx.textAlign = 'center';
+        ctx.fillText('✦', b.x, b.y - 8);
+        // Charge pips
+        for (let k = 0; k < charges; k++) {
+          ctx.fillStyle = '#7df9ff';
+          ctx.beginPath(); ctx.arc(b.x - 8 + k * 5, b.y - 30 + Math.sin(t * 0.005 + k) * 2, 1.6, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.font = '14px sans-serif';
+        ctx.fillText(def.icon, b.x, b.y - 40);
       } else {
         // Generic defensive tower: tapered stone/wood body + battlements + aiming barrel
         const baseCol = flash ? '#fff' : def.color;
@@ -3806,7 +4054,7 @@
       ctx.fillStyle = '#fbbf24';
       ctx.font = 'bold 9px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(`Lv ${bTotalLevel(b)}`, b.x, b.y + 23);
+      ctx.fillText(`Lv ${totalUpLevel(b)}`, b.x, b.y + 23);
     }
 
     // Visual effects from buildings: explosions, laser beams, heal pulses
@@ -3862,19 +4110,34 @@
     }
 
     // --- Build menu wiring ---
+    function renderBuildTabs() {
+      const tabBar = document.getElementById('buildTabs');
+      if (!tabBar) return;
+      tabBar.innerHTML = '';
+      buildTabOrder.forEach(key => {
+        const tab = document.createElement('button');
+        tab.className = 'build-tab' + (key === activeBuildTab ? ' active' : '');
+        tab.textContent = buildCategories[key].label;
+        tab.addEventListener('click', () => { activeBuildTab = key; renderBuildTabs(); renderBuildList(); });
+        tabBar.appendChild(tab);
+      });
+    }
     function renderBuildList() {
       const list = document.getElementById('buildList');
       if (!list) return;
       list.innerHTML = '';
-      buildOrder.forEach(type => {
+      const items = (buildCategories[activeBuildTab] || buildCategories.defense).items;
+      items.forEach(type => {
         const def = buildingDefs[type];
         const afford = canAffordBuild(def.cost);
         const card = document.createElement('div');
         card.className = 'build-card' + (afford ? '' : ' unaffordable');
+        const c = def.cost;
         const parts = [];
-        if (def.cost.wood)  parts.push(`<span class="${(playerInventory.wood||0)  >= def.cost.wood  ? '' : 'bad'}">🪵${def.cost.wood}</span>`);
-        if (def.cost.stone) parts.push(`<span class="${(playerInventory.stone||0) >= def.cost.stone ? '' : 'bad'}">🪨${def.cost.stone}</span>`);
-        if (def.cost.power) parts.push(`<span class="${(playerInventory.power||0) >= def.cost.power ? '' : 'bad'}">⚡${def.cost.power}</span>`);
+        if (c.wood)  parts.push(`<span class="${(playerInventory.wood||0)  >= c.wood  ? '' : 'bad'}">🪵${c.wood}</span>`);
+        if (c.stone) parts.push(`<span class="${(playerInventory.stone||0) >= c.stone ? '' : 'bad'}">🪨${c.stone}</span>`);
+        if (c.power) parts.push(`<span class="${(playerInventory.power||0) >= c.power ? '' : 'bad'}">⚡${c.power}</span>`);
+        if (c.gems)  parts.push(`<span class="${totalGems() >= c.gems ? '' : 'bad'}">◆${c.gems}</span>`);
         card.innerHTML = `
           <div class="build-card-icon">${def.icon}</div>
           <div class="build-card-name">${def.name}</div>
@@ -3888,6 +4151,7 @@
       });
     }
     function openBuildPanel() {
+      renderBuildTabs();
       renderBuildList();
       document.getElementById('buildPanel').classList.add('open');
       document.getElementById('buildBtn').classList.add('active');
@@ -4055,6 +4319,7 @@
         const e = world.enemies[i];
         const def = enemyTypes[e.type];
         if (e.hp <= 0) {
+          if (world.stats) world.stats.kills++;
           // Power always drops
           const power = def.powerDrop || 1;
           playerInventory.power = (playerInventory.power || 0) + power;
@@ -4136,12 +4401,16 @@
           } else if (def.attackType === 'lunge') {
             // Trigger lunge dash + bite
             e.lungeFrames = 14;
-            target.hp = Math.max(0, (target.hp || 0) - def.damage);
-            target.hitFlash = 10;
+            if (!(target === world.player && world.player.invuln > 0)) {
+              target.hp = Math.max(0, (target.hp || 0) - def.damage);
+              target.hitFlash = 10;
+            }
           } else {
             // Default melee
-            target.hp = Math.max(0, (target.hp || 0) - def.damage);
-            target.hitFlash = 10;
+            if (!(target === world.player && world.player.invuln > 0)) {
+              target.hp = Math.max(0, (target.hp || 0) - def.damage);
+              target.hitFlash = 10;
+            }
           }
           e.attackCooldown = def.attackRate;
         }
@@ -4359,6 +4628,74 @@
       gameRunning = false;
       if (animationId) cancelAnimationFrame(animationId);
     }
+
+    // ===== DEATH / REVIVE / GAME OVER =====
+    function handleDeaths() {
+      if (!world || world.gameOver) return;
+      // Base destroyed = always game over
+      if (world.house.hp <= 0) { triggerGameOver('Your base was destroyed!'); return; }
+      // Hero down — try to revive from a charged Revive Tower
+      if (world.player.hp <= 0) {
+        const tower = (world.buildings || []).find(b => buildingDefs[b.type].kind === 'revive' && (b.charges || 0) > 0);
+        if (tower) {
+          tower.charges--;
+          const p = world.player;
+          p.hp = Math.ceil(p.maxHp * 0.5);
+          // Respawn safely at the base
+          p.x = world.house.x;
+          p.y = world.house.y + 60;
+          p.invuln = 150;
+          world.floatingText.push({ x: p.x, y: p.y - 40, vy: -0.5, life: 120, text: '✨ Revived!', color: '#7df9ff' });
+          if (upgradeTarget) renderUpgradePanel();
+        } else {
+          triggerGameOver('Your hero has fallen!');
+        }
+      }
+    }
+
+    function computeScore() {
+      const s = world.stats || { kills: 0, waves: 0, built: 0 };
+      const land = (exState.sections || []).filter(x => x.type === 'owned').length;
+      const secs = Math.max(0, Math.floor((world.time - (s.startTime || 0)) / 1000));
+      return { score: s.kills * 10 + s.waves * 120 + land * 25 + Math.floor(secs / 5), land, secs, ...s };
+    }
+
+    function triggerGameOver(reason) {
+      if (world.gameOver) return;
+      world.gameOver = true;
+      const r = computeScore();
+      stopGame();
+      document.getElementById('gameOverReason').textContent = reason;
+      document.getElementById('gameOverScore').textContent = r.score.toLocaleString();
+      const m = Math.floor(r.secs / 60), sec = r.secs % 60;
+      const rows = [
+        ['Waves survived', r.waves],
+        ['Enemies slain', r.kills],
+        ['Buildings raised', r.built],
+        ['Land claimed', r.land],
+        ['Time survived', `${m}:${sec.toString().padStart(2, '0')}`],
+        ['Map', (maps[currentMapIndex] && maps[currentMapIndex].name) || '—']
+      ];
+      document.getElementById('gameOverStats').innerHTML = rows
+        .map(([k, v]) => `<div class="gameover-stat"><span class="gs-label">${k}</span><span class="gs-val">${v}</span></div>`)
+        .join('');
+      document.getElementById('gameOverScreen').classList.add('show');
+    }
+
+    (function wireGameOver() {
+      const retry = document.getElementById('gameOverRetryBtn');
+      const menu = document.getElementById('gameOverMenuBtn');
+      if (retry) retry.addEventListener('click', () => {
+        document.getElementById('gameOverScreen').classList.remove('show');
+        document.getElementById('gameScreen').style.display = 'block';
+        startGame(maps[currentMapIndex].id);
+      });
+      if (menu) menu.addEventListener('click', () => {
+        document.getElementById('gameOverScreen').classList.remove('show');
+        document.getElementById('gameScreen').style.display = 'none';
+        document.getElementById('homeScreen').style.display = 'flex';
+      });
+    })();
 
     // ===== ENEMIES =====
     // Each enemy ALWAYS drops some power. lootChance is the extra chance for wood/stone.
@@ -5762,6 +6099,8 @@
         if (world.time % 480 < 16) checkQuestCompletion();
         if (world.house.hitFlash > 0) world.house.hitFlash--;
         if (world.player.hitFlash > 0) world.player.hitFlash--;
+        if (world.player.invuln > 0) world.player.invuln--;
+        handleDeaths();
         updateCamera();
 
         // Clear canvas fully
@@ -5869,6 +6208,7 @@
         const q = sec.quest;
         if (q.type === 'survive' && q.progress < q.amount) q.progress++;
       });
+      if (world.stats) world.stats.waves++;
       checkQuestCompletion();
     }
 
@@ -5962,7 +6302,8 @@
             const cost = {
               wood: 15 + 15 * tier + Math.floor(rng(idx * 13 + 1000) * 15),
               stone: 8 + 8 * tier + Math.floor(rng(idx * 13 + 2000) * 12),
-              gems: tier > 1 ? Math.floor(rng(idx * 13 + 3000) * 3) + 1 : 0
+              // Gems only on far-out land, rare and cheap (1, occasionally 2)
+              gems: (tier > 3 && rng(idx * 13 + 3000) < 0.5) ? (rng(idx * 13 + 4000) < 0.25 ? 2 : 1) : 0
             };
             sections.push({ row: r, col: c, type: 'buy', cost });
           }
