@@ -3110,6 +3110,8 @@
     canvas.addEventListener('click', (e) => {
       canvas.focus();
       if (!world) return;
+      // Co-op guest is a limited client — move/attack only (building & menus are host-only)
+      if (mp.role === 'guest') return;
       const cam = world.camera || { x: 0, y: 0 };
       const wx = e.clientX + cam.x;
       const wy = e.clientY + cam.y;
@@ -4735,6 +4737,7 @@
       const buildBtn = document.getElementById('buildBtn');
       if (buildBtn) buildBtn.addEventListener('click', (e) => {
         e.preventDefault();
+        if (mp.role === 'guest') { if (world) world.floatingText.push({ x: world.player2 ? world.player2.x : 0, y: (world.player2 ? world.player2.y : 0) - 30, vy: -0.7, life: 60, text: 'Only the host can build', color: '#fbbf24' }); return; }
         if (buildMode) { cancelPlacing(); return; }
         const panel = document.getElementById('buildPanel');
         if (panel.classList.contains('open')) closeBuildPanel(); else openBuildPanel();
@@ -7753,8 +7756,8 @@
       endDrag(t.clientX, t.clientY);
     });
 
-    // Open / close
-    document.getElementById('exploreBtn').addEventListener('click', openExplore);
+    // Open / close (explore/expanding land is host-only in co-op)
+    document.getElementById('exploreBtn').addEventListener('click', () => { if (mp.role === 'guest') return; openExplore(); });
     document.getElementById('exploreCloseBtn').addEventListener('click', closeExplore);
 
     window.addEventListener('resize', () => {
@@ -7967,7 +7970,7 @@
         if (code) mpJoin(code);
       });
       const viewCode = document.getElementById('viewCodeBtn');
-      if (viewCode) viewCode.addEventListener('click', () => mpHost());
+      if (viewCode) viewCode.addEventListener('click', () => { if (mp.role === 'guest') return; mpHost(); });
     })();
   </script>
 </body>
