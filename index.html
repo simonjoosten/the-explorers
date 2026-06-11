@@ -1719,6 +1719,22 @@
     .pause-btn.primary { background: linear-gradient(180deg, #fbbf24, #d97706); border-color: #fde68a; color: #1a1408; }
     .pause-btn.danger { border-color: #8b4747; color: #ffb0b0; }
     .pause-btn.danger:hover { border-color: #e74c3c; }
+    .join-code-box {
+      display: none;
+      margin-top: 1rem;
+      padding: 0.8rem;
+      border: 2px dashed #fbbf24;
+      border-radius: 10px;
+      background: rgba(20, 12, 5, 0.7);
+    }
+    .join-code-box.show { display: block; }
+    .join-code-box .jc-label { font-size: 0.7rem; letter-spacing: 0.2em; color: #b89968; text-transform: uppercase; }
+    .join-code-box .jc-code {
+      font-family: ui-monospace, monospace;
+      font-size: 1.4rem; font-weight: 800; letter-spacing: 0.12em;
+      color: #fbbf24; margin-top: 0.3rem; word-break: break-all; user-select: all;
+    }
+    .join-code-box .jc-status { font-size: 0.72rem; color: #7bed9f; margin-top: 0.4rem; }
 
     /* Game screen */
     .game-screen {
@@ -2082,6 +2098,7 @@
 
       <div class="home-menu">
         <button class="menu-btn menu-primary" id="playBtn">▶ Begin Adventure</button>
+        <button class="menu-btn" id="joinCoopBtn">🔗 Join Co-op</button>
         <button class="menu-btn" id="howToPlayBtn">How to Play</button>
         <button class="menu-btn" id="creditsBtn">Credits</button>
       </div>
@@ -2295,8 +2312,10 @@
       </div>
       <div class="pause-actions">
         <button class="pause-btn primary" id="resumeBtn">▶ Resume</button>
+        <button class="pause-btn" id="viewCodeBtn">🔗 View Join Code</button>
         <button class="pause-btn danger" id="leaveBtn">⌂ Leave Match</button>
       </div>
+      <div class="join-code-box" id="joinCodeBox"></div>
     </div>
   </div>
 
@@ -2354,6 +2373,8 @@
     <div class="explore-hint" id="exploreHint">Drag to scroll · Click an adjacent section to buy</div>
   </div>
 
+  <!-- PeerJS for co-op multiplayer (P2P; uses PeerJS public broker for signaling) -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script>
     // Create stars
     const starsContainer = document.getElementById('stars');
@@ -2896,6 +2917,10 @@
     let gameRunning = false;
     let animationId = null;
     let world = null;
+    // Co-op multiplayer state (inactive unless hosting/joining)
+    const mp = { peer: null, conn: null, role: null, connected: false, joinCode: null,
+                 guestInput: { dx: 0, dy: 0 }, guestAttack: false, guestAttackQueued: false,
+                 lastSnap: 0, lastSnapshot: null, inputTimer: null, guestRAF: null };
     const keysPressed = new Set();
 
     // Persistent player inventory (survives between sessions in same load)
@@ -3103,6 +3128,12 @@
       }
       // Open the upgrade menu for the shelter itself
       if ((wx - world.house.x) ** 2 + (wy - world.house.y) ** 2 < 2500) { openUpgradeMenu(world.house); return; }
+
+      // Otherwise: tap-to-move — walk a valid route to the tapped spot
+      if (world.player) {
+        const path = findPath(world.player.x, world.player.y, wx, wy);
+        if (path && path.length > 1) { world.player.path = path; world.player.moveTarget = { x: wx, y: wy }; }
+      }
     });
 
     // Ghost preview follows the cursor while placing
@@ -3134,6 +3165,8 @@
     }
 
     function attemptAttack() {
+      // Co-op guest: forward the attack to the host instead of simulating locally
+      if (mp.role === 'guest') { mp.guestAttack = true; SFX.attack(); return; }
       if (!world || !world.player) return;
       const p = world.player;
       if (p.attackCooldown > 0) return;
@@ -4899,6 +4932,11 @@
             if (dh < def.visionRange && dh < dist) { target = hp; dist = dh; }
           });
         }
+        // ...and the co-op second hero
+        if (world.player2) {
+          const d2 = Math.hypot(world.player2.x - e.x, world.player2.y - e.y);
+          if (d2 < def.visionRange && d2 < dist) { target = world.player2; dist = d2; }
+        }
 
         const sm = e.speedMul || 1;
         if (!target) {
@@ -6423,6 +6461,15 @@
       const facingLeft = p.facing < 0;
       const flip = facingLeft ? -1 : 1;
 
+      // Tap-to-move destination marker
+      if (p.path && p.path.length && p.moveTarget) {
+        const mt = p.moveTarget, t2 = world.time * 0.006;
+        ctx.strokeStyle = 'rgba(251, 191, 36, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(mt.x, mt.y, 6 + Math.sin(t2) * 2, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(mt.x, mt.y, 2, 0, Math.PI * 2); ctx.stroke();
+      }
+
       // Tight ground shadow at the feet
       ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
       ctx.beginPath();
@@ -6584,6 +6631,39 @@
       ctx.fillRect(p.x - 7, p.y - 1 + bob, 14, 4);
     }
 
+    // Second co-op hero (simplified, red tunic)
+    function drawPlayer2(p) {
+      const t = world.time;
+      const bob = Math.sin(t * 0.012) * 1.2;
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.beginPath(); ctx.ellipse(p.x, p.y + 17, 9, 3, 0, 0, Math.PI * 2); ctx.fill();
+      // Legs
+      ctx.fillStyle = '#2a1a0a';
+      ctx.fillRect(p.x - 5, p.y + 11 + bob, 4, 7);
+      ctx.fillRect(p.x + 1, p.y + 11 + bob, 4, 7);
+      // Tunic (red)
+      ctx.fillStyle = '#a83a3a';
+      ctx.fillRect(p.x - 7, p.y - 1 + bob, 14, 13);
+      ctx.fillStyle = '#7a2020';
+      ctx.fillRect(p.x + 3, p.y - 1 + bob, 4, 13);
+      // Belt
+      ctx.fillStyle = '#3a2010'; ctx.fillRect(p.x - 7, p.y + 8 + bob, 14, 3);
+      // Head
+      ctx.fillStyle = '#f0d0a8';
+      ctx.beginPath(); ctx.arc(p.x, p.y - 6 + bob, 6, 0, Math.PI * 2); ctx.fill();
+      // Name tag
+      ctx.font = 'bold 8px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillStyle = '#ff9090';
+      ctx.fillText('P2', p.x, p.y - 16 + bob);
+      // HP bar if hurt
+      if (p.hp < p.maxHp) {
+        const r = Math.max(0, p.hp / p.maxHp);
+        ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(p.x - 16, p.y - 24, 32, 4);
+        ctx.fillStyle = r > 0.5 ? '#4d8a35' : (r > 0.25 ? '#fbbf24' : '#e74c3c');
+        ctx.fillRect(p.x - 15, p.y - 23, 30 * r, 2);
+      }
+    }
+
     function drawFogOfWar() {
       // Use camera-relative field position so fog stays around the field visually
       const cam = world.camera || { x: 0, y: 0 };
@@ -6671,6 +6751,70 @@
       return false;
     }
 
+    // Path obstacle test: walls/decorations/structures/unowned + player buildings
+    function pathBlocked(x, y) {
+      if (collidesAt(x, y)) return true;
+      if (world.buildings) {
+        for (const b of world.buildings) {
+          const dx = x - b.x, dy = y - b.y;
+          if (dx * dx + dy * dy < 26 * 26) return true;
+        }
+      }
+      return false;
+    }
+
+    // A* over a coarse grid — returns world-space waypoints, or null
+    function findPath(sx, sy, tx, ty) {
+      const cell = 18;
+      const gx = cx => cx * cell, gy = cy => cy * cell;
+      const start = { cx: Math.round(sx / cell), cy: Math.round(sy / cell) };
+      let goal = { cx: Math.round(tx / cell), cy: Math.round(ty / cell) };
+      // If the goal cell is blocked, snap to the nearest free cell
+      if (pathBlocked(gx(goal.cx), gy(goal.cy))) {
+        let best = null, bd = 1e9;
+        for (let r = 1; r <= 3; r++) {
+          for (let ox = -r; ox <= r; ox++) for (let oy = -r; oy <= r; oy++) {
+            const cx = goal.cx + ox, cy = goal.cy + oy;
+            if (!pathBlocked(gx(cx), gy(cy))) { const d = ox * ox + oy * oy; if (d < bd) { bd = d; best = { cx, cy }; } }
+          }
+          if (best) break;
+        }
+        if (!best) return null;
+        goal = best;
+      }
+      const key = (cx, cy) => cx + ',' + cy;
+      const h = (cx, cy) => Math.abs(cx - goal.cx) + Math.abs(cy - goal.cy);
+      const open = [{ cx: start.cx, cy: start.cy, g: 0, f: h(start.cx, start.cy), parent: null }];
+      const gScore = new Map(); gScore.set(key(start.cx, start.cy), 0);
+      const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+      let iter = 0;
+      while (open.length && iter < 4000) {
+        iter++;
+        let bi = 0;
+        for (let i = 1; i < open.length; i++) if (open[i].f < open[bi].f) bi = i;
+        const cur = open.splice(bi, 1)[0];
+        if (cur.cx === goal.cx && cur.cy === goal.cy) {
+          const path = []; let n = cur;
+          while (n) { path.push({ x: gx(n.cx), y: gy(n.cy) }); n = n.parent; }
+          path.reverse();
+          return path;
+        }
+        for (const [ox, oy] of dirs) {
+          const ncx = cur.cx + ox, ncy = cur.cy + oy;
+          if (ox !== 0 && oy !== 0) { // no diagonal corner-cutting
+            if (pathBlocked(gx(cur.cx + ox), gy(cur.cy)) || pathBlocked(gx(cur.cx), gy(cur.cy + oy))) continue;
+          }
+          if (pathBlocked(gx(ncx), gy(ncy))) continue;
+          const ng = cur.g + ((ox !== 0 && oy !== 0) ? 1.414 : 1);
+          const nk = key(ncx, ncy);
+          if (gScore.has(nk) && gScore.get(nk) <= ng) continue;
+          gScore.set(nk, ng);
+          open.push({ cx: ncx, cy: ncy, g: ng, f: ng + h(ncx, ncy), parent: cur });
+        }
+      }
+      return null;
+    }
+
     function updatePlayer() {
       const p = world.player;
       if (p.attackCooldown > 0) p.attackCooldown--;
@@ -6681,14 +6825,26 @@
       if (keysPressed.has('ArrowUp'))    dy -= 1;
       if (keysPressed.has('ArrowDown'))  dy += 1;
 
+      // Manual input cancels any tap-to-move route
+      if (dx !== 0 || dy !== 0) p.path = null;
+
       // Hint shows controls + position
       const hint = document.getElementById('gameHint');
       if (hint) {
-        hint.textContent = `WASD/Arrows · X attack · HP ${p.hp}/${p.maxHp}`;
+        hint.textContent = `Move/tap · X attack · HP ${p.hp}/${p.maxHp}`;
       }
 
-      // Normalize diagonal
-      if (dx !== 0 && dy !== 0) { dx *= 0.707; dy *= 0.707; }
+      // Follow tap-to-move route (mobile-friendly)
+      if (dx === 0 && dy === 0 && p.path && p.path.length) {
+        let wp = p.path[0];
+        while (p.path.length && Math.hypot(wp.x - p.x, wp.y - p.y) < 7) { p.path.shift(); wp = p.path[0]; }
+        if (!p.path || !p.path.length) { p.path = null; }
+        else { dx = wp.x - p.x; dy = wp.y - p.y; }
+      }
+
+      // Normalize to unit length (keys or path)
+      const mag = Math.hypot(dx, dy);
+      if (mag > 0) { dx /= mag; dy /= mag; }
 
       // Speed Road: hop on a cart and zoom
       p.onRoad = false;
@@ -6733,6 +6889,41 @@
       } else {
         world.camera.y = Math.max(fY - padding, Math.min(fY + fH + padding - canvas.height, world.camera.y));
       }
+    }
+
+    // Distinct look for special terrain (mountains rocky/grey, rivers blue & wavy)
+    function drawTerrainOverlay() {
+      if (!world || !exState.sections) return;
+      const sp = world.tileSize * 3;
+      exState.sections.forEach(sec => {
+        if (sec.type !== 'owned' || !sec.terrain || sec.terrain === 'plain') return;
+        const sx = world.originX + sec.col * sp;
+        const sy = world.originY + sec.row * sp;
+        if (sec.terrain === 'mountain') {
+          ctx.fillStyle = 'rgba(120, 128, 150, 0.28)';
+          ctx.fillRect(sx, sy, sp, sp);
+          for (let i = 0; i < 5; i++) {
+            const rx = sx + ((i * 53 + sec.col * 29) % sp), ry = sy + ((i * 37 + sec.row * 19) % sp);
+            ctx.fillStyle = 'rgba(90, 98, 120, 0.55)';
+            ctx.beginPath(); ctx.moveTo(rx - 7, ry + 6); ctx.lineTo(rx, ry - 7); ctx.lineTo(rx + 7, ry + 6); ctx.closePath(); ctx.fill();
+            ctx.fillStyle = 'rgba(240, 245, 255, 0.5)';
+            ctx.beginPath(); ctx.moveTo(rx - 2.5, ry - 1); ctx.lineTo(rx, ry - 7); ctx.lineTo(rx + 2.5, ry - 1); ctx.closePath(); ctx.fill();
+          }
+        } else if (sec.terrain === 'river') {
+          ctx.fillStyle = 'rgba(60, 130, 200, 0.32)';
+          ctx.fillRect(sx, sy, sp, sp);
+          ctx.strokeStyle = 'rgba(185, 222, 255, 0.4)'; ctx.lineWidth = 2;
+          for (let i = 0; i < 4; i++) {
+            const wy = sy + 22 + i * 42;
+            ctx.beginPath();
+            for (let xx = 0; xx <= sp; xx += 12) {
+              const yy = wy + Math.sin((xx + world.time * 0.05 + i * 20) * 0.1) * 3;
+              if (xx === 0) ctx.moveTo(sx + xx, yy); else ctx.lineTo(sx + xx, yy);
+            }
+            ctx.stroke();
+          }
+        }
+      });
     }
 
     function drawRoads() {
@@ -6803,36 +6994,38 @@
         if (world.player.invuln > 0) world.player.invuln--;
         handleDeaths();
         updateCamera();
-
-        // Clear canvas fully
-        ctx.fillStyle = '#1a1410';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // World drawing in camera-transformed space
-        ctx.save();
-        ctx.translate(-Math.round(world.camera.x), -Math.round(world.camera.y));
-        drawGround();
-        drawRoads();
-        drawDecorations();
-        drawHouse();
-        drawStructures();
-        drawBuildings();
-        drawHelpers();
-        drawEnemies();
-        drawPlayer();
-        drawProjectiles();
-        drawBuildingEffects();
-        drawSwingArc();
-        drawHpBars();
-        drawFloatingText();
-        ctx.restore();
-
-        // Day/night overlay (screen-space) + sun/moon indicator
-        drawDayNight();
+        if (typeof mpHostTick === 'function') mpHostTick();
+        renderWorld();
       } catch (err) {
         console.error('gameLoop error:', err);
       }
       animationId = requestAnimationFrame(gameLoop);
+    }
+
+    // Draw the whole world (shared by host and the co-op guest renderer)
+    function renderWorld() {
+      ctx.fillStyle = '#1a1410';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.save();
+      ctx.translate(-Math.round(world.camera.x), -Math.round(world.camera.y));
+      drawGround();
+      drawTerrainOverlay();
+      drawRoads();
+      drawDecorations();
+      drawHouse();
+      drawStructures();
+      drawBuildings();
+      drawHelpers();
+      drawEnemies();
+      drawPlayer();
+      if (world.player2) drawPlayer2(world.player2);
+      drawProjectiles();
+      drawBuildingEffects();
+      drawSwingArc();
+      drawHpBars();
+      drawFloatingText();
+      ctx.restore();
+      drawDayNight();
     }
 
     // ===== EXPLORE / WORLD MAP =====
@@ -7419,6 +7612,190 @@
         drawExplore();
       }
     });
+
+    // ===== CO-OP MULTIPLAYER (PeerJS, host-authoritative) =====
+    function mpJoinCodeBox() { return document.getElementById('joinCodeBox'); }
+    function mpShowCode() {
+      const box = mpJoinCodeBox();
+      if (!box) return;
+      box.classList.add('show');
+      box.innerHTML =
+        `<div class="jc-label">Share this join code</div>` +
+        `<div class="jc-code">${mp.joinCode || '...'}</div>` +
+        `<div class="jc-status" id="jcStatus">Waiting for Player 2…</div>`;
+    }
+    function mpStatus(msg) { const el = document.getElementById('jcStatus'); if (el) el.textContent = msg; }
+
+    function mpHost() {
+      if (typeof Peer === 'undefined') {
+        const box = mpJoinCodeBox(); if (box) { box.classList.add('show'); box.innerHTML = '<div class="jc-status">Multiplayer needs an internet connection.</div>'; }
+        return;
+      }
+      if (mp.peer && mp.role === 'host') { mpShowCode(); return; }
+      mp.role = 'host';
+      mp.joinCode = 'EXPL' + Math.random().toString(36).slice(2, 7).toUpperCase();
+      mpShowCode();
+      mp.peer = new Peer(mp.joinCode, { debug: 1 });
+      mp.peer.on('open', () => mpStatus('Ready — waiting for Player 2…'));
+      mp.peer.on('connection', (c) => {
+        mp.conn = c;
+        c.on('open', () => { mp.connected = true; mpOnGuestJoined(); });
+        c.on('data', (d) => { if (d && d.t === 'input') { mp.guestInput.dx = d.dx; mp.guestInput.dy = d.dy; if (d.attack) mp.guestAttackQueued = true; } });
+        c.on('close', () => { mp.connected = false; world && (world.player2 = null); mpStatus('Player 2 left.'); });
+      });
+      mp.peer.on('error', (e) => mpStatus('Error: ' + (e && e.type ? e.type : e)));
+    }
+    function mpOnGuestJoined() {
+      if (!world) return;
+      world.player2 = { x: world.house.x + 34, y: world.house.y + 60, facing: 1, speed: 3.0, hp: 130, maxHp: 130, attackCooldown: 0, invuln: 0 };
+      mpStatus('Player 2 joined! 🎉');
+    }
+
+    function mpJoin(code) {
+      if (typeof Peer === 'undefined') { alert('Multiplayer needs an internet connection.'); return; }
+      if (!code) return;
+      mp.role = 'guest';
+      mp.peer = new Peer({ debug: 1 });
+      mp.peer.on('open', () => {
+        const c = mp.peer.connect(code.trim(), { reliable: false });
+        mp.conn = c;
+        c.on('open', () => { mp.connected = true; mpStartGuest(); });
+        c.on('data', (d) => { if (d && d.t === 'snap') { mp.lastSnapshot = d; mpApplySnapshot(d); } });
+        c.on('close', () => { if (mp.role === 'guest') { alert('Disconnected from host.'); mpLeave(); } });
+      });
+      mp.peer.on('error', (e) => { alert('Join failed: ' + (e && e.type ? e.type : e)); });
+    }
+    function mpStartGuest() {
+      document.getElementById('homeScreen').style.display = 'none';
+      const ms = document.getElementById('mapSelect'); if (ms) ms.style.display = 'none';
+      const ws = document.getElementById('warriorSelect'); if (ws) ws.style.display = 'none';
+      document.getElementById('gameScreen').style.display = 'block';
+      resizeCanvas();
+      gameRunning = true; // enables input handlers (no local sim runs)
+      SFX.startMusic();
+      canvas.focus();
+      if (mp.inputTimer) clearInterval(mp.inputTimer);
+      mp.inputTimer = setInterval(mpGuestSendInput, 60);
+      mpGuestLoop();
+    }
+    function mpGuestSendInput() {
+      if (!mp.conn || !mp.conn.open) return;
+      let dx = 0, dy = 0;
+      if (keysPressed.has('ArrowLeft')) dx -= 1;
+      if (keysPressed.has('ArrowRight')) dx += 1;
+      if (keysPressed.has('ArrowUp')) dy -= 1;
+      if (keysPressed.has('ArrowDown')) dy += 1;
+      const atk = mp.guestAttack; mp.guestAttack = false;
+      try { mp.conn.send({ t: 'input', dx, dy, attack: atk }); } catch (e) {}
+    }
+    function mpGuestLoop() {
+      if (mp.role !== 'guest') return;
+      if (world && mp.lastSnapshot) { try { renderWorld(); } catch (e) { console.error('guest render', e); } }
+      mp.guestRAF = requestAnimationFrame(mpGuestLoop);
+    }
+
+    // Host: drive Player 2 from guest input + broadcast snapshots
+    function mpHostTick() {
+      if (mp.role !== 'host' || !mp.connected || !world) return;
+      const p2 = world.player2;
+      if (p2) {
+        if (p2.attackCooldown > 0) p2.attackCooldown--;
+        if (p2.invuln > 0) p2.invuln--;
+        let dx = mp.guestInput.dx, dy = mp.guestInput.dy;
+        const m = Math.hypot(dx, dy);
+        if (m > 0) {
+          dx /= m; dy /= m;
+          const sp = p2.speed;
+          const nx = p2.x + dx * sp; if (!collidesAt(nx, p2.y)) p2.x = nx;
+          const ny = p2.y + dy * sp; if (!collidesAt(p2.x, ny)) p2.y = ny;
+          p2.facing = dx >= 0 ? 1 : -1;
+        }
+        if (mp.guestAttackQueued) { mp.guestAttackQueued = false; mpPlayer2Attack(); }
+        if (p2.hp <= 0) { p2.hp = Math.ceil(p2.maxHp * 0.6); p2.x = world.house.x; p2.y = world.house.y + 60; p2.invuln = 120; }
+      }
+      if (world.time - mp.lastSnap >= 80 && mp.conn && mp.conn.open) {
+        mp.lastSnap = world.time;
+        try { mp.conn.send(mpBuildSnapshot()); } catch (e) {}
+      }
+    }
+    function mpPlayer2Attack() {
+      const p2 = world.player2; if (!p2 || p2.attackCooldown > 0) return;
+      let nearest = null, nd = 60, nt = null;
+      world.enemies.forEach(e => { const d = Math.hypot(e.x - p2.x, e.y - p2.y); if (d < nd) { nd = d; nearest = e; nt = 'enemy'; } });
+      if (!nearest) world.decorations.forEach(d => { const dd = Math.hypot(d.x - p2.x, d.y - p2.y); if (dd < nd) { nd = dd; nearest = d; nt = 'deco'; } });
+      if (nearest) {
+        if (nt === 'enemy') hitEnemy(nearest, 9); else hitDecoration(nearest, 1);
+        world.swingArc = { x: p2.x, y: p2.y, target: nearest, life: 12, totalLife: 12, mode: 'swing' };
+        SFX.attack();
+      }
+      p2.attackCooldown = 22;
+    }
+
+    function mpBuildSnapshot() {
+      const pPack = p => ({ x: p.x | 0, y: p.y | 0, facing: p.facing, hp: p.hp, maxHp: p.maxHp, onRoad: !!p.onRoad });
+      const lite = (arr, f) => (arr || []).map(f);
+      return {
+        t: 'snap', time: world.time,
+        ox: world.originX, oy: world.originY, ts: world.tileSize,
+        bb: world.ownedBBox, fx: world.fieldX, fy: world.fieldY, fw: world.fieldW, fh: world.fieldH, mapId: world.mapId,
+        p1: pPack(world.player), p2: world.player2 ? pPack(world.player2) : null,
+        house: { x: world.house.x, y: world.house.y, hp: world.house.hp, maxHp: world.house.maxHp, hitFlash: world.house.hitFlash || 0, up: world.house.up || {} },
+        inv: { power: playerInventory.power, wood: playerInventory.wood, stone: playerInventory.stone, gemGreen: playerInventory.gemGreen, gemRed: playerInventory.gemRed, gemBlue: playerInventory.gemBlue },
+        wave: { waveNumber: world.waveNumber, waveActive: world.waveActive, timeToNextWave: world.timeToNextWave, waveTotalTime: world.waveTotalTime },
+        enemies: lite(world.enemies, e => ({ x: e.x | 0, y: e.y | 0, type: e.type, hp: e.hp, maxHp: e.maxHp, facing: e.facing, bobOffset: e.bobOffset, hitFlash: e.hitFlash || 0 })),
+        buildings: lite(world.buildings, b => ({ x: b.x, y: b.y, type: b.type, hp: b.hp, maxHp: b.maxHp, up: b.up, charges: b.charges || 0, aimAngle: b.aimAngle || 0, hitFlash: b.hitFlash || 0 })),
+        helpers: lite(world.helpers, h => ({ x: h.x | 0, y: h.y | 0, kind: h.kind, hp: h.hp, maxHp: h.maxHp, facing: h.facing, swing: h.swing || 0, hitFlash: h.hitFlash || 0 })),
+        structures: lite(world.structures, s => ({ x: s.x, y: s.y, type: s.type, up: s.up, timer: s.timer, hasChild: !!(s.childDeco && world.decorations.includes(s.childDeco)) })),
+        roads: lite(world.roads, r => ({ x: r.x, y: r.y })),
+        decos: lite(world.decorations, d => ({ x: d.x | 0, y: d.y | 0, type: d.type, hp: d.hp, maxHp: d.maxHp }))
+      };
+    }
+    function mpApplySnapshot(s) {
+      if (!world) world = {};
+      world.time = s.time;
+      world.originX = s.ox; world.originY = s.oy; world.tileSize = s.ts;
+      world.ownedBBox = s.bb; world.fieldX = s.fx; world.fieldY = s.fy; world.fieldW = s.fw; world.fieldH = s.fh; world.mapId = s.mapId;
+      world.player = Object.assign(world.player || {}, s.p1);
+      world.player2 = s.p2 ? Object.assign(world.player2 || {}, s.p2) : null;
+      world.house = s.house;
+      if (s.inv) { Object.assign(playerInventory, s.inv); updateResourceBars(); }
+      world.waveNumber = s.wave.waveNumber; world.waveActive = s.wave.waveActive; world.timeToNextWave = s.wave.timeToNextWave; world.waveTotalTime = s.wave.waveTotalTime;
+      world.enemies = s.enemies;
+      world.buildings = s.buildings;
+      world.helpers = s.helpers;
+      world.structures = s.structures.map(st => ({ ...st, childDeco: null }));
+      world.roads = s.roads;
+      world.decorations = s.decos;
+      world.projectiles = []; world.beams = []; world.explosions = []; world.healPulses = []; world.floatingText = []; world.swingArc = null; world.buildGhost = null;
+      world.paused = false; world.gameOver = false;
+      const me = world.player2 || world.player;
+      world.camera = { x: me.x - canvas.width / 2, y: me.y - canvas.height / 2 };
+      // Update wave HUD on guest
+      const label = document.getElementById('waveBarLabel'), status = document.getElementById('waveBarStatus'), bar = document.getElementById('waveBarFill');
+      if (world.waveActive) { if (label) label.textContent = `Wave ${world.waveNumber}`; if (status) status.textContent = `${world.enemies.length} left`; if (bar) { bar.style.width = '100%'; bar.className = 'wave-bar-fill active'; } }
+    }
+
+    function mpLeave() {
+      try { if (mp.inputTimer) clearInterval(mp.inputTimer); } catch (e) {}
+      try { if (mp.guestRAF) cancelAnimationFrame(mp.guestRAF); } catch (e) {}
+      try { if (mp.conn) mp.conn.close(); } catch (e) {}
+      try { if (mp.peer) mp.peer.destroy(); } catch (e) {}
+      mp.peer = null; mp.conn = null; mp.role = null; mp.connected = false; mp.joinCode = null;
+      mp.lastSnapshot = null; mp.inputTimer = null; mp.guestRAF = null;
+      if (world) world.player2 = null;
+      const box = mpJoinCodeBox(); if (box) box.classList.remove('show');
+    }
+
+    // Wire co-op buttons
+    (function wireCoop() {
+      const join = document.getElementById('joinCoopBtn');
+      if (join) join.addEventListener('click', () => {
+        const code = prompt('Enter the host\'s join code:');
+        if (code) mpJoin(code);
+      });
+      const viewCode = document.getElementById('viewCodeBtn');
+      if (viewCode) viewCode.addEventListener('click', () => mpHost());
+    })();
   </script>
 </body>
 </html>
