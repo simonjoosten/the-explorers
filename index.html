@@ -3058,6 +3058,9 @@
       world.buildings = [];
       world.helpers = [];
       world.roads = [];
+      world.tracks = [];
+      world.bridges = [];
+      world.riverSet = new Set();
       world.buildCounts = {};
       world.healPulses = [];
       world.explosions = [];
@@ -3113,9 +3116,25 @@
 
       // Placement mode — drop the selected building here
       if (buildMode) {
+        // Cart Track uses two taps: a start point, then an end point
+        if (buildingDefs[buildMode] && buildingDefs[buildMode].kind === 'track') {
+          placeTrackPoint(wx, wy);
+          return;
+        }
         placeBuilding(buildMode, wx, wy);
         cancelPlacing();
         return;
+      }
+
+      // Board / leave a cart by tapping it (when standing near)
+      if (world.tracks) {
+        for (const tr of world.tracks) {
+          if ((wx - tr.cx) ** 2 + (wy - tr.cy) ** 2 < 26 * 26) {
+            if (world.player.riding === tr) { world.player.riding = null; }
+            else if ((world.player.x - tr.cx) ** 2 + (world.player.y - tr.cy) ** 2 < 60 * 60) { world.player.riding = tr; world.player.path = null; }
+            return;
+          }
+        }
       }
 
       // Open the upgrade menu for a defensive building
@@ -3717,11 +3736,17 @@
         color: '#6a5a4a', accent: '#cdbfae',
         desc: 'Grows rocks beside it to harvest for stone.'
       },
-      road: {
-        name: 'Speed Road', icon: '🛤️', kind: 'road',
-        cost: { wood: 5 }, noScale: true,
+      track: {
+        name: 'Cart Track', icon: '🛤️', kind: 'track',
+        cost: { wood: 20, stone: 10 }, noScale: true,
         color: '#5a4a3a', accent: '#8b7355',
-        desc: 'Ride a cart along it — move much faster. Flat cost, no limit.'
+        desc: 'Tap a start & end point. A cart rides between them — tap it to hop on.'
+      },
+      bridge: {
+        name: 'Stone Bridge', icon: '🌉', kind: 'bridge',
+        cost: { stone: 15 }, noScale: true,
+        color: '#8a8278', accent: '#b8b0a4',
+        desc: 'Place on a river to cross it.'
       }
     };
     // Which build tab each building belongs to
@@ -3730,7 +3755,7 @@
       resource:  { label: '⛏ Resource',  items: ['treeplot', 'mineplot'] },
       support:   { label: '✨ Support',   items: ['heal', 'revive'] },
       helpers:   { label: '👷 Helpers',   items: ['helperhouse'] },
-      transport: { label: '🛤 Transport', items: ['road'] }
+      transport: { label: '🛤 Transport', items: ['track', 'bridge'] }
     };
     const buildTabOrder = ['defense', 'resource', 'support', 'helpers', 'transport'];
     let activeBuildTab = 'defense';
@@ -3854,12 +3879,95 @@
     // --- Build mode + placement ---
     let buildMode = null;        // building type currently being placed
     let buildGhost = null;       // {x, y, valid} world-space ghost while placing
+    let trackStart = null;       // first tapped point while laying a Cart Track
+
+    // Cart Track: first tap = start, second tap = end → creates the track + cart
+    function placeTrackPoint(x, y) {
+      if (!isPositionInOwnedArea(x, y)) {
+        world.floatingText.push({ x, y: y - 18, vy: -0.7, life: 50, text: 'Build on your land', color: '#e74c3c' });
+        return;
+      }
+      if (!trackStart) {
+        const cost = scaledCost('track');
+        if (!canAffordBuild(cost)) { flashResBars(); world.floatingText.push({ x, y: y - 18, vy: -0.7, life: 50, text: 'Need 🪵🪨', color: '#e74c3c' }); cancelPlacing(); return; }
+        trackStart = { x, y };
+        const banner = document.getElementById('placeBanner');
+        document.getElementById('placeBannerText').textContent = 'Now tap the END point of the track';
+        banner.classList.add('show');
+        world.floatingText.push({ x, y: y - 18, vy: -0.7, life: 50, text: '🛤️ start', color: '#7bed9f' });
+        return;
+      }
+      // Second point — create the track
+      payCost(scaledCost('track'));
+      world.tracks.push({
+        x1: trackStart.x, y1: trackStart.y, x2: x, y2: y,
+        cx: trackStart.x, cy: trackStart.y, t: 0, dir: 1, speed: 0.004
+      });
+      SFX.build();
+      world.floatingText.push({ x, y: y - 18, vy: -0.7, life: 50, text: '🛤️ track built!', color: '#7bed9f' });
+      trackStart = null;
+      cancelPlacing();
+    }
+
+    function updateTracks() {
+      if (!world.tracks) return;
+      world.tracks.forEach(tr => {
+        tr.t += tr.speed * tr.dir;
+        if (tr.t >= 1) { tr.t = 1; tr.dir = -1; }
+        else if (tr.t <= 0) { tr.t = 0; tr.dir = 1; }
+        tr.cx = tr.x1 + (tr.x2 - tr.x1) * tr.t;
+        tr.cy = tr.y1 + (tr.y2 - tr.y1) * tr.t;
+      });
+    }
+
+    function drawTracks() {
+      if (!world.tracks) return;
+      world.tracks.forEach(tr => {
+        // Rail line
+        ctx.strokeStyle = '#6a5a48'; ctx.lineWidth = 6;
+        ctx.beginPath(); ctx.moveTo(tr.x1, tr.y1); ctx.lineTo(tr.x2, tr.y2); ctx.stroke();
+        ctx.strokeStyle = '#9a8a78'; ctx.lineWidth = 2;
+        const ang = Math.atan2(tr.y2 - tr.y1, tr.x2 - tr.x1);
+        const nx = Math.cos(ang + Math.PI / 2), ny = Math.sin(ang + Math.PI / 2);
+        ctx.beginPath(); ctx.moveTo(tr.x1 + nx * 2, tr.y1 + ny * 2); ctx.lineTo(tr.x2 + nx * 2, tr.y2 + ny * 2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(tr.x1 - nx * 2, tr.y1 - ny * 2); ctx.lineTo(tr.x2 - nx * 2, tr.y2 - ny * 2); ctx.stroke();
+        // Endpoints
+        [[tr.x1, tr.y1], [tr.x2, tr.y2]].forEach(([px, py]) => {
+          ctx.fillStyle = '#8b6f47'; ctx.fillRect(px - 5, py - 5, 10, 10);
+          ctx.fillStyle = '#fbbf24'; ctx.fillRect(px - 2, py - 2, 4, 4);
+        });
+        // Cart (the hero is drawn on top when riding)
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.beginPath(); ctx.ellipse(tr.cx, tr.cy + 9, 11, 3, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#6a4a2a'; ctx.fillRect(tr.cx - 12, tr.cy - 4, 24, 13);
+        ctx.fillStyle = '#3a2a1a'; ctx.fillRect(tr.cx - 12, tr.cy - 4, 24, 3);
+        ctx.fillStyle = '#2a2018';
+        ctx.beginPath(); ctx.arc(tr.cx - 7, tr.cy + 9, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(tr.cx + 7, tr.cy + 9, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath(); ctx.arc(tr.cx - 7, tr.cy + 9, 1, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(tr.cx + 7, tr.cy + 9, 1, 0, Math.PI * 2); ctx.fill();
+      });
+    }
+
+    function drawBridges() {
+      if (!world.bridges) return;
+      world.bridges.forEach(br => {
+        ctx.fillStyle = '#8a8278';
+        ctx.fillRect(br.x - 24, br.y - 16, 48, 32);
+        ctx.strokeStyle = '#6a6258'; ctx.lineWidth = 1.5;
+        for (let i = -16; i <= 16; i += 8) { ctx.beginPath(); ctx.moveTo(br.x - 24, br.y + i); ctx.lineTo(br.x + 24, br.y + i); ctx.stroke(); }
+        ctx.fillStyle = '#b8b0a4';
+        ctx.fillRect(br.x - 24, br.y - 16, 48, 3);
+        ctx.fillRect(br.x - 24, br.y + 13, 48, 3);
+      });
+    }
 
     function isValidPlacement(x, y, type) {
       if (!world) return false;
       if (!isPositionInOwnedArea(x, y)) return false;
-      // Roads can be laid freely (even right next to buildings)
-      if (type && buildingDefs[type] && buildingDefs[type].kind === 'road') return true;
+      // Roads/bridges/tracks can be laid freely (even next to buildings / on water)
+      if (type && buildingDefs[type] && ['road', 'bridge', 'track'].includes(buildingDefs[type].kind)) return true;
       // Keep clear of the shelter
       if (Math.hypot(x - world.house.x, y - world.house.y) < 70) return false;
       // Keep clear of resource structures
@@ -3897,6 +4005,13 @@
         world.roads.push({ x, y });
         SFX.build();
         world.floatingText.push({ x, y: y - 24, vy: -0.6, life: 50, text: '🛤️', color: '#cdbfae' });
+        return;
+      }
+      // Bridge: a crossing tile over rivers
+      if (def.kind === 'bridge') {
+        world.bridges.push({ x, y });
+        SFX.build();
+        world.floatingText.push({ x, y: y - 24, vy: -0.6, life: 50, text: '🌉', color: '#cdbfae' });
         return;
       }
       // Resource structures live in world.structures, not world.buildings
@@ -4385,13 +4500,16 @@
         ctx.beginPath(); ctx.ellipse(b.x, b.y, 18, 12, 0, 0, Math.PI * 2); ctx.fill();
         ctx.font = '18px sans-serif'; ctx.textAlign = 'center';
         ctx.fillText(def.icon, b.x, b.y + 6);
-      } else if (def.kind === 'road') {
-        // Ghost preview for road segment
+      } else if (def.kind === 'road' || def.kind === 'track') {
+        // Ghost preview for road/track point
         ctx.fillStyle = '#5a4a38';
         ctx.fillRect(b.x - 18, b.y - 7, 36, 14);
         ctx.strokeStyle = '#9a8a78'; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(b.x - 18, b.y - 4); ctx.lineTo(b.x + 18, b.y - 4); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(b.x - 18, b.y + 4); ctx.lineTo(b.x + 18, b.y + 4); ctx.stroke();
+      } else if (def.kind === 'bridge') {
+        ctx.fillStyle = '#8a8278';
+        ctx.fillRect(b.x - 22, b.y - 14, 44, 28);
       } else if (def.kind === 'revive') {
         // Revive tower — obelisk with floating runes, glow scales with stored charges
         const charges = b.charges || 0;
@@ -4610,6 +4728,7 @@
     function cancelPlacing() {
       buildMode = null;
       buildGhost = null;
+      trackStart = null;
       document.getElementById('placeBanner').classList.remove('show');
     }
     (function wireBuildUI() {
@@ -5484,7 +5603,7 @@
       const sy = world.originY + sec.row * sectionPx;
       let pool = spawnPool(), density = 0.18;
       if (sec.terrain === 'mountain') { pool = MOUNTAIN_POOL; density = 0.32; }
-      else if (sec.terrain === 'river') { pool = RIVER_POOL; density = 0.30; }
+      else if (sec.terrain === 'river') { rebuildRiverSet(); return; } // rivers are open water you must bridge
       for (let r = 0; r < 3; r++) {
         for (let c = 0; c < 3; c++) {
           const tx = sx + c * ts + ts / 2 + (Math.random() - 0.5) * 12;
@@ -6748,7 +6867,30 @@
           if (dx * dx + dy * dy < rr * rr) return true;
         }
       }
+      // River water — impassable unless a bridge spans it
+      if (world.riverSet && world.riverSet.size) {
+        const sp = world.tileSize * 3;
+        const col = Math.floor((nx - world.originX) / sp);
+        const row = Math.floor((ny - world.originY) / sp);
+        if (world.riverSet.has(row + ',' + col)) {
+          let bridged = false;
+          if (world.bridges) {
+            for (const br of world.bridges) {
+              const dx = nx - br.x, dy = ny - br.y;
+              if (dx * dx + dy * dy < 26 * 26) { bridged = true; break; }
+            }
+          }
+          if (!bridged) return true;
+        }
+      }
       return false;
+    }
+    function rebuildRiverSet() {
+      if (!world) return;
+      world.riverSet = new Set();
+      (exState.sections || []).forEach(s => {
+        if (s.type === 'owned' && s.terrain === 'river') world.riverSet.add(s.row + ',' + s.col);
+      });
     }
 
     // Path obstacle test: walls/decorations/structures/unowned + player buildings
@@ -6827,6 +6969,13 @@
 
       // Manual input cancels any tap-to-move route
       if (dx !== 0 || dy !== 0) p.path = null;
+
+      // Riding a cart: stick to it; any movement input hops off
+      if (p.riding) {
+        if (!world.tracks || !world.tracks.includes(p.riding)) { p.riding = null; }
+        else if (dx !== 0 || dy !== 0 || p.path) { p.riding = null; }
+        else { p.x = p.riding.cx; p.y = p.riding.cy; p.onRoad = false; return; }
+      }
 
       // Hint shows controls + position
       const hint = document.getElementById('gameHint');
@@ -6984,6 +7133,7 @@
         updateStructures();
         updateBuildings();
         updateHelpers();
+        updateTracks();
         updateWaves();
         updateEnemies();
         updateProjectiles();
@@ -6994,7 +7144,6 @@
         if (world.player.invuln > 0) world.player.invuln--;
         handleDeaths();
         updateCamera();
-        if (typeof mpHostTick === 'function') mpHostTick();
         renderWorld();
       } catch (err) {
         console.error('gameLoop error:', err);
@@ -7010,7 +7159,9 @@
       ctx.translate(-Math.round(world.camera.x), -Math.round(world.camera.y));
       drawGround();
       drawTerrainOverlay();
+      drawBridges();
       drawRoads();
+      drawTracks();
       drawDecorations();
       drawHouse();
       drawStructures();
@@ -7635,15 +7786,21 @@
       mp.role = 'host';
       mp.joinCode = 'EXPL' + Math.random().toString(36).slice(2, 7).toUpperCase();
       mpShowCode();
-      mp.peer = new Peer(mp.joinCode, { debug: 1 });
-      mp.peer.on('open', () => mpStatus('Ready — waiting for Player 2…'));
+      mpStatus('Connecting to server…');
+      mp.peer = new Peer(mp.joinCode, { debug: 2 });
+      mp.peer.on('open', (id) => { console.log('[MP] host peer open', id); mpStatus('Ready — share the code, waiting for Player 2…'); });
       mp.peer.on('connection', (c) => {
+        console.log('[MP] incoming connection');
         mp.conn = c;
-        c.on('open', () => { mp.connected = true; mpOnGuestJoined(); });
+        c.on('open', () => { console.log('[MP] guest connected'); mp.connected = true; mpOnGuestJoined(); });
         c.on('data', (d) => { if (d && d.t === 'input') { mp.guestInput.dx = d.dx; mp.guestInput.dy = d.dy; if (d.attack) mp.guestAttackQueued = true; } });
-        c.on('close', () => { mp.connected = false; world && (world.player2 = null); mpStatus('Player 2 left.'); });
+        c.on('close', () => { console.log('[MP] guest left'); mp.connected = false; world && (world.player2 = null); mpStatus('Player 2 left.'); });
+        c.on('error', (e) => console.error('[MP] conn error', e));
       });
-      mp.peer.on('error', (e) => mpStatus('Error: ' + (e && e.type ? e.type : e)));
+      mp.peer.on('error', (e) => { console.error('[MP] host peer error', e); mpStatus('Error: ' + (e && e.type ? e.type : e)); });
+      // Networking runs independently of the game loop / pause state
+      if (mp.hostTimer) clearInterval(mp.hostTimer);
+      mp.hostTimer = setInterval(mpHostTick, 50);
     }
     function mpOnGuestJoined() {
       if (!world) return;
@@ -7655,15 +7812,29 @@
       if (typeof Peer === 'undefined') { alert('Multiplayer needs an internet connection.'); return; }
       if (!code) return;
       mp.role = 'guest';
-      mp.peer = new Peer({ debug: 1 });
-      mp.peer.on('open', () => {
-        const c = mp.peer.connect(code.trim(), { reliable: false });
+      mpGuestOverlay('Connecting to server…');
+      mp.peer = new Peer({ debug: 2 });
+      mp.peer.on('open', (id) => {
+        console.log('[MP] guest peer open', id);
+        mpGuestOverlay('Connecting to host…');
+        const c = mp.peer.connect(code.trim(), { reliable: true });
         mp.conn = c;
-        c.on('open', () => { mp.connected = true; mpStartGuest(); });
+        c.on('open', () => { console.log('[MP] connected to host'); mp.connected = true; mpGuestOverlay(null); mpStartGuest(); });
         c.on('data', (d) => { if (d && d.t === 'snap') { mp.lastSnapshot = d; mpApplySnapshot(d); } });
-        c.on('close', () => { if (mp.role === 'guest') { alert('Disconnected from host.'); mpLeave(); } });
+        c.on('close', () => { if (mp.role === 'guest') { mpGuestOverlay(null); alert('Disconnected from host.'); mpLeave(); } });
+        c.on('error', (e) => { console.error('[MP] conn error', e); mpGuestOverlay('Connection error: ' + (e && e.type ? e.type : e)); });
       });
-      mp.peer.on('error', (e) => { alert('Join failed: ' + (e && e.type ? e.type : e)); });
+      mp.peer.on('error', (e) => { console.error('[MP] guest peer error', e); mpGuestOverlay(null); alert('Join failed: ' + (e && e.type ? e.type : e) + '\nCheck the code and that both have internet.'); });
+    }
+    function mpGuestOverlay(msg) {
+      let el = document.getElementById('mpConnecting');
+      if (!el && msg) {
+        el = document.createElement('div');
+        el.id = 'mpConnecting';
+        el.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(5,10,5,0.92);color:#fbbf24;font-size:1.1rem;letter-spacing:0.1em;z-index:80;text-align:center;padding:2rem;font-family:inherit;';
+        document.body.appendChild(el);
+      }
+      if (el) { if (msg) { el.textContent = msg; el.style.display = 'flex'; } else { el.style.display = 'none'; } }
     }
     function mpStartGuest() {
       document.getElementById('homeScreen').style.display = 'none';
@@ -7777,13 +7948,15 @@
 
     function mpLeave() {
       try { if (mp.inputTimer) clearInterval(mp.inputTimer); } catch (e) {}
+      try { if (mp.hostTimer) clearInterval(mp.hostTimer); } catch (e) {}
       try { if (mp.guestRAF) cancelAnimationFrame(mp.guestRAF); } catch (e) {}
       try { if (mp.conn) mp.conn.close(); } catch (e) {}
       try { if (mp.peer) mp.peer.destroy(); } catch (e) {}
       mp.peer = null; mp.conn = null; mp.role = null; mp.connected = false; mp.joinCode = null;
-      mp.lastSnapshot = null; mp.inputTimer = null; mp.guestRAF = null;
+      mp.lastSnapshot = null; mp.inputTimer = null; mp.hostTimer = null; mp.guestRAF = null;
       if (world) world.player2 = null;
       const box = mpJoinCodeBox(); if (box) box.classList.remove('show');
+      mpGuestOverlay(null);
     }
 
     // Wire co-op buttons
