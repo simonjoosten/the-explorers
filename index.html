@@ -1817,6 +1817,39 @@
       letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; background: linear-gradient(180deg, #fbbf24, #d97706); border: 2px solid #fde68a; color: #1a1408;
     }
 
+    /* Tutorial */
+    .tut-screen {
+      position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+      background: radial-gradient(ellipse at center, rgba(40,30,15,0.92), rgba(5,8,5,0.97));
+      z-index: 62; animation: fadeIn 0.25s ease-out;
+    }
+    .tut-screen.show { display: flex; }
+    .tut-card {
+      width: 440px; max-width: 92vw; text-align: center; position: relative;
+      background: linear-gradient(180deg, rgba(50,38,20,0.98), rgba(24,16,8,0.98));
+      border: 2px solid #8b6f47; border-radius: 16px; padding: 1.8rem 1.6rem 1.4rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+    }
+    .tut-icon { font-size: 3.4rem; margin-bottom: 0.3rem; filter: drop-shadow(0 0 14px rgba(251,191,36,0.4)); }
+    .tut-step { font-size: 0.72rem; letter-spacing: 0.25em; color: #b89968; margin-bottom: 0.4rem; }
+    .tut-title {
+      font-family: "Cinzel", Georgia, serif; font-size: 1.5rem; letter-spacing: 0.1em;
+      background: linear-gradient(180deg,#fff5d6,#fbbf24); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.6rem;
+    }
+    .tut-body { color: #e8dcc0; font-size: 0.95rem; line-height: 1.55; min-height: 4.5em; margin-bottom: 1rem; }
+    .tut-dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 1.1rem; flex-wrap: wrap; }
+    .tut-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.2); }
+    .tut-dot.on { background: linear-gradient(135deg,#fbbf24,#f59e0b); box-shadow: 0 0 6px rgba(251,191,36,0.7); }
+    .tut-actions { display: flex; gap: 0.7rem; }
+    .tut-btn {
+      flex: 1; padding: 0.8rem; border-radius: 10px; font-family: inherit; font-size: 0.9rem; font-weight: 700; letter-spacing: 0.06em; cursor: pointer;
+      background: rgba(40,30,15,0.7); border: 2px solid #8b6f47; color: #fff5d6; transition: all 0.15s;
+    }
+    .tut-btn:hover { border-color: #fbbf24; }
+    .tut-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .tut-btn.primary { background: linear-gradient(180deg,#fbbf24,#d97706); border-color: #fde68a; color: #1a1408; }
+    .tut-skip { margin-top: 0.8rem; background: none; border: none; color: #b89968; font-family: inherit; font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
+
     /* Learning challenge modal */
     .challenge-screen {
       position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
@@ -2502,6 +2535,22 @@
       </div>
       <p class="set-hint" id="setEduHint">When learning mode is on, you solve a quick puzzle before each attack and build.</p>
       <button class="settings-close" id="settingsCloseBtn">Close</button>
+    </div>
+  </div>
+
+  <!-- Tutorial / How to Play -->
+  <div class="tut-screen" id="tutScreen">
+    <div class="tut-card">
+      <div class="tut-icon" id="tutIcon">🗺️</div>
+      <div class="tut-step" id="tutStep">1 / 1</div>
+      <h2 class="tut-title" id="tutTitle">Title</h2>
+      <p class="tut-body" id="tutBody">Body</p>
+      <div class="tut-dots" id="tutDots"></div>
+      <div class="tut-actions">
+        <button class="tut-btn" id="tutPrev">‹ Prev</button>
+        <button class="tut-btn primary" id="tutNext">Next ›</button>
+      </div>
+      <button class="tut-skip" id="tutSkip">Skip</button>
     </div>
   </div>
 
@@ -3247,6 +3296,13 @@
     function startGame(mapId) {
       resizeCanvas();
       activeMapId = mapId;
+      // Fresh run — reset resources (Continue/loadGame restores a saved run instead)
+      playerInventory.power = 0;
+      playerInventory.wood = 100;
+      playerInventory.stone = 50;
+      playerInventory.gemGreen = 0;
+      playerInventory.gemRed = 0;
+      playerInventory.gemBlue = 0;
       const tileSize = 60;
       const warrior = warriors.find(w => w.id === selectedWarriorId) || warriors[0];
       // Reset explore sections so initial cluster is in place
@@ -5664,7 +5720,7 @@
       if (menu) menu.addEventListener('click', () => {
         document.getElementById('gameOverScreen').classList.remove('show');
         document.getElementById('gameScreen').style.display = 'none';
-        document.getElementById('homeScreen').style.display = 'flex';
+        showMainScreen();
       });
     })();
 
@@ -5689,7 +5745,7 @@
       if (typeof mpLeave === 'function') mpLeave();
       document.getElementById('pauseScreen').classList.remove('show');
       document.getElementById('gameScreen').style.display = 'none';
-      document.getElementById('homeScreen').style.display = 'flex';
+      showMainScreen();
     }
     (function wirePause() {
       const pb = document.getElementById('pauseBtn'); if (pb) pb.addEventListener('click', () => setPaused(true));
@@ -5881,6 +5937,61 @@
       document.querySelectorAll('#setEdu .set-opt').forEach(b => b.addEventListener('click', () => { profile.edu = b.dataset.edu; saveProfile(); renderSettings(); }));
       document.querySelectorAll('#setLevel .set-opt').forEach(b => b.addEventListener('click', () => { profile.eduLevel = parseInt(b.dataset.level, 10); saveProfile(); renderSettings(); }));
     })();
+    // ===== TUTORIAL =====
+    const TUTORIAL = [
+      { icon: '🧭', en: ['Welcome, Explorer!', 'Claim land, gather resources, build defenses and survive the waves. Tap Next to learn the basics.'],
+        nl: ['Welkom, Ontdekker!', 'Verover land, verzamel grondstoffen, bouw verdediging en overleef de golven. Tik op Verder voor de basis.'] },
+      { icon: '🕹️', en: ['Move', 'Use the arrow keys / WASD, the on-screen D-pad, or simply TAP a spot on the ground — your hero walks a safe route there.'],
+        nl: ['Bewegen', 'Gebruik de pijltjes / WASD, de D-pad op het scherm, of TIK gewoon op een plek — je held loopt er via een veilige route naartoe.'] },
+      { icon: '⚔️', en: ['Attack & gather', 'Press X / Space or the ⚔ button. Hit enemies to defeat them, and chop trees & rocks to collect wood and stone.'],
+        nl: ['Aanvallen & oogsten', 'Druk op X / Spatie of de ⚔-knop. Versla vijanden, en hak bomen & rotsen om hout en steen te verzamelen.'] },
+      { icon: '📦', en: ['Resources', '🪵 Wood and 🪨 Stone build things. ⚡ Power (from defeating enemies) pays for upgrades. ◆ Gems are rare and used for special builds & far land.'],
+        nl: ['Grondstoffen', '🪵 Hout en 🪨 Steen om te bouwen. ⚡ Power (van verslagen vijanden) betaalt upgrades. ◆ Gems zijn zeldzaam, voor speciale gebouwen & ver land.'] },
+      { icon: '🔨', en: ['Build', 'Tap 🔨 to open the build menu (tabs: Defense, Resource, Support, Helpers, Transport). Pick a building, then tap the ground to place it.'],
+        nl: ['Bouwen', 'Tik op 🔨 voor het bouwmenu (tabs: Defense, Resource, Support, Helpers, Transport). Kies een gebouw en tik op de grond om te plaatsen.'] },
+      { icon: '⬆️', en: ['Upgrade', 'Tap any tower, the mine, the tree grove or your base to open its upgrade menu — make it stronger, faster, or repair it.'],
+        nl: ['Upgraden', 'Tik op een toren, de mijn, de boom-plot of je base voor het upgrade-menu — sterker, sneller of repareren.'] },
+      { icon: '🌊', en: ['Land & terrain', 'Open 🗺️ Explore to claim new land. Mountains are rich in stone & gems; rivers block you — build a 🌉 Stone Bridge to cross.'],
+        nl: ['Land & terrein', 'Open 🗺️ Explore om land te veroveren. Bergen zitten vol steen & gems; rivieren blokkeren — bouw een 🌉 Stenen Brug om over te steken.'] },
+      { icon: '👷', en: ['Helpers & carts', 'Build a Helper House to recruit harvesters (chop for you) and fighters. Lay a Cart Track (tap start & end) and hop on the cart to travel fast.'],
+        nl: ['Helpers & karretjes', 'Bouw een Helper House voor hak-helpers en vechters. Leg een Cart Track (tik start & eind) en stap op het karretje om snel te reizen.'] },
+      { icon: '🌙', en: ['Survive the waves', 'Enemies attack in waves — at night they are tougher, and every 5th wave a BOSS appears. Defend your base; if it (or you) falls, it is game over.'],
+        nl: ['Overleef de golven', 'Vijanden komen in golven — \'s nachts sterker, en elke 5e golf een BOSS. Verdedig je base; valt die (of jij), dan is het game over.'] },
+      { icon: '🛒', en: ['Coins & shop', 'Your score becomes 💰 coins when a run ends. Spend them in the Shop to unlock new heroes and lands. Progress is saved automatically.'],
+        nl: ['Coins & winkel', 'Je score wordt 💰 coins als een run eindigt. Geef ze uit in de Winkel voor nieuwe helden en landen. Voortgang wordt automatisch opgeslagen.'] },
+      { icon: '⚙️', en: ['Settings & learning', 'In ⚙️ Settings choose your language, sound, and a Learning mode (spelling or math) — solve a quick puzzle before building, upgrading or unlocking.'],
+        nl: ['Instellingen & leren', 'In ⚙️ Instellingen kies je taal, geluid en een Leermodus (spelling of rekenen) — los een puzzel op vóór bouwen, upgraden of unlocken.'] },
+      { icon: '🤝', en: ['Play together', 'Pause → "View Join Code" to host, share the code, and a friend taps "Join Co-op" to play in your world together.'],
+        nl: ['Samen spelen', 'Pauze → "View Join Code" om te hosten, deel de code, en een vriend tikt op "Join Co-op" om samen in jouw wereld te spelen.'] }
+    ];
+    let tutIndex = 0;
+    function openTutorial() { tutIndex = 0; renderTut(); document.getElementById('tutScreen').classList.add('show'); }
+    function closeTutorial() { document.getElementById('tutScreen').classList.remove('show'); }
+    function renderTut() {
+      const i = langIdx();
+      const s = TUTORIAL[tutIndex];
+      document.getElementById('tutIcon').textContent = s.icon;
+      document.getElementById('tutStep').textContent = (tutIndex + 1) + ' / ' + TUTORIAL.length;
+      document.getElementById('tutTitle').textContent = (i ? s.nl : s.en)[0];
+      document.getElementById('tutBody').textContent = (i ? s.nl : s.en)[1];
+      const dots = document.getElementById('tutDots'); dots.innerHTML = '';
+      TUTORIAL.forEach((_, k) => { const d = document.createElement('div'); d.className = 'tut-dot' + (k === tutIndex ? ' on' : ''); dots.appendChild(d); });
+      document.getElementById('tutPrev').disabled = tutIndex === 0;
+      const next = document.getElementById('tutNext');
+      const last = tutIndex === TUTORIAL.length - 1;
+      next.textContent = last ? (i ? 'Klaar ✓' : 'Done ✓') : (i ? 'Verder ›' : 'Next ›');
+      document.getElementById('tutPrev').textContent = i ? '‹ Terug' : '‹ Prev';
+      document.getElementById('tutSkip').textContent = i ? 'Overslaan' : 'Skip';
+    }
+    (function wireTutorial() {
+      const open = document.getElementById('howToPlayBtn'); if (open) open.addEventListener('click', openTutorial);
+      const prev = document.getElementById('tutPrev'); if (prev) prev.addEventListener('click', () => { if (tutIndex > 0) { tutIndex--; renderTut(); } });
+      const next = document.getElementById('tutNext'); if (next) next.addEventListener('click', () => { if (tutIndex < TUTORIAL.length - 1) { tutIndex++; renderTut(); } else closeTutorial(); });
+      const skip = document.getElementById('tutSkip'); if (skip) skip.addEventListener('click', closeTutorial);
+    })();
+    // Show the tutorial automatically on a player's very first visit
+    try { if (!localStorage.getItem('theExplorersSeenTut')) { localStorage.setItem('theExplorersSeenTut', '1'); setTimeout(openTutorial, 600); } } catch (e) {}
+
     // Apply saved language + audio prefs at startup
     applyLang();
     SFX.setSfx(profile.sfx !== false);
