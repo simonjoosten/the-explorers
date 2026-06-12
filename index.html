@@ -8420,7 +8420,26 @@
     }
     function mpGuestLoop() {
       if (mp.role !== 'guest') return;
-      if (world && mp.lastSnapshot) { try { renderWorld(); } catch (e) { console.error('guest render', e); } }
+      if (world && mp.lastSnapshot) {
+        // Local prediction: move our own hero immediately for responsiveness
+        if (world.player2) {
+          let dx = 0, dy = 0;
+          if (keysPressed.has('ArrowLeft')) dx -= 1;
+          if (keysPressed.has('ArrowRight')) dx += 1;
+          if (keysPressed.has('ArrowUp')) dy -= 1;
+          if (keysPressed.has('ArrowDown')) dy += 1;
+          const m = Math.hypot(dx, dy);
+          if (m > 0) {
+            dx /= m; dy /= m;
+            world.player2.x += dx * 3.0;
+            world.player2.y += dy * 3.0;
+            world.player2.facing = dx >= 0 ? 1 : -1;
+          }
+          world.time += 16; // keep animations/day-night advancing between snapshots
+          world.camera = { x: world.player2.x - canvas.width / 2, y: world.player2.y - canvas.height / 2 };
+        }
+        try { renderWorld(); } catch (e) { console.error('guest render', e); }
+      }
       mp.guestRAF = requestAnimationFrame(mpGuestLoop);
     }
 
@@ -8480,6 +8499,7 @@
         structures: lite(world.structures, s => ({ x: s.x, y: s.y, type: s.type, up: s.up, timer: s.timer, hasChild: !!(s.childDeco && world.decorations.includes(s.childDeco)) })),
         roads: lite(world.roads, r => ({ x: r.x, y: r.y })),
         bridges: lite(world.bridges, b => ({ x: b.x, y: b.y })),
+        secs: (exState.sections || []).filter(s => s.type === 'owned').map(s => ({ row: s.row, col: s.col, type: 'owned', terrain: s.terrain })),
         decos: lite(world.decorations, d => ({ x: d.x | 0, y: d.y | 0, type: d.type, hp: d.hp, maxHp: d.maxHp }))
       };
     }
@@ -8501,6 +8521,7 @@
       world.tracks = s.tracks || [];
       world.bridges = s.bridges || [];
       world.buildCounts = s.bc || {};
+      if (s.secs) exState.sections = s.secs; // so the ground renders on the guest
       world.decorations = s.decos;
       world.projectiles = []; world.beams = []; world.explosions = []; world.healPulses = []; world.floatingText = []; world.swingArc = null;
       world.paused = false; world.gameOver = false;
