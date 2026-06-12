@@ -266,6 +266,14 @@
       box-shadow: 0 12px 32px rgba(251, 191, 36, 0.55);
     }
 
+    .home-coins {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #fbbf24;
+      letter-spacing: 0.08em;
+      margin-bottom: 1.2rem;
+      text-shadow: 0 0 10px rgba(251, 191, 36, 0.4);
+    }
     .home-tagline {
       font-family: Georgia, serif;
       font-style: italic;
@@ -2138,6 +2146,8 @@
         <p class="home-subtitle">An Open-Map Adventure</p>
       </div>
 
+      <div class="home-coins" id="homeCoins">💰 0</div>
+
       <div class="home-menu">
         <button class="menu-btn menu-primary" id="playBtn">▶ Begin Adventure</button>
         <button class="menu-btn" id="continueBtn" style="display:none">⟳ Continue</button>
@@ -2494,6 +2504,11 @@
       document.getElementById('homeScreen').style.display = 'flex';
       const cont = document.getElementById('continueBtn');
       if (cont) cont.style.display = hasSave() ? 'block' : 'none';
+      updateHomeCoins();
+    }
+    function updateHomeCoins() {
+      const el = document.getElementById('homeCoins');
+      if (el) el.textContent = '💰 ' + (profile.coins || 0);
     }
 
     // ===== MAP SELECTION =====
@@ -3201,8 +3216,18 @@
     canvas.addEventListener('click', (e) => {
       canvas.focus();
       if (!world) return;
-      // Co-op guest is a limited client — move/attack only (building & menus are host-only)
-      if (mp.role === 'guest') return;
+      // Co-op guest: can build (routed to host) but not upgrade/explore
+      if (mp.role === 'guest') {
+        const gcam = world.camera || { x: 0, y: 0 };
+        const gx = e.clientX + gcam.x, gy = e.clientY + gcam.y;
+        if (buildMode) {
+          const gdef = buildingDefs[buildMode];
+          if (gdef && gdef.kind === 'track') { placeTrackPointGuest(gx, gy); return; }
+          mpSend({ t: 'build', bt: buildMode, x: gx, y: gy });
+          cancelPlacing();
+        }
+        return;
+      }
       const cam = world.camera || { x: 0, y: 0 };
       const wx = e.clientX + cam.x;
       const wy = e.clientY + cam.y;
@@ -4828,7 +4853,6 @@
       const buildBtn = document.getElementById('buildBtn');
       if (buildBtn) buildBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        if (mp.role === 'guest') { if (world) world.floatingText.push({ x: world.player2 ? world.player2.x : 0, y: (world.player2 ? world.player2.y : 0) - 30, vy: -0.7, life: 60, text: 'Only the host can build', color: '#fbbf24' }); return; }
         if (buildMode) { cancelPlacing(); return; }
         const panel = document.getElementById('buildPanel');
         if (panel.classList.contains('open')) closeBuildPanel(); else openBuildPanel();
@@ -5616,7 +5640,7 @@
 
     // ===== SHOP =====
     function openShop() { renderShop(); document.getElementById('shopScreen').classList.add('show'); }
-    function closeShop() { document.getElementById('shopScreen').classList.remove('show'); }
+    function closeShop() { document.getElementById('shopScreen').classList.remove('show'); updateHomeCoins(); }
     function renderShop() {
       document.getElementById('shopCoins').textContent = profile.coins;
       const heroes = document.getElementById('shopHeroes');
@@ -8029,7 +8053,15 @@
         console.log('[MP] incoming connection');
         mp.conn = c;
         c.on('open', () => { console.log('[MP] guest connected'); mp.connected = true; mpOnGuestJoined(); });
-        c.on('data', (d) => { if (d && d.t === 'input') { mp.guestInput.dx = d.dx; mp.guestInput.dy = d.dy; if (d.attack) mp.guestAttackQueued = true; } });
+        c.on('data', (d) => {
+          if (!d) return;
+          if (d.t === 'input') { mp.guestInput.dx = d.dx; mp.guestInput.dy = d.dy; if (d.attack) mp.guestAttackQueued = true; }
+          else if (d.t === 'build' && world) { placeBuilding(d.bt, d.x, d.y); }
+          else if (d.t === 'track' && world) {
+            const cost = scaledCost('track');
+            if (canAffordBuild(cost)) { payCost(cost); world.tracks.push({ x1: d.x1, y1: d.y1, x2: d.x2, y2: d.y2, cx: d.x1, cy: d.y1, t: 0, dir: 1, speed: 0.004 }); SFX.build(); updateResourceBars(); }
+          }
+        });
         c.on('close', () => { console.log('[MP] guest left'); mp.connected = false; world && (world.player2 = null); mpStatus('Player 2 left.'); });
         c.on('error', (e) => console.error('[MP] conn error', e));
       });
@@ -8061,6 +8093,19 @@
         c.on('error', (e) => { console.error('[MP] conn error', e); mpGuestOverlay('Connection error: ' + (e && e.type ? e.type : e)); });
       });
       mp.peer.on('error', (e) => { console.error('[MP] guest peer error', e); mpGuestOverlay(null); alert('Join failed: ' + (e && e.type ? e.type : e) + '\nCheck the code and that both have internet.'); });
+    }
+    function mpSend(obj) { try { if (mp.conn && mp.conn.open) mp.conn.send(obj); } catch (e) {} }
+    // Guest lays a cart track with two taps, then sends both points to the host
+    function placeTrackPointGuest(x, y) {
+      if (!trackStart) {
+        trackStart = { x, y };
+        document.getElementById('placeBannerText').textContent = 'Now tap the END point of the track';
+        document.getElementById('placeBanner').classList.add('show');
+        return;
+      }
+      mpSend({ t: 'track', x1: trackStart.x, y1: trackStart.y, x2: x, y2: y });
+      trackStart = null;
+      cancelPlacing();
     }
     function mpGuestOverlay(msg) {
       let el = document.getElementById('mpConnecting');
@@ -8148,12 +8193,15 @@
         p1: pPack(world.player), p2: world.player2 ? pPack(world.player2) : null,
         house: { x: world.house.x, y: world.house.y, hp: world.house.hp, maxHp: world.house.maxHp, hitFlash: world.house.hitFlash || 0, up: world.house.up || {} },
         inv: { power: playerInventory.power, wood: playerInventory.wood, stone: playerInventory.stone, gemGreen: playerInventory.gemGreen, gemRed: playerInventory.gemRed, gemBlue: playerInventory.gemBlue },
+        bc: world.buildCounts || {},
+        tracks: (world.tracks || []).map(t => ({ x1: t.x1, y1: t.y1, x2: t.x2, y2: t.y2, cx: t.cx, cy: t.cy })),
         wave: { waveNumber: world.waveNumber, waveActive: world.waveActive, timeToNextWave: world.timeToNextWave, waveTotalTime: world.waveTotalTime },
         enemies: lite(world.enemies, e => ({ x: e.x | 0, y: e.y | 0, type: e.type, hp: e.hp, maxHp: e.maxHp, facing: e.facing, bobOffset: e.bobOffset, hitFlash: e.hitFlash || 0 })),
         buildings: lite(world.buildings, b => ({ x: b.x, y: b.y, type: b.type, hp: b.hp, maxHp: b.maxHp, up: b.up, charges: b.charges || 0, aimAngle: b.aimAngle || 0, hitFlash: b.hitFlash || 0 })),
         helpers: lite(world.helpers, h => ({ x: h.x | 0, y: h.y | 0, kind: h.kind, hp: h.hp, maxHp: h.maxHp, facing: h.facing, swing: h.swing || 0, hitFlash: h.hitFlash || 0 })),
         structures: lite(world.structures, s => ({ x: s.x, y: s.y, type: s.type, up: s.up, timer: s.timer, hasChild: !!(s.childDeco && world.decorations.includes(s.childDeco)) })),
         roads: lite(world.roads, r => ({ x: r.x, y: r.y })),
+        bridges: lite(world.bridges, b => ({ x: b.x, y: b.y })),
         decos: lite(world.decorations, d => ({ x: d.x | 0, y: d.y | 0, type: d.type, hp: d.hp, maxHp: d.maxHp }))
       };
     }
@@ -8172,8 +8220,11 @@
       world.helpers = s.helpers;
       world.structures = s.structures.map(st => ({ ...st, childDeco: null }));
       world.roads = s.roads;
+      world.tracks = s.tracks || [];
+      world.bridges = s.bridges || [];
+      world.buildCounts = s.bc || {};
       world.decorations = s.decos;
-      world.projectiles = []; world.beams = []; world.explosions = []; world.healPulses = []; world.floatingText = []; world.swingArc = null; world.buildGhost = null;
+      world.projectiles = []; world.beams = []; world.explosions = []; world.healPulses = []; world.floatingText = []; world.swingArc = null;
       world.paused = false; world.gameOver = false;
       const me = world.player2 || world.player;
       world.camera = { x: me.x - canvas.width / 2, y: me.y - canvas.height / 2 };
