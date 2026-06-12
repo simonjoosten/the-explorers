@@ -1736,6 +1736,48 @@
     }
     .join-code-box .jc-status { font-size: 0.72rem; color: #7bed9f; margin-top: 0.4rem; }
 
+    /* Shop */
+    .shop-screen {
+      position: fixed; inset: 0; display: none;
+      align-items: center; justify-content: center;
+      background: radial-gradient(ellipse at center, rgba(40, 30, 15, 0.92), rgba(5, 8, 5, 0.97));
+      z-index: 58; animation: fadeIn 0.25s ease-out;
+    }
+    .shop-screen.show { display: flex; }
+    .shop-card {
+      width: 560px; max-width: 94vw; max-height: 90vh; overflow-y: auto;
+      background: linear-gradient(180deg, rgba(50, 38, 20, 0.98), rgba(24, 16, 8, 0.98));
+      border: 2px solid #8b6f47; border-radius: 16px; padding: 1.4rem 1.5rem;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+    }
+    .shop-head { display: flex; align-items: center; justify-content: space-between; }
+    .shop-head h2 {
+      font-family: "Cinzel", Georgia, serif; font-size: 1.7rem; letter-spacing: 0.15em; text-transform: uppercase;
+      background: linear-gradient(180deg, #fff5d6, #fbbf24, #d97706); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .shop-coins { font-size: 1.2rem; font-weight: 800; color: #fbbf24; }
+    .shop-hint { font-size: 0.78rem; color: #b89968; margin: 0.3rem 0 1rem; font-style: italic; }
+    .shop-section-title { font-size: 0.85rem; letter-spacing: 0.2em; text-transform: uppercase; color: #e8dcc0; margin: 0.6rem 0 0.6rem; border-bottom: 1px solid #5a4530; padding-bottom: 0.3rem; }
+    .shop-list { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 0.8rem; }
+    .shop-item {
+      width: 124px; background: rgba(40, 28, 14, 0.7); border: 2px solid #6a523a; border-radius: 10px;
+      padding: 0.6rem 0.5rem; text-align: center;
+    }
+    .shop-item.owned { border-color: #4d8a35; }
+    .shop-item-icon { font-size: 1.8rem; }
+    .shop-item-name { font-size: 0.78rem; font-weight: 700; color: #fff5d6; margin: 0.2rem 0; min-height: 2.2em; display: flex; align-items: center; justify-content: center; }
+    .shop-buy {
+      width: 100%; padding: 0.4rem; border-radius: 7px; font-family: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+      background: linear-gradient(180deg, #fbbf24, #d97706); border: 1px solid #fde68a; color: #1a1408;
+    }
+    .shop-buy:disabled { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.4); border-color: #5a4530; cursor: not-allowed; }
+    .shop-buy.owned-tag { background: transparent; border: none; color: #7bed9f; cursor: default; }
+    .shop-close {
+      margin-top: 0.5rem; width: 100%; padding: 0.8rem; border-radius: 10px; font-family: inherit; font-size: 0.9rem; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; background: rgba(40, 30, 15, 0.7); border: 2px solid #8b6f47; color: #fff5d6;
+    }
+    .shop-close:hover { border-color: #fbbf24; }
+
     /* Game screen */
     .game-screen {
       position: fixed;
@@ -2098,6 +2140,8 @@
 
       <div class="home-menu">
         <button class="menu-btn menu-primary" id="playBtn">▶ Begin Adventure</button>
+        <button class="menu-btn" id="continueBtn" style="display:none">⟳ Continue</button>
+        <button class="menu-btn" id="shopBtn">🛒 Shop</button>
         <button class="menu-btn" id="joinCoopBtn">🔗 Join Co-op</button>
         <button class="menu-btn" id="howToPlayBtn">How to Play</button>
         <button class="menu-btn" id="creditsBtn">Credits</button>
@@ -2319,6 +2363,22 @@
     </div>
   </div>
 
+  <!-- Shop -->
+  <div class="shop-screen" id="shopScreen">
+    <div class="shop-card">
+      <div class="shop-head">
+        <h2>🛒 Shop</h2>
+        <div class="shop-coins">💰 <span id="shopCoins">0</span></div>
+      </div>
+      <div class="shop-hint">Earn coins by scoring high in a run — then unlock heroes & lands here.</div>
+      <h3 class="shop-section-title">⚔️ Heroes</h3>
+      <div class="shop-list" id="shopHeroes"></div>
+      <h3 class="shop-section-title">🗺️ Lands</h3>
+      <div class="shop-list" id="shopMaps"></div>
+      <button class="shop-close" id="shopCloseBtn">Close</button>
+    </div>
+  </div>
+
   <!-- Game over screen -->
   <div class="gameover-screen" id="gameOverScreen">
     <div class="gameover-card">
@@ -2432,6 +2492,8 @@
 
     function showMainScreen() {
       document.getElementById('homeScreen').style.display = 'flex';
+      const cont = document.getElementById('continueBtn');
+      if (cont) cont.style.display = hasSave() ? 'block' : 'none';
     }
 
     // ===== MAP SELECTION =====
@@ -2735,11 +2797,12 @@
         mapDifficulty.appendChild(dot);
       }
 
-      // Locked state
-      if (map.locked) {
+      // Locked state (driven by shop unlocks)
+      if (!mapUnlocked(map)) {
         lockedBadge.style.display = 'block';
+        lockedBadge.textContent = `🔒 Buy in Shop (${MAP_PRICE[map.id] || '?'}🪙)`;
         selectBtn.disabled = true;
-        selectBtn.textContent = 'Coming Soon';
+        selectBtn.textContent = 'Locked';
       } else {
         lockedBadge.style.display = 'none';
         selectBtn.disabled = false;
@@ -2808,7 +2871,7 @@
       } else if (e.key === 'ArrowRight' && currentMapIndex < maps.length - 1) {
         currentMapIndex++;
         renderMap();
-      } else if (e.key === 'Enter' && !maps[currentMapIndex].locked) {
+      } else if (e.key === 'Enter' && mapUnlocked(maps[currentMapIndex])) {
         selectBtn.click();
       }
     });
@@ -2819,10 +2882,36 @@
     });
 
     selectBtn.addEventListener('click', () => {
-      if (maps[currentMapIndex].locked) return;
+      if (!mapUnlocked(maps[currentMapIndex])) return;
       mapSelect.style.display = 'none';
       openWarriorSelect();
     });
+
+    // ===== PROFILE: coins + unlocks (persisted) =====
+    const PROFILE_KEY = 'theExplorersProfile_v1';
+    function loadProfile() {
+      try { const p = JSON.parse(localStorage.getItem(PROFILE_KEY)); if (p) return Object.assign({ coins: 0, bestScore: 0, warriors: [], maps: [] }, p); } catch (e) {}
+      return { coins: 0, bestScore: 0, warriors: [], maps: [] };
+    }
+    function saveProfile() { try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch (e) {} }
+    let profile = loadProfile();
+    // Shop prices (only locked items are purchasable)
+    const WARRIOR_PRICE = { mage: 200, berserker: 250, ranger: 250, paladin: 300, assassin: 300, pyromancer: 350, druid: 400, samurai: 450 };
+    const MAP_PRICE = { forest: 300, desert: 600, mountains: 1000, ocean: 1600 };
+    // Per-land config — each map plays & looks different
+    let activeMapId = 'plains';
+    const MAP_CFG = {
+      plains:    { ground: ['#6e9e4a', '#669443'], diff: 1.0, mountainPct: 0.13, riverPct: 0.10 },
+      forest:    { ground: ['#3f6e34', '#37642e'], diff: 1.25, mountainPct: 0.06, riverPct: 0.20 },
+      desert:    { ground: ['#caa05a', '#c09650'], diff: 1.5, mountainPct: 0.12, riverPct: 0.02 },
+      mountains: { ground: ['#8a8e96', '#80848c'], diff: 1.8, mountainPct: 0.34, riverPct: 0.08 },
+      ocean:     { ground: ['#5a9aa8', '#52909e'], diff: 2.1, mountainPct: 0.05, riverPct: 0.36 }
+    };
+    function mapCfg() { return MAP_CFG[activeMapId] || MAP_CFG.plains; }
+
+    function warriorUnlocked(w) { return !w.locked || profile.warriors.includes(w.id); }
+    function mapUnlockedById(id) { const m = maps.find(x => x.id === id); return m ? (!m.locked || profile.maps.includes(id)) : false; }
+    function mapUnlocked(m) { return !m.locked || profile.maps.includes(m.id); }
 
     // ===== WARRIORS =====
     const warriors = [
@@ -2847,8 +2936,9 @@
       document.getElementById('warriorGoBtn').disabled = true;
 
       warriors.forEach(w => {
+        const unlocked = warriorUnlocked(w);
         const card = document.createElement('div');
-        card.className = 'warrior-card ' + (w.locked ? 'locked' : 'unlocked');
+        card.className = 'warrior-card ' + (unlocked ? 'unlocked' : 'locked');
         card.dataset.id = w.id;
 
         const speedDots = [1,2,3,4,5].map(i =>
@@ -2859,7 +2949,7 @@
         }).join('');
 
         card.innerHTML = `
-          ${w.locked ? '<div class="lock-overlay">🔒 LOCKED</div>' : ''}
+          ${unlocked ? '' : `<div class="lock-overlay">🔒 ${WARRIOR_PRICE[w.id] || '?'}🪙</div>`}
           <div class="warrior-avatar" style="background: radial-gradient(circle, ${w.color}33, transparent)">${w.emoji}</div>
           <div class="warrior-name">${w.name}</div>
           <div class="warrior-weapon">${w.weaponName}</div>
@@ -2869,7 +2959,7 @@
           </div>
           <p class="warrior-desc">${w.desc}</p>
         `;
-        if (!w.locked) {
+        if (unlocked) {
           card.addEventListener('click', () => {
             document.querySelectorAll('.warrior-card').forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
@@ -3008,6 +3098,7 @@
 
     function startGame(mapId) {
       resizeCanvas();
+      activeMapId = mapId;
       const tileSize = 60;
       const warrior = warriors.find(w => w.id === selectedWarriorId) || warriors[0];
       // Reset explore sections so initial cluster is in place
@@ -4885,13 +4976,14 @@
       const waveSpd = Math.min(1.6, 1 + 0.025 * (w - 1));
       // Night makes enemies tougher too
       const night = isNight();
-      let hp = Math.round(def.hp * (night ? 1.45 : 1) * waveHp);
+      const land = mapCfg().diff; // harder lands = tougher foes
+      let hp = Math.round(def.hp * (night ? 1.45 : 1) * waveHp * land);
       if (def.boss) hp = Math.round(hp * (0.6 + 0.4 * (w / 5))); // bosses scale extra with wave
       world.enemies.push({
         type: typeKey,
         x: pos.x, y: pos.y,
         hp: hp, maxHp: hp,
-        dmgMul: (night ? 1.45 : 1) * waveDmg,
+        dmgMul: (night ? 1.45 : 1) * waveDmg * land,
         speedMul: (night ? 1.1 : 1) * waveSpd,
         attackCooldown: 0,
         facing: 1,
@@ -5369,13 +5461,23 @@
     function triggerGameOver(reason) {
       if (world.gameOver) return;
       world.gameOver = true;
+      clearSave();
       SFX.gameover();
       const r = computeScore();
       stopGame();
+      // Convert score → coins for the shop (no coins as a guest)
+      const earned = mp.role === 'guest' ? 0 : Math.floor(r.score / 5);
+      if (earned > 0) { profile.coins += earned; }
+      const newBest = r.score > (profile.bestScore || 0);
+      if (newBest) profile.bestScore = r.score;
+      saveProfile();
       document.getElementById('gameOverReason').textContent = reason;
       document.getElementById('gameOverScore').textContent = r.score.toLocaleString();
       const m = Math.floor(r.secs / 60), sec = r.secs % 60;
       const rows = [
+        ['💰 Coins earned', '+' + earned],
+        ['Total coins', profile.coins],
+        ['Best score', (profile.bestScore || 0).toLocaleString() + (newBest ? ' ⭐NEW' : '')],
         ['Waves survived', r.waves],
         ['Enemies slain', r.kills],
         ['Buildings raised', r.built],
@@ -5418,6 +5520,7 @@
       }
     }
     function leaveMatch() {
+      if (mp.role !== 'guest') saveGame();
       setPaused(false);
       stopGame();
       SFX.stopMusic();
@@ -5432,6 +5535,132 @@
       const lb = document.getElementById('leaveBtn'); if (lb) lb.addEventListener('click', leaveMatch);
       const sb = document.getElementById('toggleSoundBtn'); if (sb) sb.addEventListener('click', () => { SFX.setSfx(!SFX.sfxEnabled()); setPaused(true); });
       const mb = document.getElementById('toggleMusicBtn'); if (mb) mb.addEventListener('click', () => { SFX.setMusic(!SFX.musicEnabled()); setPaused(true); });
+    })();
+
+    // ===== SAVE / LOAD (localStorage) =====
+    const SAVE_KEY = 'theExplorersSave_v1';
+    function hasSave() { try { return !!localStorage.getItem(SAVE_KEY); } catch (e) { return false; } }
+    function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
+    function saveGame() {
+      if (!world || mp.role === 'guest' || world.gameOver) return;
+      try {
+        const data = {
+          v: 1, mapId: world.mapId, warriorId: selectedWarriorId, time: world.time,
+          originX: world.originX, originY: world.originY, tileSize: world.tileSize, ownedBBox: world.ownedBBox,
+          inv: { power: playerInventory.power, wood: playerInventory.wood, stone: playerInventory.stone, gemGreen: playerInventory.gemGreen, gemRed: playerInventory.gemRed, gemBlue: playerInventory.gemBlue },
+          player: { x: world.player.x, y: world.player.y, hp: world.player.hp, maxHp: world.player.maxHp },
+          house: { x: world.house.x, y: world.house.y, hp: world.house.hp, maxHp: world.house.maxHp, up: world.house.up, regenTimer: world.house.regenTimer || 0 },
+          stats: world.stats, buildCounts: world.buildCounts,
+          waveNumber: world.waveNumber, timeToNextWave: world.timeToNextWave, waveTotalTime: world.waveTotalTime,
+          structures: (world.structures || []).map(s => ({ type: s.type, x: s.x, y: s.y, up: s.up, timer: s.timer || 0 })),
+          buildings: (world.buildings || []).map(b => ({ type: b.type, x: b.x, y: b.y, hp: b.hp, maxHp: b.maxHp, up: b.up, charges: b.charges || 0 })),
+          helpers: (world.helpers || []).map(h => ({ kind: h.kind, x: h.x, y: h.y, hp: h.hp, maxHp: h.maxHp, homeIndex: world.buildings.indexOf(h.home) })),
+          tracks: (world.tracks || []).map(t => ({ x1: t.x1, y1: t.y1, x2: t.x2, y2: t.y2, t: t.t, dir: t.dir, speed: t.speed })),
+          bridges: world.bridges || [], roads: world.roads || [],
+          decorations: (world.decorations || []).map(d => ({ type: d.type, x: d.x, y: d.y, hp: d.hp, maxHp: d.maxHp })),
+          sections: (exState.sections || []).map(s => ({ row: s.row, col: s.col, type: s.type, terrain: s.terrain, cost: s.cost, quest: s.quest, questText: s.questText }))
+        };
+        localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+      } catch (e) { console.warn('save failed', e); }
+    }
+    function loadGame() {
+      let data;
+      try { data = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return false; }
+      if (!data) return false;
+      resizeCanvas();
+      activeMapId = data.mapId || 'plains';
+      selectedWarriorId = data.warriorId;
+      const warrior = warriors.find(w => w.id === selectedWarriorId) || warriors[0];
+      exState.sections = data.sections;
+      world = {
+        mapId: data.mapId, warrior, tileSize: data.tileSize,
+        originX: data.originX, originY: data.originY,
+        fieldX: 0, fieldY: 0, fieldW: 0, fieldH: 0,
+        center: { x: canvas.width / 2, y: canvas.height / 2 },
+        house: Object.assign({ hitFlash: 0 }, data.house),
+        player: { x: data.player.x, y: data.player.y, vx: 0, vy: 0, facing: 1, speed: warrior.speed * 0.8, hp: data.player.hp, maxHp: data.player.maxHp, attackCooldown: 0, invuln: 0 },
+        decorations: data.decorations.map(d => ({ ...d })),
+        projectiles: [], floatingText: [], enemies: [],
+        camera: { x: 0, y: 0 }, ownedBBox: data.ownedBBox, time: data.time || 0,
+        inventory: playerInventory,
+        waveNumber: data.waveNumber || 0, waveActive: false, timeToNextWave: data.timeToNextWave || 120000, waveTotalTime: data.waveTotalTime || 120000,
+        roads: data.roads || [], bridges: data.bridges || [],
+        tracks: (data.tracks || []).map(t => ({ ...t, cx: t.x1, cy: t.y1 })),
+        buildCounts: data.buildCounts || {}, riverSet: new Set(),
+        healPulses: [], explosions: [], beams: [],
+        stats: data.stats || { kills: 0, waves: 0, built: 0, startTime: data.time || 0 },
+        gameOver: false
+      };
+      Object.assign(playerInventory, data.inv);
+      world.structures = data.structures.map(s => ({ type: s.type, x: s.x, y: s.y, up: s.up, timer: s.timer || 0, passiveTimer: 0, childDeco: null }));
+      world.buildings = data.buildings.map(b => ({ type: b.type, x: b.x, y: b.y, hp: b.hp, maxHp: b.maxHp, up: b.up, charges: b.charges || 0, cooldown: 0, hitFlash: 0, aimAngle: -Math.PI / 2 }));
+      world.helpers = data.helpers.map(h => ({ kind: h.kind, x: h.x, y: h.y, hp: h.hp, maxHp: h.maxHp, home: (h.homeIndex >= 0 ? world.buildings[h.homeIndex] : null), facing: 1, target: null, attackCooldown: 0, swing: 0, hitFlash: 0 }));
+      rebuildRiverSet();
+      recomputeFieldBBox();
+      world.camera.x = world.player.x - canvas.width / 2;
+      world.camera.y = world.player.y - canvas.height / 2;
+      gameRunning = true; keysPressed.clear();
+      updateResourceBars(); SFX.startMusic();
+      document.getElementById('homeScreen').style.display = 'none';
+      document.getElementById('gameScreen').style.display = 'block';
+      cancelPlacing(); closeBuildPanel(); closeUpgradeMenu();
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      canvas.focus();
+      gameLoop();
+      return true;
+    }
+    (function wireContinue() {
+      const cont = document.getElementById('continueBtn');
+      if (cont) cont.addEventListener('click', () => { if (!loadGame()) { clearSave(); cont.style.display = 'none'; } });
+    })();
+
+    // ===== SHOP =====
+    function openShop() { renderShop(); document.getElementById('shopScreen').classList.add('show'); }
+    function closeShop() { document.getElementById('shopScreen').classList.remove('show'); }
+    function renderShop() {
+      document.getElementById('shopCoins').textContent = profile.coins;
+      const heroes = document.getElementById('shopHeroes');
+      heroes.innerHTML = '';
+      warriors.forEach(w => {
+        const owned = warriorUnlocked(w);
+        const price = WARRIOR_PRICE[w.id];
+        const item = document.createElement('div');
+        item.className = 'shop-item' + (owned ? ' owned' : '');
+        item.innerHTML =
+          `<div class="shop-item-icon">${w.emoji}</div>` +
+          `<div class="shop-item-name">${w.name}</div>` +
+          (owned ? `<button class="shop-buy owned-tag" disabled>✓ Owned</button>`
+                 : `<button class="shop-buy" ${profile.coins >= price ? '' : 'disabled'}>${price}🪙</button>`);
+        if (!owned) { const btn = item.querySelector('.shop-buy'); if (btn) btn.addEventListener('click', () => buyHero(w.id, price)); }
+        heroes.appendChild(item);
+      });
+      const mapsList = document.getElementById('shopMaps');
+      mapsList.innerHTML = '';
+      maps.forEach(m => {
+        const owned = mapUnlocked(m);
+        const price = MAP_PRICE[m.id];
+        const item = document.createElement('div');
+        item.className = 'shop-item' + (owned ? ' owned' : '');
+        item.innerHTML =
+          `<div class="shop-item-icon">🗺️</div>` +
+          `<div class="shop-item-name">${m.name}<br><span style="font-size:0.62rem;color:#b89968">${m.coords}</span></div>` +
+          (owned ? `<button class="shop-buy owned-tag" disabled>✓ Owned</button>`
+                 : `<button class="shop-buy" ${profile.coins >= price ? '' : 'disabled'}>${price}🪙</button>`);
+        if (!owned) { const btn = item.querySelector('.shop-buy'); if (btn) btn.addEventListener('click', () => buyMap(m.id, price)); }
+        mapsList.appendChild(item);
+      });
+    }
+    function buyHero(id, price) {
+      if (profile.coins < price || profile.warriors.includes(id)) return;
+      profile.coins -= price; profile.warriors.push(id); saveProfile(); renderShop();
+    }
+    function buyMap(id, price) {
+      if (profile.coins < price || profile.maps.includes(id)) return;
+      profile.coins -= price; profile.maps.push(id); saveProfile(); renderShop();
+    }
+    (function wireShop() {
+      const sb = document.getElementById('shopBtn'); if (sb) sb.addEventListener('click', openShop);
+      const sc = document.getElementById('shopCloseBtn'); if (sc) sc.addEventListener('click', closeShop);
     })();
 
     // ===== ENEMIES =====
@@ -5669,7 +5898,8 @@
             const gc = sec.col * 3 + c;
             const gr = sec.row * 3 + r;
             const isEven = (gc + gr) % 2 === 0;
-            ctx.fillStyle = isEven ? '#8fb84a' : '#82ad42';
+            const gpal = mapCfg().ground;
+            ctx.fillStyle = isEven ? gpal[0] : gpal[1];
             ctx.fillRect(tx, ty, ts, ts);
             ctx.fillStyle = 'rgba(60, 90, 30, 0.35)';
             ctx.fillRect(tx + 12, ty + 18, 2, 2);
@@ -7142,6 +7372,8 @@
         updateProjectiles();
         // Keep quest progress live + auto-claim finished quests (~every 0.5s)
         if (world.time % 480 < 16) checkQuestCompletion();
+        // Auto-save (~every 10s)
+        if (mp.role !== 'guest' && world.time % 10000 < 16) saveGame();
         if (world.house.hitFlash > 0) world.house.hitFlash--;
         if (world.player.hitFlash > 0) world.player.hitFlash--;
         if (world.player.invuln > 0) world.player.invuln--;
@@ -7342,11 +7574,12 @@
           const dc = c < bb.minCol ? bb.minCol - c : (c > bb.maxCol ? c - bb.maxCol : 0);
           const tier = Math.max(1, Math.max(dr, dc));
 
-          // Special terrain: mountains (stone+gems) or rivers (wood)
+          // Special terrain: mountains (stone+gems) or rivers — biased per land
+          const cfg = mapCfg();
           let terrain = 'plain';
           const tr = Math.random();
-          if (tr < 0.15) terrain = 'mountain';
-          else if (tr < 0.27) terrain = 'river';
+          if (tr < cfg.mountainPct) terrain = 'mountain';
+          else if (tr < cfg.mountainPct + cfg.riverPct) terrain = 'river';
 
           // Quest chance grows with tier: 8% at tier 1, +8% per tier, capped 50%
           const questChance = Math.min(0.5, 0.08 + (tier - 1) * 0.08);
