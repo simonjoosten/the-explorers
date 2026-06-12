@@ -8037,6 +8037,16 @@
     }
     function mpStatus(msg) { const el = document.getElementById('jcStatus'); if (el) el.textContent = msg; }
 
+    // STUN + free TURN so the P2P link works across most NATs/firewalls
+    const ICE_CONFIG = {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:global.stun.twilio.com:3478' },
+        { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+      ]
+    };
     function mpHost() {
       if (typeof Peer === 'undefined') {
         const box = mpJoinCodeBox(); if (box) { box.classList.add('show'); box.innerHTML = '<div class="jc-status">Multiplayer needs an internet connection.</div>'; }
@@ -8047,7 +8057,7 @@
       mp.joinCode = 'EXPL' + Math.random().toString(36).slice(2, 7).toUpperCase();
       mpShowCode();
       mpStatus('Connecting to server…');
-      mp.peer = new Peer(mp.joinCode, { debug: 2 });
+      mp.peer = new Peer(mp.joinCode, { debug: 2, config: ICE_CONFIG });
       mp.peer.on('open', (id) => { console.log('[MP] host peer open', id); mpStatus('Ready — share the code, waiting for Player 2…'); });
       mp.peer.on('connection', (c) => {
         console.log('[MP] incoming connection');
@@ -8080,19 +8090,30 @@
       if (typeof Peer === 'undefined') { alert('Multiplayer needs an internet connection.'); return; }
       if (!code) return;
       mp.role = 'guest';
+      const cleanCode = String(code).trim().toUpperCase();
       mpGuestOverlay('Connecting to server…');
-      mp.peer = new Peer({ debug: 2 });
+      mp.peer = new Peer({ debug: 2, config: ICE_CONFIG });
+      // Give up after a while instead of hanging on "Connecting…" forever
+      if (mp.connectTimer) clearTimeout(mp.connectTimer);
+      mp.connectTimer = setTimeout(() => {
+        if (mp.role === 'guest' && !mp.connected) {
+          console.warn('[MP] connect timed out');
+          mpGuestOverlay('Could not reach the host (timed out). Check the code, that the host opened "View Join Code", and that both have internet. Tap to close.');
+          const el = document.getElementById('mpConnecting');
+          if (el) el.onclick = () => mpLeave();
+        }
+      }, 22000);
       mp.peer.on('open', (id) => {
         console.log('[MP] guest peer open', id);
         mpGuestOverlay('Connecting to host…');
-        const c = mp.peer.connect(code.trim(), { reliable: true });
+        const c = mp.peer.connect(cleanCode, { reliable: true });
         mp.conn = c;
-        c.on('open', () => { console.log('[MP] connected to host'); mp.connected = true; mpGuestOverlay(null); mpStartGuest(); });
+        c.on('open', () => { console.log('[MP] connected to host'); mp.connected = true; if (mp.connectTimer) clearTimeout(mp.connectTimer); mpGuestOverlay(null); mpStartGuest(); });
         c.on('data', (d) => { if (d && d.t === 'snap') { mp.lastSnapshot = d; mpApplySnapshot(d); } });
         c.on('close', () => { if (mp.role === 'guest') { mpGuestOverlay(null); alert('Disconnected from host.'); mpLeave(); } });
-        c.on('error', (e) => { console.error('[MP] conn error', e); mpGuestOverlay('Connection error: ' + (e && e.type ? e.type : e)); });
+        c.on('error', (e) => { console.error('[MP] conn error', e); mpGuestOverlay('Connection error: ' + (e && e.type ? e.type : e) + ' — tap to close.'); const el = document.getElementById('mpConnecting'); if (el) el.onclick = () => mpLeave(); });
       });
-      mp.peer.on('error', (e) => { console.error('[MP] guest peer error', e); mpGuestOverlay(null); alert('Join failed: ' + (e && e.type ? e.type : e) + '\nCheck the code and that both have internet.'); });
+      mp.peer.on('error', (e) => { console.error('[MP] guest peer error', e); mpGuestOverlay('Join failed: ' + (e && e.type ? e.type : e) + '. Check the code & internet. Tap to close.'); const el = document.getElementById('mpConnecting'); if (el) el.onclick = () => mpLeave(); });
     }
     function mpSend(obj) { try { if (mp.conn && mp.conn.open) mp.conn.send(obj); } catch (e) {} }
     // Guest lays a cart track with two taps, then sends both points to the host
@@ -8236,6 +8257,7 @@
     function mpLeave() {
       try { if (mp.inputTimer) clearInterval(mp.inputTimer); } catch (e) {}
       try { if (mp.hostTimer) clearInterval(mp.hostTimer); } catch (e) {}
+      try { if (mp.connectTimer) clearTimeout(mp.connectTimer); } catch (e) {}
       try { if (mp.guestRAF) cancelAnimationFrame(mp.guestRAF); } catch (e) {}
       try { if (mp.conn) mp.conn.close(); } catch (e) {}
       try { if (mp.peer) mp.peer.destroy(); } catch (e) {}
