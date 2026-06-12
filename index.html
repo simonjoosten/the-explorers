@@ -1829,7 +1829,18 @@
       border: 2px solid #7dd3fc; border-radius: 16px; padding: 1.6rem 1.4rem;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
     }
-    .challenge-q { font-size: 1.8rem; font-weight: 800; color: #fff5d6; white-space: pre-line; margin-bottom: 1rem; letter-spacing: 0.1em; }
+    .challenge-emoji { font-size: 3.5rem; line-height: 1; margin-bottom: 0.5rem; }
+    .challenge-q { font-size: 1.6rem; font-weight: 800; color: #fff5d6; white-space: pre-line; margin-bottom: 0.8rem; letter-spacing: 0.08em; }
+    .challenge-speak {
+      margin-bottom: 0.7rem; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 0.85rem; font-weight: 700;
+      background: rgba(125,211,252,0.15); border: 1px solid #7dd3fc; color: #bfeaff;
+    }
+    .challenge-opts { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.6rem; }
+    .challenge-opt {
+      padding: 0.7rem; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 1.1rem; font-weight: 700;
+      background: rgba(10,15,30,0.8); border: 2px solid #7dd3fc; color: #fff5d6; transition: all 0.15s;
+    }
+    .challenge-opt:hover { background: rgba(125,211,252,0.2); }
     .challenge-input {
       width: 100%; padding: 0.7rem; font-size: 1.2rem; text-align: center; border-radius: 8px;
       border: 2px solid #7dd3fc; background: rgba(10, 15, 30, 0.8); color: #fff5d6; font-family: inherit; outline: none;
@@ -2485,6 +2496,8 @@
           <button class="set-opt" data-level="1">1</button>
           <button class="set-opt" data-level="2">2</button>
           <button class="set-opt" data-level="3">3</button>
+          <button class="set-opt" data-level="4">4</button>
+          <button class="set-opt" data-level="5">5</button>
         </div>
       </div>
       <p class="set-hint" id="setEduHint">When learning mode is on, you solve a quick puzzle before each attack and build.</p>
@@ -2495,7 +2508,10 @@
   <!-- Learning challenge -->
   <div class="challenge-screen" id="challengeScreen">
     <div class="challenge-card">
+      <div class="challenge-emoji" id="challengeEmoji" style="display:none"></div>
       <div class="challenge-q" id="challengeQ">?</div>
+      <button class="challenge-speak" id="challengeSpeak" style="display:none">🔊 Hoor opnieuw</button>
+      <div class="challenge-opts" id="challengeOpts" style="display:none"></div>
       <input class="challenge-input" id="challengeInput" type="text" autocomplete="off" autocapitalize="off" />
       <div class="challenge-msg" id="challengeMsg"></div>
       <button class="challenge-ok" id="challengeOk">OK</button>
@@ -3191,6 +3207,9 @@
     };
 
     function handleKeyDown(e) {
+      // Never hijack typing in a text field (e.g. the learning-mode answer box)
+      const tn = e.target && e.target.tagName;
+      if (tn === 'INPUT' || tn === 'TEXTAREA') return;
       if (!gameRunning) return;
       if (e.key === 'Escape' && buildMode) { cancelPlacing(); e.preventDefault(); return; }
       if (e.key === 'Escape' && upgradeTarget) { closeUpgradeMenu(); e.preventDefault(); return; }
@@ -3418,13 +3437,6 @@
     function attemptAttack() {
       // Co-op guest: forward the attack to the host instead of simulating locally
       if (mp.role === 'guest') { mp.guestAttack = true; SFX.attack(); return; }
-      if (!world || !world.player) return;
-      if (world.player.attackCooldown > 0) return;
-      // Learning mode: solve a puzzle first
-      if (eduActive()) { requireChallenge(doAttack); return; }
-      doAttack();
-    }
-    function doAttack() {
       if (!world || !world.player) return;
       const p = world.player;
       if (p.attackCooldown > 0) return;
@@ -4385,6 +4397,7 @@
     }
     function fxAt(o) { return { x: o.x || 0, y: (o.y || 0) - 30 }; }
     function buyUpgrade(tr) {
+      if (eduActive() && !eduBypass) { gateAction(() => buyUpgrade(tr)); return; }
       const b = upgradeTarget;
       if (!b) return;
       const lvl = up(b, tr.key);
@@ -4416,6 +4429,7 @@
       renderUpgradePanel();
     }
     function restoreBuilding() {
+      if (eduActive() && !eduBypass) { gateAction(() => restoreBuilding()); return; }
       const b = upgradeTarget;
       if (!b || b.hp >= b.maxHp) return;
       const f = fxAt(b);
@@ -4432,6 +4446,7 @@
       renderUpgradePanel();
     }
     function storeRevive() {
+      if (eduActive() && !eduBypass) { gateAction(() => storeRevive()); return; }
       const b = upgradeTarget;
       if (!b) return;
       const f = fxAt(b);
@@ -4447,6 +4462,7 @@
       renderUpgradePanel();
     }
     function healHero() {
+      if (eduActive() && !eduBypass) { gateAction(() => healHero()); return; }
       const p = world.player;
       if (!p || p.hp >= p.maxHp) return;
       if ((playerInventory.power || 0) < HERO_HEAL_COST) {
@@ -4463,6 +4479,7 @@
 
     // ===== HELPERS (recruited units) =====
     function recruitHelper(b, kind) {
+      if (eduActive() && !eduBypass) { gateAction(() => recruitHelper(b, kind)); return; }
       const base = HELPER_BASE[kind];
       const mine = (world.helpers || []).filter(h => h.home === b).length;
       if (mine >= HELPERS_PER_HOUSE) return;
@@ -5797,10 +5814,12 @@
     }
     function buyHero(id, price) {
       if (profile.coins < price || profile.warriors.includes(id)) return;
+      if (eduActive() && !eduBypass) { gateAction(() => buyHero(id, price)); return; }
       profile.coins -= price; profile.warriors.push(id); saveProfile(); renderShop();
     }
     function buyMap(id, price) {
       if (profile.coins < price || profile.maps.includes(id)) return;
+      if (eduActive() && !eduBypass) { gateAction(() => buyMap(id, price)); return; }
       profile.coins -= price; profile.maps.push(id); saveProfile(); renderShop();
     }
     (function wireShop() {
@@ -5867,76 +5886,220 @@
     SFX.setSfx(profile.sfx !== false);
     SFX.setMusic(profile.music !== false);
 
-    // ===== LEARNING CHALLENGE (spelling / math gate before actions) =====
-    const WORDS = {
-      1: ['kat', 'hond', 'boom', 'vis', 'huis', 'maan', 'zon', 'bal', 'boot', 'kip', 'eend', 'muis', 'roos', 'ei', 'tak'],
-      2: ['appel', 'school', 'fiets', 'tafel', 'stoel', 'bloem', 'wolk', 'brood', 'water', 'groen', 'paard', 'vogel', 'straat', 'koek'],
-      3: ['avontuur', 'computer', 'bibliotheek', 'olifant', 'vakantie', 'chocolade', 'dinosaurus', 'regenboog', 'prinses', 'kasteel', 'ridder', 'schildpad']
-    };
+    // ===== LEARNING CHALLENGE (spelling / math gate before build/upgrade/unlock) =====
     function rint(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
-    let challengeCb = null, challengeAns = null;
-    function eduActive() { return profile.edu && profile.edu !== 'off' && mp.role === null && world && !world.gameOver; }
+    function pick(arr) { return arr[rint(0, arr.length - 1)]; }
+    let challengeCb = null, challengeAns = null, eduBypass = false, challengeMode = 'text';
+    function eduActive() { return profile.edu && profile.edu !== 'off' && mp.role === null; }
+    function gateAction(fn) {
+      if (!eduActive() || eduBypass) { fn(); return; }
+      requireChallenge(() => { eduBypass = true; try { fn(); } finally { eduBypass = false; } });
+    }
     function requireChallenge(cb) {
       if (!eduActive()) { cb(); return; }
       if (document.getElementById('challengeScreen').classList.contains('show')) return; // one at a time
       challengeCb = cb;
       openChallenge();
     }
-    function makeChallenge() {
-      const lvl = profile.eduLevel || 1;
-      const nl = profile.lang === 'nl';
-      if (profile.edu === 'math') {
-        let a, b, ans, q;
-        const ops = lvl === 1 ? ['+', '-'] : (lvl === 2 ? ['+', '-', '×'] : ['+', '-', '×', '÷']);
-        const op = ops[rint(0, ops.length - 1)];
-        const max = lvl === 1 ? 10 : (lvl === 2 ? 20 : 100);
-        if (op === '+') { a = rint(1, max); b = rint(1, max); ans = a + b; }
-        else if (op === '-') { a = rint(1, max); b = rint(1, a); ans = a - b; }
-        else if (op === '×') { const m = lvl === 2 ? 5 : 10; a = rint(2, m); b = rint(2, m); ans = a * b; }
-        else { const m = lvl === 3 ? 10 : 5; b = rint(2, m); ans = rint(2, m); a = b * ans; } // a÷b=ans
-        q = `${a} ${op} ${b} = ?`;
-        return { q, ans: String(ans), numeric: true };
+
+    // Word bank per level: [word, emoji?]
+    const SPELL_WORDS = {
+      1: [['kat','🐱'],['hond','🐶'],['vis','🐟'],['huis','🏠'],['maan','🌙'],['zon','☀️'],['bal','⚽'],['boot','⛵'],['kip','🐔'],['muis','🐭'],['roos','🌹'],['ei','🥚'],['boom','🌳'],['ster','⭐'],['koe','🐮'],['vuur','🔥'],['hand','✋'],['brood','🍞'],['beer','🐻'],['appel','🍎']],
+      2: [['fiets','🚲'],['bloem','🌷'],['wolk','☁️'],['water','💧'],['paard','🐴'],['vogel','🐦'],['koek','🍪'],['hart','❤️'],['slang','🐍'],['spin','🕷️'],['druif','🍇'],['banaan','🍌'],['wortel','🥕'],['sleutel','🔑'],['ballon','🎈'],['cadeau','🎁'],['school','🏫'],['tafel',''],['stoel',''],['trein','🚆']],
+      3: [['olifant','🐘'],['vlinder','🦋'],['regenboog','🌈'],['kasteel','🏰'],['prinses','👸'],['dinosaurus','🦖'],['chocolade','🍫'],['computer','💻'],['pinguïn','🐧'],['kameel','🐫'],['raket','🚀'],['tijger','🐯'],['krokodil','🐊'],['aardbei','🍓'],['ananas','🍍'],['dolfijn','🐬'],['ridder','🛡️'],['vakantie','🏖️'],['fontein','⛲'],['piraat','🏴‍☠️']],
+      4: [['paraplu','☂️'],['trompet','🎺'],['gitaar','🎸'],['telescoop','🔭'],['helikopter','🚁'],['ambulance','🚑'],['brandweer','🚒'],['octopus','🐙'],['schildpad','🐢'],['eekhoorn','🐿️'],['wasbeer','🦝'],['kangoeroe','🦘'],['nijlpaard','🦛'],['zonnebloem','🌻'],['sneeuwpop','⛄'],['astronaut','👨‍🚀'],['koningin','👑'],['avontuur',''],['vuurtoren','🗼'],['waterval','']],
+      5: [['bibliotheek',''],['encyclopedie','📚'],['kilometer',''],['temperatuur','🌡️'],['restaurant','🍽️'],['elektriciteit','⚡'],['gymnastiek','🤸'],['parachute','🪂'],['koelkast','🧊'],['wereldbol','🌍'],['zeemeermin','🧜‍♀️'],['draak','🐉'],['standbeeld','🗿'],['microscoop','🔬'],['ingrediënt',''],['toverstaf','🪄'],['sterrenkijker','🔭'],['luchtballon','🎈'],['ridderzwaard','⚔️'],['waterstof','']]
+    };
+    // Rule-based multiple-choice spelling (real Dutch spelling rules)
+    const SPELL_RULES = {
+      1: [
+        { q: 'Welk woord is goed?', o: ['boom', 'bom'], a: 'boom' },
+        { q: 'Veel van "man":', o: ['mannen', 'manen'], a: 'mannen' },
+        { q: 'Veel van "maan":', o: ['manen', 'mannen'], a: 'manen' },
+        { q: 'Welk woord is goed?', o: ['vis', 'viss'], a: 'vis' },
+        { q: 'Veel van "bal":', o: ['ballen', 'balen'], a: 'ballen' },
+        { q: 'Welk woord is goed?', o: ['huis', 'huus'], a: 'huis' },
+        { q: 'Veel van "pet":', o: ['petten', 'peten'], a: 'petten' },
+        { q: 'Welk woord is goed?', o: ['boot', 'bot'], a: 'boot' }
+      ],
+      2: [
+        { q: 'ei of ij? — tr__n', o: ['ei', 'ij'], a: 'ei' },
+        { q: 'au of ou? — vr__w', o: ['ou', 'au'], a: 'ou' },
+        { q: 'au of ou? — bl__w', o: ['au', 'ou'], a: 'au' },
+        { q: 'Welk woord is goed?', o: ['fiets', 'viets'], a: 'fiets' },
+        { q: 'Veel van "pot":', o: ['potten', 'poten'], a: 'potten' },
+        { q: 'Veel van "boot":', o: ['boten', 'botten'], a: 'boten' },
+        { q: 'ei of ij? — kl__n', o: ['ei', 'ij'], a: 'ei' },
+        { q: 'Welk woord is goed?', o: ['water', 'wadder'], a: 'water' },
+        { q: 'au of ou? — k__d (niet warm)', o: ['ou', 'au'], a: 'ou' },
+        { q: 'Welk woord is goed?', o: ['school', 'schol'], a: 'school' }
+      ],
+      3: [
+        { q: 'd of t? — de hond bla__', o: ['ft', 't'], a: 't' },
+        { q: 'Verleden tijd: ik fiets →', o: ['fietste', 'fietsde'], a: 'fietste' },
+        { q: 'Verleden tijd: ik voetbal →', o: ['voetbalde', 'voetbalte'], a: 'voetbalde' },
+        { q: 'Welk woord is goed?', o: ['ridder', 'rider'], a: 'ridder' },
+        { q: 'ei of ij? — kast__l? Nee: kasteel. Kies:', o: ['kasteel', 'kastijl'], a: 'kasteel' },
+        { q: 'Verkleinwoord van "boom":', o: ['boompje', 'boomtje'], a: 'boompje' },
+        { q: 'Verkleinwoord van "bal":', o: ['balletje', 'baltje'], a: 'balletje' },
+        { q: 'c of k? — __omputer', o: ['c', 'k'], a: 'c' },
+        { q: 'Verleden tijd: ik werk →', o: ['werkte', 'werkde'], a: 'werkte' },
+        { q: 'Welk woord is goed?', o: ['olifant', 'olliefant'], a: 'olifant' }
+      ],
+      4: [
+        { q: "'t kofschip: ik race →", o: ['racete', 'racede'], a: 'racete' },
+        { q: 'Voltooid: ik heb geleef__', o: ['d', 't'], a: 'd' },
+        { q: 'Voltooid: ik heb gewerk__', o: ['t', 'd'], a: 't' },
+        { q: 'hij word__ of wordt?', o: ['wordt', 'word'], a: 'wordt' },
+        { q: 'Welk woord is goed?', o: ['paraplu', 'parraplu'], a: 'paraplu' },
+        { q: 'Verkleinwoord van "koning":', o: ['koninkje', 'koningje'], a: 'koninkje' },
+        { q: 'Welk woord is goed?', o: ['eekhoorn', 'ekhoorn'], a: 'eekhoorn' },
+        { q: 'ch of g? — la__en (om grappen)', o: ['ch', 'g'], a: 'ch' },
+        { q: 'Welk woord is goed?', o: ['gitaar', 'gietaar'], a: 'gitaar' },
+        { q: 'Voltooid: ik heb gefiets__', o: ['t', 'd'], a: 't' }
+      ],
+      5: [
+        { q: 'Welk woord is goed?', o: ['bibliotheek', 'biblioteek'], a: 'bibliotheek' },
+        { q: 'Welk woord is goed?', o: ['restaurant', 'resterant'], a: 'restaurant' },
+        { q: 'Welk woord is goed?', o: ['elektriciteit', 'electriciteit'], a: 'elektriciteit' },
+        { q: 'hij heeft het ge__urd (d/t)? — gebeurd:', o: ['gebeurd', 'gebeurt'], a: 'gebeurd' },
+        { q: 'dat gebeur__ vaak (nu)', o: ['gebeurt', 'gebeurd'], a: 'gebeurt' },
+        { q: 'Welk woord is goed?', o: ['parachute', 'parasjute'], a: 'parachute' },
+        { q: 'Welk woord is goed?', o: ['temperatuur', 'temperatur'], a: 'temperatuur' },
+        { q: 'Welk woord is goed?', o: ['gymnastiek', 'gimnastiek'], a: 'gymnastiek' },
+        { q: 'Welk woord is goed?', o: ['ingrediënt', 'ingredient'], a: 'ingrediënt' },
+        { q: 'Welk woord is goed?', o: ['encyclopedie', 'encyclopdie'], a: 'encyclopedie' }
+      ]
+    };
+
+    function speakWord(w) {
+      try {
+        if (window.speechSynthesis) {
+          speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(w);
+          u.lang = profile.lang === 'nl' ? 'nl-NL' : 'en-US';
+          u.rate = 0.85;
+          speechSynthesis.speak(u);
+        }
+      } catch (e) {}
+    }
+
+    function makeMathChallenge(lvl) {
+      let a, b, ans, q;
+      const types = lvl <= 1 ? ['+', '-'] : lvl === 2 ? ['+', '-', '×', '?'] : lvl === 3 ? ['+', '-', '×', '÷', '?'] : ['+', '-', '×', '÷', '?'];
+      const op = pick(types);
+      const max = lvl === 1 ? 10 : lvl === 2 ? 20 : lvl === 3 ? 100 : lvl === 4 ? 1000 : 10000;
+      if (op === '?') { // missing number:  a + ? = c
+        a = rint(1, lvl === 1 ? 10 : 20); ans = rint(1, lvl === 1 ? 10 : 20);
+        const c = a + ans; q = `${a} + ? = ${c}`;
+        return { q, ans: String(ans), type: 'num' };
       }
-      // spelling: blank one letter, ask which letter
-      const words = WORDS[lvl] || WORDS[1];
-      const w = words[rint(0, words.length - 1)];
+      if (op === '+') { a = rint(1, max); b = rint(1, max); ans = a + b; }
+      else if (op === '-') { a = rint(1, max); b = rint(1, a); ans = a - b; }
+      else if (op === '×') { const m = lvl <= 2 ? 5 : lvl === 3 ? 10 : (lvl === 4 ? 12 : 20); a = rint(2, m); b = rint(2, m); ans = a * b; }
+      else { const m = lvl <= 3 ? 10 : 12; b = rint(2, m); ans = rint(2, m); a = b * ans; }
+      q = `${a} ${op} ${b} = ?`;
+      return { q, ans: String(ans), type: 'num' };
+    }
+
+    function makeSpellChallenge(lvl) {
+      const nl = profile.lang === 'nl';
+      const rules = SPELL_RULES[lvl] || [];
+      // ~35% rule multiple-choice
+      if (rules.length && Math.random() < 0.35) {
+        const r = pick(rules);
+        return { q: r.q, ans: r.a.toLowerCase(), type: 'mc', options: r.o };
+      }
+      const entry = pick(SPELL_WORDS[lvl] || SPELL_WORDS[1]);
+      const w = entry[0], emoji = entry[1];
+      // choose a type
+      const kinds = ['letter', 'complete', 'listen'];
+      if (emoji) kinds.push('picture', 'picture');
+      const kind = pick(kinds);
+      if (kind === 'picture') {
+        return { q: nl ? 'Typ het woord:' : 'Type the word:', ans: w.toLowerCase(), type: 'text', emoji };
+      }
+      if (kind === 'listen') {
+        return { q: nl ? '🔊 Hoor en schrijf het woord:' : '🔊 Listen and write:', ans: w.toLowerCase(), type: 'text', speak: w };
+      }
+      if (kind === 'complete') {
+        // blank 1-2 letters, type the whole word
+        const n = w.length > 6 ? 2 : 1;
+        const arr = w.split('');
+        const idxs = [];
+        while (idxs.length < n) { const i = rint(0, w.length - 1); if (!idxs.includes(i)) idxs.push(i); }
+        idxs.forEach(i => arr[i] = '_');
+        return { q: (nl ? 'Maak het woord af:\n' : 'Complete the word:\n') + arr.join(''), ans: w.toLowerCase(), type: 'text' };
+      }
+      // letter: ask the missing letter
       const idx = rint(0, w.length - 1);
       const shown = w.slice(0, idx) + '_' + w.slice(idx + 1);
-      const label = nl ? 'Welke letter hoort hier?' : 'Which letter is missing?';
-      return { q: `${label}\n${shown}`, ans: w[idx].toLowerCase(), numeric: false };
+      return { q: (nl ? 'Welke letter mist?\n' : 'Which letter is missing?\n') + shown, ans: w[idx].toLowerCase(), type: 'text' };
     }
+
     function openChallenge() {
-      const ch = makeChallenge();
+      const lvl = profile.eduLevel || 1;
+      const ch = profile.edu === 'math' ? makeMathChallenge(lvl) : makeSpellChallenge(lvl);
       challengeAns = ch.ans;
+      challengeMode = ch.type;
       document.getElementById('challengeQ').textContent = ch.q;
+      const emojiEl = document.getElementById('challengeEmoji');
+      emojiEl.textContent = ch.emoji || '';
+      emojiEl.style.display = ch.emoji ? 'block' : 'none';
+      const speakBtn = document.getElementById('challengeSpeak');
       const inp = document.getElementById('challengeInput');
-      inp.value = '';
-      inp.inputMode = ch.numeric ? 'numeric' : 'text';
-      document.getElementById('challengeMsg').textContent = '';
-      document.getElementById('challengeMsg').className = 'challenge-msg';
+      const ok = document.getElementById('challengeOk');
+      const opts = document.getElementById('challengeOpts');
+      const msg = document.getElementById('challengeMsg');
+      msg.textContent = ''; msg.className = 'challenge-msg';
+      opts.innerHTML = '';
+      if (ch.type === 'mc') {
+        inp.style.display = 'none'; ok.style.display = 'none'; opts.style.display = 'flex';
+        ch.options.forEach(o => {
+          const b = document.createElement('button');
+          b.className = 'challenge-opt'; b.textContent = o;
+          b.addEventListener('click', () => checkAnswer(o));
+          opts.appendChild(b);
+        });
+        speakBtn.style.display = 'none';
+      } else {
+        inp.style.display = ''; ok.style.display = ''; opts.style.display = 'none';
+        inp.value = ''; inp.inputMode = ch.type === 'num' ? 'numeric' : 'text';
+        if (ch.speak) { speakBtn.style.display = ''; speakBtn.onclick = () => speakWord(ch.speak); setTimeout(() => speakWord(ch.speak), 250); }
+        else speakBtn.style.display = 'none';
+      }
       if (world) world.eduPause = true;
       document.getElementById('challengeScreen').classList.add('show');
-      setTimeout(() => inp.focus(), 30);
+      if (ch.type !== 'mc') setTimeout(() => inp.focus(), 30);
+    }
+
+    function challengeSuccess() {
+      const nl = profile.lang === 'nl';
+      const msg = document.getElementById('challengeMsg');
+      msg.className = 'challenge-msg good';
+      msg.textContent = nl ? 'Goed zo! ✓' : 'Correct! ✓';
+      SFX.coin();
+      setTimeout(() => {
+        document.getElementById('challengeScreen').classList.remove('show');
+        if (world) world.eduPause = false;
+        const cb = challengeCb; challengeCb = null;
+        if (cb) cb();
+      }, 280);
+    }
+    function challengeFail() {
+      const nl = profile.lang === 'nl';
+      const msg = document.getElementById('challengeMsg');
+      msg.className = 'challenge-msg bad';
+      msg.textContent = nl ? 'Probeer opnieuw' : 'Try again';
+    }
+    function checkAnswer(val) {
+      if (String(val).trim().toLowerCase() === String(challengeAns).toLowerCase()) challengeSuccess();
+      else challengeFail();
     }
     function submitChallenge() {
       const inp = document.getElementById('challengeInput');
-      const val = inp.value.trim().toLowerCase();
-      const msg = document.getElementById('challengeMsg');
-      const nl = profile.lang === 'nl';
-      if (val === String(challengeAns).toLowerCase()) {
-        msg.className = 'challenge-msg good';
-        msg.textContent = nl ? 'Goed zo! ✓' : 'Correct! ✓';
-        setTimeout(() => {
-          document.getElementById('challengeScreen').classList.remove('show');
-          if (world) world.eduPause = false;
-          const cb = challengeCb; challengeCb = null;
-          if (cb) cb();
-        }, 250);
-      } else {
-        msg.className = 'challenge-msg bad';
-        msg.textContent = nl ? 'Probeer opnieuw' : 'Try again';
-        inp.value = ''; inp.focus();
-      }
+      checkAnswer(inp.value);
+      if (document.getElementById('challengeScreen').classList.contains('show')) { inp.value = ''; inp.focus(); }
     }
     (function wireChallenge() {
       const ok = document.getElementById('challengeOk'); if (ok) ok.addEventListener('click', submitChallenge);
@@ -7921,6 +8084,7 @@
     }
 
     function buySection(sec) {
+      if (eduActive() && !eduBypass) { gateAction(() => buySection(sec)); return false; }
       if (!canAfford(sec.cost)) {
         ['gameResBar', 'exploreResBar'].forEach(id => {
           const el = document.getElementById(id);
