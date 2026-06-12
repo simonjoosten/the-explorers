@@ -1786,6 +1786,62 @@
     }
     .shop-close:hover { border-color: #fbbf24; }
 
+    /* Settings */
+    .settings-screen {
+      position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+      background: rgba(5, 10, 5, 0.9); backdrop-filter: blur(6px); z-index: 59; animation: fadeIn 0.2s ease-out;
+    }
+    .settings-screen.show { display: flex; }
+    .settings-card {
+      width: 420px; max-width: 92vw; max-height: 90vh; overflow-y: auto;
+      background: linear-gradient(180deg, rgba(50, 38, 20, 0.98), rgba(24, 16, 8, 0.98));
+      border: 2px solid #8b6f47; border-radius: 16px; padding: 1.4rem 1.5rem;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+    }
+    .settings-card h2 {
+      font-family: "Cinzel", Georgia, serif; font-size: 1.6rem; letter-spacing: 0.15em; text-transform: uppercase;
+      background: linear-gradient(180deg, #fff5d6, #fbbf24); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 1.1rem; text-align: center;
+    }
+    .set-row { margin-bottom: 1rem; }
+    .set-label { font-size: 0.8rem; letter-spacing: 0.15em; text-transform: uppercase; color: #b89968; margin-bottom: 0.4rem; }
+    .set-opts { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .set-opt {
+      flex: 1; min-width: 70px; padding: 0.6rem; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 0.85rem; font-weight: 700;
+      background: rgba(40, 30, 15, 0.7); border: 2px solid #6a523a; color: #fff5d6; transition: all 0.15s;
+    }
+    .set-opt:hover { border-color: #8b6f47; }
+    .set-opt.active { border-color: #fbbf24; background: rgba(80, 55, 30, 0.85); color: #fbbf24; }
+    .set-hint { font-size: 0.74rem; color: #b89968; font-style: italic; margin: 0.4rem 0 1rem; }
+    .settings-close {
+      width: 100%; padding: 0.8rem; border-radius: 10px; font-family: inherit; font-size: 0.9rem; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; background: linear-gradient(180deg, #fbbf24, #d97706); border: 2px solid #fde68a; color: #1a1408;
+    }
+
+    /* Learning challenge modal */
+    .challenge-screen {
+      position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+      background: rgba(5, 10, 20, 0.85); backdrop-filter: blur(5px); z-index: 70; animation: fadeIn 0.15s ease-out;
+    }
+    .challenge-screen.show { display: flex; }
+    .challenge-card {
+      width: 340px; max-width: 90vw; text-align: center;
+      background: linear-gradient(180deg, rgba(30, 40, 60, 0.98), rgba(15, 20, 35, 0.98));
+      border: 2px solid #7dd3fc; border-radius: 16px; padding: 1.6rem 1.4rem;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+    }
+    .challenge-q { font-size: 1.8rem; font-weight: 800; color: #fff5d6; white-space: pre-line; margin-bottom: 1rem; letter-spacing: 0.1em; }
+    .challenge-input {
+      width: 100%; padding: 0.7rem; font-size: 1.2rem; text-align: center; border-radius: 8px;
+      border: 2px solid #7dd3fc; background: rgba(10, 15, 30, 0.8); color: #fff5d6; font-family: inherit; outline: none;
+    }
+    .challenge-msg { min-height: 1.2em; margin: 0.5rem 0; font-size: 0.85rem; font-weight: 700; }
+    .challenge-msg.bad { color: #e74c3c; }
+    .challenge-msg.good { color: #7bed9f; }
+    .challenge-ok {
+      width: 100%; margin-top: 0.4rem; padding: 0.7rem; border-radius: 8px; font-family: inherit; font-size: 0.9rem; font-weight: 800; cursor: pointer;
+      background: linear-gradient(180deg, #7dd3fc, #38a3d9); border: 2px solid #bfeaff; color: #06283a;
+    }
+
     /* Game screen */
     .game-screen {
       position: fixed;
@@ -2152,6 +2208,7 @@
         <button class="menu-btn menu-primary" id="playBtn">▶ Begin Adventure</button>
         <button class="menu-btn" id="continueBtn" style="display:none">⟳ Continue</button>
         <button class="menu-btn" id="shopBtn">🛒 Shop</button>
+        <button class="menu-btn" id="settingsBtn">⚙️ Settings</button>
         <button class="menu-btn" id="joinCoopBtn">🔗 Join Co-op</button>
         <button class="menu-btn" id="howToPlayBtn">How to Play</button>
         <button class="menu-btn" id="creditsBtn">Credits</button>
@@ -2386,6 +2443,62 @@
       <h3 class="shop-section-title">🗺️ Lands</h3>
       <div class="shop-list" id="shopMaps"></div>
       <button class="shop-close" id="shopCloseBtn">Close</button>
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <div class="settings-screen" id="settingsScreen">
+    <div class="settings-card">
+      <h2 id="setTitle">⚙️ Settings</h2>
+      <div class="set-row">
+        <div class="set-label" id="setLangLabel">Language</div>
+        <div class="set-opts" id="setLang">
+          <button class="set-opt" data-lang="en">English</button>
+          <button class="set-opt" data-lang="nl">Nederlands</button>
+        </div>
+      </div>
+      <div class="set-row">
+        <div class="set-label" id="setSoundLabel">Sound</div>
+        <div class="set-opts" id="setSound">
+          <button class="set-opt" data-sound="on">On</button>
+          <button class="set-opt" data-sound="off">Off</button>
+        </div>
+      </div>
+      <div class="set-row">
+        <div class="set-label" id="setMusicLabel">Music</div>
+        <div class="set-opts" id="setMusic">
+          <button class="set-opt" data-music="on">On</button>
+          <button class="set-opt" data-music="off">Off</button>
+        </div>
+      </div>
+      <div class="set-row">
+        <div class="set-label" id="setEduLabel">Learning mode</div>
+        <div class="set-opts" id="setEdu">
+          <button class="set-opt" data-edu="off" id="eduOff">Off</button>
+          <button class="set-opt" data-edu="spelling" id="eduSpelling">Spelling</button>
+          <button class="set-opt" data-edu="math" id="eduMath">Math</button>
+        </div>
+      </div>
+      <div class="set-row">
+        <div class="set-label" id="setLevelLabel">Level</div>
+        <div class="set-opts" id="setLevel">
+          <button class="set-opt" data-level="1">1</button>
+          <button class="set-opt" data-level="2">2</button>
+          <button class="set-opt" data-level="3">3</button>
+        </div>
+      </div>
+      <p class="set-hint" id="setEduHint">When learning mode is on, you solve a quick puzzle before each attack and build.</p>
+      <button class="settings-close" id="settingsCloseBtn">Close</button>
+    </div>
+  </div>
+
+  <!-- Learning challenge -->
+  <div class="challenge-screen" id="challengeScreen">
+    <div class="challenge-card">
+      <div class="challenge-q" id="challengeQ">?</div>
+      <input class="challenge-input" id="challengeInput" type="text" autocomplete="off" autocapitalize="off" />
+      <div class="challenge-msg" id="challengeMsg"></div>
+      <button class="challenge-ok" id="challengeOk">OK</button>
     </div>
   </div>
 
@@ -2905,8 +3018,9 @@
     // ===== PROFILE: coins + unlocks (persisted) =====
     const PROFILE_KEY = 'theExplorersProfile_v1';
     function loadProfile() {
-      try { const p = JSON.parse(localStorage.getItem(PROFILE_KEY)); if (p) return Object.assign({ coins: 0, bestScore: 0, warriors: [], maps: [] }, p); } catch (e) {}
-      return { coins: 0, bestScore: 0, warriors: [], maps: [] };
+      const base = { coins: 0, bestScore: 0, warriors: [], maps: [], lang: 'en', edu: 'off', eduLevel: 1, sfx: true, music: true };
+      try { const p = JSON.parse(localStorage.getItem(PROFILE_KEY)); if (p) return Object.assign(base, p); } catch (e) {}
+      return base;
     }
     function saveProfile() { try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch (e) {} }
     let profile = loadProfile();
@@ -3239,8 +3353,8 @@
           placeTrackPoint(wx, wy);
           return;
         }
-        placeBuilding(buildMode, wx, wy);
-        cancelPlacing();
+        const bt = buildMode, bx = wx, by = wy;
+        requireChallenge(() => { placeBuilding(bt, bx, by); cancelPlacing(); });
         return;
       }
 
@@ -3304,6 +3418,13 @@
     function attemptAttack() {
       // Co-op guest: forward the attack to the host instead of simulating locally
       if (mp.role === 'guest') { mp.guestAttack = true; SFX.attack(); return; }
+      if (!world || !world.player) return;
+      if (world.player.attackCooldown > 0) return;
+      // Learning mode: solve a puzzle first
+      if (eduActive()) { requireChallenge(doAttack); return; }
+      doAttack();
+    }
+    function doAttack() {
       if (!world || !world.player) return;
       const p = world.player;
       if (p.attackCooldown > 0) return;
@@ -5687,6 +5808,142 @@
       const sc = document.getElementById('shopCloseBtn'); if (sc) sc.addEventListener('click', closeShop);
     })();
 
+    // ===== SETTINGS + LANGUAGE =====
+    const STRINGS = {
+      playBtn: ['▶ Begin Adventure', '▶ Avontuur starten'],
+      continueBtn: ['⟳ Continue', '⟳ Verdergaan'],
+      shopBtn: ['🛒 Shop', '🛒 Winkel'],
+      settingsBtn: ['⚙️ Settings', '⚙️ Instellingen'],
+      joinCoopBtn: ['🔗 Join Co-op', '🔗 Samen spelen'],
+      howToPlayBtn: ['How to Play', 'Uitleg'],
+      creditsBtn: ['Credits', 'Makers'],
+      setTitle: ['⚙️ Settings', '⚙️ Instellingen'],
+      setLangLabel: ['Language', 'Taal'],
+      setSoundLabel: ['Sound', 'Geluid'],
+      setMusicLabel: ['Music', 'Muziek'],
+      setEduLabel: ['Learning mode', 'Leermodus'],
+      setLevelLabel: ['Level', 'Niveau'],
+      settingsCloseBtn: ['Close', 'Sluiten'],
+      eduOff: ['Off', 'Uit'],
+      eduSpelling: ['Spelling', 'Spelling'],
+      eduMath: ['Math', 'Rekenen'],
+      setEduHint: ['When learning mode is on, you solve a quick puzzle before each attack and build.', 'Met leermodus aan los je vóór elke aanval en bouw een korte puzzel op.'],
+      resumeBtn: ['▶ Resume', '▶ Verder'],
+      leaveBtn: ['⌂ Leave Match', '⌂ Verlaten'],
+      viewCodeBtn: ['🔗 View Join Code', '🔗 Toon join-code'],
+      shopCloseBtn: ['Close', 'Sluiten'],
+      gameOverRetryBtn: ['↻ Play Again', '↻ Opnieuw'],
+      gameOverMenuBtn: ['⌂ Main Menu', '⌂ Hoofdmenu']
+    };
+    function langIdx() { return profile.lang === 'nl' ? 1 : 0; }
+    function applyLang() {
+      const i = langIdx();
+      for (const id in STRINGS) { const el = document.getElementById(id); if (el) el.textContent = STRINGS[id][i]; }
+    }
+    function openSettings() { renderSettings(); document.getElementById('settingsScreen').classList.add('show'); }
+    function closeSettings() { document.getElementById('settingsScreen').classList.remove('show'); }
+    function markOpts(containerId, attr, val) {
+      document.querySelectorAll('#' + containerId + ' .set-opt').forEach(b => b.classList.toggle('active', b.dataset[attr] === String(val)));
+    }
+    function renderSettings() {
+      applyLang();
+      markOpts('setLang', 'lang', profile.lang);
+      markOpts('setSound', 'sound', SFX.sfxEnabled() ? 'on' : 'off');
+      markOpts('setMusic', 'music', SFX.musicEnabled() ? 'on' : 'off');
+      markOpts('setEdu', 'edu', profile.edu);
+      markOpts('setLevel', 'level', profile.eduLevel);
+    }
+    (function wireSettings() {
+      const open = document.getElementById('settingsBtn'); if (open) open.addEventListener('click', openSettings);
+      const close = document.getElementById('settingsCloseBtn'); if (close) close.addEventListener('click', closeSettings);
+      document.querySelectorAll('#setLang .set-opt').forEach(b => b.addEventListener('click', () => { profile.lang = b.dataset.lang; saveProfile(); applyLang(); renderSettings(); }));
+      document.querySelectorAll('#setSound .set-opt').forEach(b => b.addEventListener('click', () => { SFX.setSfx(b.dataset.sound === 'on'); profile.sfx = b.dataset.sound === 'on'; saveProfile(); renderSettings(); }));
+      document.querySelectorAll('#setMusic .set-opt').forEach(b => b.addEventListener('click', () => { SFX.setMusic(b.dataset.music === 'on'); profile.music = b.dataset.music === 'on'; saveProfile(); renderSettings(); }));
+      document.querySelectorAll('#setEdu .set-opt').forEach(b => b.addEventListener('click', () => { profile.edu = b.dataset.edu; saveProfile(); renderSettings(); }));
+      document.querySelectorAll('#setLevel .set-opt').forEach(b => b.addEventListener('click', () => { profile.eduLevel = parseInt(b.dataset.level, 10); saveProfile(); renderSettings(); }));
+    })();
+    // Apply saved language + audio prefs at startup
+    applyLang();
+    SFX.setSfx(profile.sfx !== false);
+    SFX.setMusic(profile.music !== false);
+
+    // ===== LEARNING CHALLENGE (spelling / math gate before actions) =====
+    const WORDS = {
+      1: ['kat', 'hond', 'boom', 'vis', 'huis', 'maan', 'zon', 'bal', 'boot', 'kip', 'eend', 'muis', 'roos', 'ei', 'tak'],
+      2: ['appel', 'school', 'fiets', 'tafel', 'stoel', 'bloem', 'wolk', 'brood', 'water', 'groen', 'paard', 'vogel', 'straat', 'koek'],
+      3: ['avontuur', 'computer', 'bibliotheek', 'olifant', 'vakantie', 'chocolade', 'dinosaurus', 'regenboog', 'prinses', 'kasteel', 'ridder', 'schildpad']
+    };
+    function rint(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+    let challengeCb = null, challengeAns = null;
+    function eduActive() { return profile.edu && profile.edu !== 'off' && mp.role === null && world && !world.gameOver; }
+    function requireChallenge(cb) {
+      if (!eduActive()) { cb(); return; }
+      if (document.getElementById('challengeScreen').classList.contains('show')) return; // one at a time
+      challengeCb = cb;
+      openChallenge();
+    }
+    function makeChallenge() {
+      const lvl = profile.eduLevel || 1;
+      const nl = profile.lang === 'nl';
+      if (profile.edu === 'math') {
+        let a, b, ans, q;
+        const ops = lvl === 1 ? ['+', '-'] : (lvl === 2 ? ['+', '-', '×'] : ['+', '-', '×', '÷']);
+        const op = ops[rint(0, ops.length - 1)];
+        const max = lvl === 1 ? 10 : (lvl === 2 ? 20 : 100);
+        if (op === '+') { a = rint(1, max); b = rint(1, max); ans = a + b; }
+        else if (op === '-') { a = rint(1, max); b = rint(1, a); ans = a - b; }
+        else if (op === '×') { const m = lvl === 2 ? 5 : 10; a = rint(2, m); b = rint(2, m); ans = a * b; }
+        else { const m = lvl === 3 ? 10 : 5; b = rint(2, m); ans = rint(2, m); a = b * ans; } // a÷b=ans
+        q = `${a} ${op} ${b} = ?`;
+        return { q, ans: String(ans), numeric: true };
+      }
+      // spelling: blank one letter, ask which letter
+      const words = WORDS[lvl] || WORDS[1];
+      const w = words[rint(0, words.length - 1)];
+      const idx = rint(0, w.length - 1);
+      const shown = w.slice(0, idx) + '_' + w.slice(idx + 1);
+      const label = nl ? 'Welke letter hoort hier?' : 'Which letter is missing?';
+      return { q: `${label}\n${shown}`, ans: w[idx].toLowerCase(), numeric: false };
+    }
+    function openChallenge() {
+      const ch = makeChallenge();
+      challengeAns = ch.ans;
+      document.getElementById('challengeQ').textContent = ch.q;
+      const inp = document.getElementById('challengeInput');
+      inp.value = '';
+      inp.inputMode = ch.numeric ? 'numeric' : 'text';
+      document.getElementById('challengeMsg').textContent = '';
+      document.getElementById('challengeMsg').className = 'challenge-msg';
+      if (world) world.eduPause = true;
+      document.getElementById('challengeScreen').classList.add('show');
+      setTimeout(() => inp.focus(), 30);
+    }
+    function submitChallenge() {
+      const inp = document.getElementById('challengeInput');
+      const val = inp.value.trim().toLowerCase();
+      const msg = document.getElementById('challengeMsg');
+      const nl = profile.lang === 'nl';
+      if (val === String(challengeAns).toLowerCase()) {
+        msg.className = 'challenge-msg good';
+        msg.textContent = nl ? 'Goed zo! ✓' : 'Correct! ✓';
+        setTimeout(() => {
+          document.getElementById('challengeScreen').classList.remove('show');
+          if (world) world.eduPause = false;
+          const cb = challengeCb; challengeCb = null;
+          if (cb) cb();
+        }, 250);
+      } else {
+        msg.className = 'challenge-msg bad';
+        msg.textContent = nl ? 'Probeer opnieuw' : 'Try again';
+        inp.value = ''; inp.focus();
+      }
+    }
+    (function wireChallenge() {
+      const ok = document.getElementById('challengeOk'); if (ok) ok.addEventListener('click', submitChallenge);
+      const inp = document.getElementById('challengeInput');
+      if (inp) inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); submitChallenge(); } });
+    })();
+
     // ===== ENEMIES =====
     // Each enemy ALWAYS drops some power. lootChance is the extra chance for wood/stone.
     const enemyTypes = {
@@ -7383,7 +7640,7 @@
 
     function gameLoop() {
       if (!gameRunning) return;
-      if (world.paused) { animationId = requestAnimationFrame(gameLoop); return; }
+      if (world.paused || world.eduPause) { animationId = requestAnimationFrame(gameLoop); return; }
       try {
         world.time += 16;
         updatePlayer();
