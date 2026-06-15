@@ -1352,6 +1352,20 @@
     .mute-btn:active { transform: scale(0.9); }
     .mute-btn.muted { opacity: 0.55; border-color: #5a4530; }
 
+    /* Photo / screenshot button */
+    .photo-btn {
+      position: absolute; bottom: 1rem; left: 3.6rem; width: 42px; height: 42px; border-radius: 50%;
+      background: rgba(40, 30, 15, 0.8); border: 2px solid #8b6f47; color: #fff5d6;
+      font-size: 1.1rem; cursor: pointer; z-index: 6; touch-action: none; user-select: none; transition: transform 0.1s;
+    }
+    .photo-btn:active { transform: scale(0.9); }
+    /* Camera flash overlay */
+    .photo-flash {
+      position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 90;
+    }
+    .photo-flash.shoot { animation: photoFlash 0.4s ease-out; }
+    @keyframes photoFlash { 0% { opacity: 0.85; } 100% { opacity: 0; } }
+
     /* Build button — sits above the attack button (dpad occupies bottom-right) */
     .build-btn {
       position: absolute;
@@ -2496,6 +2510,7 @@
     <button class="attack-btn" id="attackBtn">⚔</button>
     <button class="build-btn" id="buildBtn">🔨</button>
     <button class="mute-btn" id="muteBtn" title="Toggle sound">🔊</button>
+    <button class="photo-btn" id="photoBtn" title="Take a photo">📷</button>
 
     <!-- Hero abilities (built per chosen hero) -->
     <div class="ability-bar" id="abilityBar"></div>
@@ -2539,6 +2554,8 @@
       </div>
     </div>
   </div>
+
+  <div class="photo-flash" id="photoFlash"></div>
 
   <!-- Pause / settings menu -->
   <div class="pause-screen" id="pauseScreen">
@@ -5900,7 +5917,32 @@
       const mb = document.getElementById('toggleMusicBtn'); if (mb) mb.addEventListener('click', () => { SFX.setMusic(!SFX.musicEnabled()); setPaused(true); });
       const skip = document.getElementById('waveSkipBtn');
       if (skip) skip.addEventListener('click', () => { if (world && !world.waveActive && mp.role !== 'guest') { world.timeToNextWave = 0; } });
+      const photo = document.getElementById('photoBtn');
+      if (photo) photo.addEventListener('click', (e) => { e.preventDefault(); takePhoto(); });
     })();
+
+    // ===== PHOTO / SCREENSHOT TOOL =====
+    function takePhoto() {
+      try {
+        // Camera flash
+        const fl = document.getElementById('photoFlash');
+        if (fl) { fl.classList.remove('shoot'); void fl.offsetWidth; fl.classList.add('shoot'); }
+        SFX.coin();
+        const url = canvas.toDataURL('image/png');
+        const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'the-explorers-' + stamp + '.png';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        if (world && world.floatingText) world.floatingText.push({ x: world.player.x, y: world.player.y - 40, vy: -0.6, life: 60, text: '📷 Photo saved!', color: '#7df9ff' });
+      } catch (err) {
+        console.error('photo failed', err);
+        // Fallback: open the image in a new tab so it can be long-pressed/saved
+        try { const w2 = window.open(); if (w2) w2.document.write('<img src="' + canvas.toDataURL('image/png') + '" style="max-width:100%">'); } catch (e) {}
+      }
+    }
 
     // ===== SAVE / LOAD (localStorage) =====
     const SAVE_KEY = 'theExplorersSave_v1';
