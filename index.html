@@ -8132,24 +8132,26 @@
       shield: { icon: '🛡️', name: 'Shield', cd: 22000 },
       heal:   { icon: '💚', name: 'Heal',   cd: 24000 }
     };
-    // Which power-up(s) each hero gets
+    // Power-ups are a perk of the UNLOCKABLE heroes — the free starters
+    // (Knight & Archer) have none, so powers are a reason to buy a new hero.
     const HERO_ABILITIES = {
-      knight: ['surge'], archer: ['haste'], mage: ['summon'], berserker: ['surge'],
+      mage: ['summon'], berserker: ['surge'],
       ranger: ['haste', 'summon'], paladin: ['heal', 'shield'], assassin: ['haste', 'surge'],
       pyromancer: ['surge'], druid: ['summon', 'heal'], samurai: ['haste', 'surge'],
       gladiator: ['shield'], monk: ['haste'], sniper: ['surge'], warlock: ['summon'],
       valkyrie: ['haste', 'shield'], titan: ['shield', 'surge']
     };
     function heroAbilities() {
-      return (world && world.warrior && HERO_ABILITIES[world.warrior.id]) || ['haste'];
+      return (world && world.warrior && HERO_ABILITIES[world.warrior.id]) || [];
     }
     function buildAbilityBar() {
       const bar = document.getElementById('abilityBar');
       if (!bar) return;
       bar.innerHTML = '';
-      if (mp.role === 'guest') { bar.style.display = 'none'; return; }
+      const abils = heroAbilities();
+      if (mp.role === 'guest' || abils.length === 0) { bar.style.display = 'none'; return; }
       bar.style.display = 'flex';
-      heroAbilities().forEach(key => {
+      abils.forEach(key => {
         const meta = ABILITY_META[key]; if (!meta) return;
         const btn = document.createElement('button');
         btn.className = 'ability-btn'; btn.dataset.key = key;
@@ -8181,7 +8183,7 @@
     function updateAbilityUI() {
       const bar = document.getElementById('abilityBar');
       if (!bar) return;
-      if (!world || mp.role === 'guest') { bar.style.display = 'none'; return; }
+      if (!world || mp.role === 'guest' || bar.children.length === 0) { bar.style.display = 'none'; return; }
       bar.style.display = 'flex';
       const a = world.abilities || {};
       bar.querySelectorAll('.ability-btn').forEach(btn => {
