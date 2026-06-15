@@ -729,6 +729,21 @@
       .features, .destinations { padding: 2rem 1.5rem; }
     }
 
+    /* Mobile / touch polish: bigger targets, tidy HUD */
+    @media (max-width: 820px), (pointer: coarse) {
+      .resource-bar { gap: 0.25rem; padding: 0.4rem 0.5rem; font-size: 0.8rem; flex-wrap: wrap; }
+      .res-item { font-size: 0.8rem; padding: 0 0.25rem; }
+      .game-top-bar { padding: 0.5rem; gap: 0.3rem; }
+      .dpad { bottom: 1.2rem; right: 1rem; grid-template-columns: 56px 56px 56px; grid-template-rows: 56px 56px 56px; }
+      .attack-btn { width: 78px; height: 78px; bottom: 1.6rem; left: 1.2rem; }
+      .build-btn { width: 60px; height: 60px; left: 1.2rem; bottom: 8.5rem; }
+      .ability-bar { bottom: 9.5rem; gap: 0.4rem; }
+      .ability-btn { width: 46px; height: 46px; font-size: 1.1rem; }
+      .mute-btn { width: 38px; height: 38px; }
+      .build-card { width: 30vw; max-width: 132px; }
+      .wave-bar { width: auto; left: 1rem; right: 1rem; }
+    }
+
     /* Map selection screen */
     .map-select {
       position: fixed;
@@ -1269,6 +1284,41 @@
       transform: scale(0.9);
       background: rgba(220, 50, 50, 1);
     }
+
+    /* Co-op chat */
+    .chat-toggle {
+      position: absolute; top: 5rem; right: 1rem; width: 42px; height: 42px; border-radius: 50%;
+      background: rgba(40,30,15,0.8); border: 2px solid #8b6f47; color: #fff5d6; font-size: 1.1rem; cursor: pointer; z-index: 7;
+    }
+    .chat-box {
+      position: absolute; top: 8.5rem; right: 1rem; width: 240px; max-width: 70vw; display: none; flex-direction: column;
+      background: rgba(20,16,10,0.92); border: 2px solid #8b6f47; border-radius: 10px; z-index: 7; overflow: hidden;
+    }
+    .chat-box.show { display: flex; }
+    .chat-log { height: 150px; overflow-y: auto; padding: 0.5rem; font-size: 0.8rem; color: #e8dcc0; display: flex; flex-direction: column; gap: 0.25rem; }
+    .chat-log .cm-who { color: #fbbf24; font-weight: 700; }
+    .chat-row { display: flex; border-top: 1px solid #5a4530; }
+    .chat-input { flex: 1; padding: 0.5rem; background: rgba(10,8,5,0.8); border: none; color: #fff5d6; font-family: inherit; font-size: 0.8rem; outline: none; }
+    .chat-send { padding: 0.5rem 0.7rem; background: #8b6f47; border: none; color: #fff5d6; cursor: pointer; }
+
+    /* Hero abilities bar (bottom center) */
+    .ability-bar {
+      position: absolute; bottom: 5.2rem; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 0.6rem; z-index: 6;
+    }
+    .ability-btn {
+      position: relative; width: 52px; height: 52px; border-radius: 50%;
+      background: rgba(40, 50, 70, 0.9); border: 2px solid #7dd3fc; color: #fff;
+      font-size: 1.3rem; cursor: pointer; font-family: inherit; touch-action: none; user-select: none;
+      overflow: hidden; transition: transform 0.1s;
+    }
+    .ability-btn:active { transform: scale(0.92); }
+    .ability-btn.cooling { border-color: #5a6a7a; opacity: 0.7; }
+    .ab-cd {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.55); color: #fff; font-size: 0.85rem; font-weight: 800;
+    }
+    .ab-cd:empty { display: none; }
 
     /* Mute button — small, bottom-left corner */
     .mute-btn {
@@ -2089,6 +2139,14 @@
       color: #fbbf24;
     }
     .wave-bar-status { opacity: 0.75; }
+    .wave-skip-btn {
+      margin-top: 0.4rem; width: 100%; padding: 0.4rem; border-radius: 6px; cursor: pointer;
+      font-family: inherit; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em;
+      background: rgba(80, 55, 30, 0.85); border: 1px solid #8b6f47; color: #fbbf24;
+      pointer-events: auto;
+    }
+    .wave-skip-btn:hover { border-color: #fbbf24; }
+    .wave-skip-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     .wave-bar-track {
       height: 6px;
       background: rgba(20, 12, 5, 0.7);
@@ -2411,6 +2469,7 @@
         <span class="wave-bar-status" id="waveBarStatus">2:00</span>
       </div>
       <div class="wave-bar-track"><div class="wave-bar-fill" id="waveBarFill"></div></div>
+      <button class="wave-skip-btn" id="waveSkipBtn">⏩ Start wave now</button>
     </div>
     <div class="wave-alert" id="waveAlert">
       <h2 id="waveAlertTitle">Wave 1</h2>
@@ -2426,6 +2485,23 @@
     <button class="attack-btn" id="attackBtn">⚔</button>
     <button class="build-btn" id="buildBtn">🔨</button>
     <button class="mute-btn" id="muteBtn" title="Toggle sound">🔊</button>
+
+    <!-- Hero abilities -->
+    <div class="ability-bar" id="abilityBar">
+      <button class="ability-btn" id="abHaste" title="Haste — move faster">💨<span class="ab-cd" id="cdHaste"></span></button>
+      <button class="ability-btn" id="abSummon" title="Summon ally">🆘<span class="ab-cd" id="cdSummon"></span></button>
+      <button class="ability-btn" id="abSurge" title="Power Surge — attack faster">💥<span class="ab-cd" id="cdSurge"></span></button>
+    </div>
+
+    <!-- Co-op chat -->
+    <button class="chat-toggle" id="chatToggle" style="display:none">💬</button>
+    <div class="chat-box" id="chatBox">
+      <div class="chat-log" id="chatLog"></div>
+      <div class="chat-row">
+        <input class="chat-input" id="chatInput" type="text" maxlength="80" placeholder="Type a message…" autocomplete="off" />
+        <button class="chat-send" id="chatSend">▶</button>
+      </div>
+    </div>
 
     <!-- Placement banner -->
     <div class="place-banner" id="placeBanner">
@@ -3090,7 +3166,7 @@
     function saveProfile() { try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch (e) {} }
     let profile = loadProfile();
     // Shop prices (only locked items are purchasable)
-    const WARRIOR_PRICE = { mage: 200, berserker: 250, ranger: 250, paladin: 300, assassin: 300, pyromancer: 350, druid: 400, samurai: 450 };
+    const WARRIOR_PRICE = { mage: 200, berserker: 250, ranger: 250, paladin: 300, assassin: 300, pyromancer: 350, druid: 400, samurai: 450, gladiator: 500, monk: 550, sniper: 650, warlock: 750, valkyrie: 850, titan: 1000 };
     const MAP_PRICE = { forest: 300, desert: 600, mountains: 1000, ocean: 1600 };
     // Per-land config — each map plays & looks different
     let activeMapId = 'plains';
@@ -3118,7 +3194,13 @@
       { id: 'assassin',    name: 'Assassin',    emoji: '🗡️', locked: true,  hp: 60,  speed: 5, weapon: 'daggers',   weaponName: 'Twin Daggers', range: 40, damage: 9, color: '#3a3a4a', desc: 'Strikes twice per swing, very fast.' },
       { id: 'pyromancer',  name: 'Pyromancer',  emoji: '🔥', locked: true,  hp: 65,  speed: 3, weapon: 'firestaff', weaponName: 'Fire Staff', range: 200, damage: 16, color: '#e74c3c', desc: 'Burns enemies in a fiery arc.' },
       { id: 'druid',       name: 'Druid',       emoji: '🌿', locked: true,  hp: 90,  speed: 3, weapon: 'vines',     weaponName: 'Thornwhip',  range: 150, damage: 10, color: '#2a7028', desc: 'Slows enemies with binding vines.' },
-      { id: 'samurai',     name: 'Samurai',     emoji: '🥷', locked: true,  hp: 95,  speed: 4, weapon: 'katana',    weaponName: 'Katana',     range: 60, damage: 14, color: '#c12d1f', desc: 'Lightning-fast slashes.' }
+      { id: 'samurai',     name: 'Samurai',     emoji: '🥷', locked: true,  hp: 95,  speed: 4, weapon: 'katana',    weaponName: 'Katana',     range: 60, damage: 14, color: '#c12d1f', desc: 'Lightning-fast slashes.' },
+      { id: 'gladiator',   name: 'Gladiator',   emoji: '🛡️', locked: true,  hp: 160, speed: 2, weapon: 'sword',     weaponName: 'Gladius',    range: 50, damage: 13, color: '#b8862a', desc: 'Heavily armored arena champion.' },
+      { id: 'monk',        name: 'Monk',        emoji: '🥋', locked: true,  hp: 85,  speed: 5, weapon: 'daggers',   weaponName: 'Iron Fists', range: 42, damage: 8,  color: '#d98a3a', desc: 'Blazing-fast flurry of strikes.' },
+      { id: 'sniper',      name: 'Sniper',      emoji: '🎯', locked: true,  hp: 65,  speed: 3, weapon: 'crossbow',  weaponName: 'Marksman Bow', range: 380, damage: 16, color: '#4a6a8a', desc: 'Extreme range, heavy bolts.' },
+      { id: 'warlock',     name: 'Warlock',     emoji: '🧙', locked: true,  hp: 70,  speed: 3, weapon: 'firestaff', weaponName: 'Hexfire Staff', range: 240, damage: 18, color: '#8a2aa8', desc: 'Scorching dark fire.' },
+      { id: 'valkyrie',    name: 'Valkyrie',    emoji: '⚡', locked: true,  hp: 110, speed: 4, weapon: 'katana',    weaponName: 'Storm Blade', range: 64, damage: 16, color: '#7da8d9', desc: 'Swift winged warrior.' },
+      { id: 'titan',       name: 'Titan',       emoji: '🗿', locked: true,  hp: 220, speed: 2, weapon: 'hammer',    weaponName: 'Earthbreaker', range: 60, damage: 20, color: '#7a7268', desc: 'Massive HP, crushing blows.' }
     ];
 
     let selectedWarriorId = null;
@@ -3385,6 +3467,7 @@
       world.stats = { kills: 0, waves: 0, built: 0, startTime: world.time };
       world.gameOver = false;
       world.player.invuln = 0;
+      world.abilities = { haste: 0, summon: 0, surge: 0 }; // readyAt timestamps
       // Make sure a leftover game-over screen is hidden on (re)start
       const goScreen = document.getElementById('gameOverScreen');
       if (goScreen) goScreen.classList.remove('show');
@@ -3542,6 +3625,7 @@
 
       SFX.attack();
       p.attackCooldown = w.weapon === 'daggers' ? 12 : 25;
+      if (p.surgeUntil && world.time < p.surgeUntil) p.attackCooldown = Math.ceil(p.attackCooldown * 0.4);
     }
 
     function hitDecoration(d, dmg) {
@@ -4009,6 +4093,27 @@
         color: '#3a3a3a', accent: '#ffcf40',
         desc: 'Massive bombs — huge splash, slow reload.'
       },
+      twincannon: {
+        name: 'Twin Cannon', icon: '🔫', kind: 'tower', projectile: 'bolt',
+        cost: { wood: 90, stone: 90, power: 70 },
+        hp: 150, range: 240, damage: 9, fireRate: 26,
+        color: '#5a5a4a', accent: '#cfcfcf',
+        desc: 'Rapid double bolts at close range.'
+      },
+      mortar: {
+        name: 'Mortar', icon: '🧨', kind: 'tower', projectile: 'rock',
+        cost: { wood: 110, stone: 160, power: 90 },
+        hp: 170, range: 360, damage: 30, fireRate: 135, aoe: 80,
+        color: '#4a4030', accent: '#9a9a9a',
+        desc: 'Long-range lobbed shells with splash.'
+      },
+      booster: {
+        name: 'Booster', icon: '📡', kind: 'booster', projectile: null,
+        cost: { wood: 100, stone: 60, power: 120 },
+        hp: 130, range: 150,
+        color: '#2a5a6a', accent: '#7df9ff',
+        desc: 'Boosts nearby towers: more damage & faster fire.'
+      },
       heal: {
         name: 'Heal Shrine', icon: '💚', kind: 'heal', projectile: null,
         cost: { wood: 100, stone: 100, power: 80 },
@@ -4058,9 +4163,9 @@
     };
     // Which build tab each building belongs to
     const buildCategories = {
-      defense:   { label: '⚔ Defense',   items: ['watchtower', 'crossbow', 'catapult', 'firelauncher', 'laser', 'bomber'] },
+      defense:   { label: '⚔ Defense',   items: ['watchtower', 'crossbow', 'twincannon', 'catapult', 'mortar', 'firelauncher', 'laser', 'bomber'] },
       resource:  { label: '⛏ Resource',  items: ['treeplot', 'mineplot'] },
-      support:   { label: '✨ Support',   items: ['heal', 'revive'] },
+      support:   { label: '✨ Support',   items: ['heal', 'revive', 'booster'] },
       helpers:   { label: '👷 Helpers',   items: ['helperhouse'] },
       transport: { label: '🛤 Transport', items: ['track', 'bridge'] }
     };
@@ -4157,9 +4262,9 @@
     }
     // Derived stats from the per-track upgrade levels
     function bMaxHp(b)    { const d = buildingDefs[b.type]; return Math.round(d.hp * (1 + 0.35 * up(b, 'maxHp'))); }
-    function bDamage(b)   { const d = buildingDefs[b.type]; let dmg = (d.damage || 0) * (1 + 0.22 * up(b, 'damage')); if (up(b, 'ammo')) dmg *= 1.2; return Math.round(dmg); }
+    function bDamage(b)   { const d = buildingDefs[b.type]; let dmg = (d.damage || 0) * (1 + 0.22 * up(b, 'damage')); if (up(b, 'ammo')) dmg *= 1.2; dmg *= (b.boostMul || 1); return Math.round(dmg); }
     function bRange(b)    { const d = buildingDefs[b.type]; return d.range; }
-    function bFireRate(b) { const d = buildingDefs[b.type]; return Math.max(14, Math.round(d.fireRate * Math.pow(0.88, up(b, 'fireRate')))); }
+    function bFireRate(b) { const d = buildingDefs[b.type]; return Math.max(10, Math.round(d.fireRate * Math.pow(0.88, up(b, 'fireRate')) / (b.boostMul || 1))); }
     function bHeal(b)     { const d = buildingDefs[b.type]; return Math.round((d.healAmount || 0) * (1 + 0.40 * up(b, 'damage'))); }
     function bArchers(b)  { return 1 + up(b, 'archer'); }
     function bAoe(b)      { const d = buildingDefs[b.type]; let aoe = d.aoe || 0; if (up(b, 'ammo') && !aoe) aoe = 35; return aoe ? Math.round(aoe * (1 + 0.10 * up(b, 'damage'))) : 0; }
@@ -4567,8 +4672,8 @@
         if (h.hitFlash > 0) h.hitFlash--;
         if (h.attackCooldown > 0) h.attackCooldown--;
         if (h.swing > 0) h.swing--;
-        if (h.hp <= 0) {
-          world.floatingText.push({ x: h.x, y: h.y - 14, vy: -0.7, life: 55, text: '☠ helper lost', color: '#e74c3c' });
+        if (h.hp <= 0 || (h.expireAt && world.time > h.expireAt)) {
+          world.floatingText.push({ x: h.x, y: h.y - 14, vy: -0.7, life: 55, text: h.ally ? '✨ ally left' : '☠ helper lost', color: '#e74c3c' });
           world.helpers.splice(i, 1);
           continue;
         }
@@ -4663,6 +4768,15 @@
 
     function updateBuildings() {
       if (!world.buildings) return;
+      // Booster aura: towers near a Booster fire stronger & faster
+      const boosters = world.buildings.filter(x => buildingDefs[x.type] && buildingDefs[x.type].kind === 'booster');
+      world.buildings.forEach(b => {
+        if (buildingDefs[b.type] && buildingDefs[b.type].kind === 'tower') {
+          let m = 1;
+          boosters.forEach(bo => { if (Math.hypot(bo.x - b.x, bo.y - b.y) < (buildingDefs.booster.range)) m *= 1.3; });
+          b.boostMul = Math.min(m, 2.2);
+        }
+      });
       for (let i = world.buildings.length - 1; i >= 0; i--) {
         const b = world.buildings[i];
         if (b.hitFlash > 0) b.hitFlash--;
@@ -4673,7 +4787,7 @@
           continue;
         }
         const def = buildingDefs[b.type];
-        if (def.kind === 'revive') continue; // passive — only acts on hero death
+        if (def.kind === 'revive' || def.kind === 'booster') continue; // passive
         if (b.cooldown > 0) { b.cooldown--; continue; }
         if (def.kind === 'heal') {
           healAll(b, bHeal(b));
@@ -5188,10 +5302,12 @@
       if (!def) return;
       const pos = randomSpawnPosition();
       const w = world.waveNumber || 1;
-      // Per-wave scaling: tougher, harder-hitting, slightly faster each wave
-      const waveHp = 1 + 0.10 * (w - 1);
-      const waveDmg = 1 + 0.06 * (w - 1);
-      const waveSpd = Math.min(1.6, 1 + 0.025 * (w - 1));
+      // Per-wave scaling: tougher, harder-hitting, slightly faster each wave.
+      // Ramps up faster after wave 10 so late game stays challenging.
+      const late = Math.max(0, w - 10);
+      const waveHp = 1 + 0.12 * (w - 1) + 0.06 * late;
+      const waveDmg = 1 + 0.07 * (w - 1) + 0.03 * late;
+      const waveSpd = Math.min(1.7, 1 + 0.025 * (w - 1));
       // Night makes enemies tougher too
       const night = isNight();
       const land = mapCfg().diff; // harder lands = tougher foes
@@ -5219,14 +5335,16 @@
       let totalEnemies = 3 + Math.floor(w * 1.5);
       if (night) totalEnemies = Math.round(totalEnemies * 1.4);
       if (isBossWave) totalEnemies = Math.max(4, Math.floor(totalEnemies * 0.6));
-      // Available types scale with wave number
-      const types = ['goblin'];
+      // Available types scale with wave number (tougher foes weighted in later)
+      const types = ['goblin', 'rat'];
       if (w >= 2) types.push('wolf', 'bat');
-      if (w >= 3) types.push('skeleton', 'slime');
+      if (w >= 3) types.push('skeleton', 'slime', 'spider');
       if (w >= 4) types.push('imp', 'shaman');
       if (w >= 5) types.push('orc');
-      if (w >= 6) types.push('brute');
-      if (w >= 8) types.push('shaman', 'brute'); // weight tougher foes later
+      if (w >= 6) types.push('brute', 'knightling');
+      if (w >= 8) types.push('shaman', 'brute', 'ogre', 'witch');
+      if (w >= 11) types.push('ogre', 'knightling', 'witch', 'brute'); // heavy late-game weighting
+      if (w >= 15) types.push('ogre', 'brute', 'knightling');
 
       // Show alert
       const alert = document.getElementById('waveAlert');
@@ -5272,6 +5390,8 @@
       const bar = document.getElementById('waveBarFill');
       const label = document.getElementById('waveBarLabel');
       const status = document.getElementById('waveBarStatus');
+      const skip = document.getElementById('waveSkipBtn');
+      if (skip) skip.style.display = (!world.waveActive && mp.role !== 'guest') ? 'block' : 'none';
       if (world.waveActive) {
         if (label) label.textContent = `Wave ${world.waveNumber}`;
         if (status) status.textContent = `${world.enemies.length} left`;
@@ -5343,6 +5463,23 @@
         if (e.hitFlash > 0) e.hitFlash--;
         if (e.attackCooldown > 0) e.attackCooldown--;
         if (e.lungeFrames > 0) e.lungeFrames--;
+
+        // Summoners (witches, some bosses) periodically conjure minions
+        if (def.summon) {
+          e.summonTimer = (e.summonTimer || 0) + 1;
+          if (e.summonTimer >= (def.summonRate || 240) && world.enemies.length < 60) {
+            e.summonTimer = 0;
+            const sd = enemyTypes[def.summon];
+            if (sd) {
+              world.enemies.push({
+                type: def.summon, x: e.x + rint(-30, 30), y: e.y + rint(-30, 30),
+                hp: sd.hp, maxHp: sd.hp, dmgMul: 1, speedMul: 1,
+                attackCooldown: 0, facing: 1, hitFlash: 0, bobOffset: Math.random() * Math.PI * 2
+              });
+              world.floatingText.push({ x: e.x, y: e.y - 24, vy: -0.7, life: 45, text: '✨ summon!', color: '#c084fc' });
+            }
+          }
+        }
 
         // Vision: only target what's within visionRange
         const distP = Math.hypot(world.player.x - e.x, world.player.y - e.y);
@@ -5753,6 +5890,8 @@
       const lb = document.getElementById('leaveBtn'); if (lb) lb.addEventListener('click', leaveMatch);
       const sb = document.getElementById('toggleSoundBtn'); if (sb) sb.addEventListener('click', () => { SFX.setSfx(!SFX.sfxEnabled()); setPaused(true); });
       const mb = document.getElementById('toggleMusicBtn'); if (mb) mb.addEventListener('click', () => { SFX.setMusic(!SFX.musicEnabled()); setPaused(true); });
+      const skip = document.getElementById('waveSkipBtn');
+      if (skip) skip.addEventListener('click', () => { if (world && !world.waveActive && mp.role !== 'guest') { world.timeToNextWave = 0; } });
     })();
 
     // ===== SAVE / LOAD (localStorage) =====
@@ -5776,7 +5915,7 @@
           tracks: (world.tracks || []).map(t => ({ x1: t.x1, y1: t.y1, x2: t.x2, y2: t.y2, t: t.t, dir: t.dir, speed: t.speed })),
           bridges: world.bridges || [], roads: world.roads || [],
           decorations: (world.decorations || []).map(d => ({ type: d.type, x: d.x, y: d.y, hp: d.hp, maxHp: d.maxHp })),
-          sections: (exState.sections || []).map(s => ({ row: s.row, col: s.col, type: s.type, terrain: s.terrain, cost: s.cost, quest: s.quest, questText: s.questText }))
+          sections: (exState.sections || []).map(s => ({ row: s.row, col: s.col, type: s.type, terrain: s.terrain, explored: s.explored, cost: s.cost, quest: s.quest, questText: s.questText }))
         };
         localStorage.setItem(SAVE_KEY, JSON.stringify(data));
       } catch (e) { console.warn('save failed', e); }
@@ -5813,6 +5952,7 @@
       world.structures = data.structures.map(s => ({ type: s.type, x: s.x, y: s.y, up: s.up, timer: s.timer || 0, passiveTimer: 0, childDeco: null }));
       world.buildings = data.buildings.map(b => ({ type: b.type, x: b.x, y: b.y, hp: b.hp, maxHp: b.maxHp, up: b.up, charges: b.charges || 0, cooldown: 0, hitFlash: 0, aimAngle: -Math.PI / 2 }));
       world.helpers = data.helpers.map(h => ({ kind: h.kind, x: h.x, y: h.y, hp: h.hp, maxHp: h.maxHp, home: (h.homeIndex >= 0 ? world.buildings[h.homeIndex] : null), facing: 1, target: null, attackCooldown: 0, swing: 0, hitFlash: 0 }));
+      world.abilities = { haste: 0, summon: 0, surge: 0 };
       rebuildRiverSet();
       recomputeFieldBBox();
       world.camera.x = world.player.x - canvas.width / 2;
@@ -6095,16 +6235,31 @@
       } catch (e) {}
     }
 
+    const STORY_ITEMS = ['🍎', '🍌', '⭐', '🪙', '🐝', '🌸', '🍪', '🐟'];
     function makeMathChallenge(lvl) {
+      const nl = profile.lang === 'nl';
       let a, b, ans, q;
-      const types = lvl <= 1 ? ['+', '-'] : lvl === 2 ? ['+', '-', '×', '?'] : lvl === 3 ? ['+', '-', '×', '÷', '?'] : ['+', '-', '×', '÷', '?'];
+      const base = ['+', '-'];
+      const types = lvl <= 1 ? base.concat(['dbl', 'story'])
+        : lvl === 2 ? base.concat(['×', '?', 'dbl', 'half', 'cmp', 'story'])
+        : base.concat(['×', '÷', '?', 'half', 'cmp', 'story']);
       const op = pick(types);
       const max = lvl === 1 ? 10 : lvl === 2 ? 20 : lvl === 3 ? 100 : lvl === 4 ? 1000 : 10000;
-      if (op === '?') { // missing number:  a + ? = c
-        a = rint(1, lvl === 1 ? 10 : 20); ans = rint(1, lvl === 1 ? 10 : 20);
-        const c = a + ans; q = `${a} + ? = ${c}`;
+      if (op === 'cmp') { // greater / smaller / equal (multiple choice)
+        a = rint(1, max); b = Math.random() < 0.3 ? a : rint(1, max);
+        const ans2 = a > b ? '>' : a < b ? '<' : '=';
+        return { q: `${a}  ▢  ${b}`, ans: ans2, type: 'mc', options: ['>', '<', '='] };
+      }
+      if (op === 'dbl') { a = rint(1, lvl === 1 ? 10 : 50); ans = a * 2; return { q: (nl ? 'Het dubbele van ' : 'Double of ') + a + ' = ?', ans: String(ans), type: 'num' }; }
+      if (op === 'half') { ans = rint(1, lvl === 2 ? 20 : 50); a = ans * 2; return { q: (nl ? 'De helft van ' : 'Half of ') + a + ' = ?', ans: String(ans), type: 'num' }; }
+      if (op === 'story') {
+        const it = pick(STORY_ITEMS);
+        a = rint(2, lvl === 1 ? 8 : 20); b = rint(1, lvl === 1 ? 6 : 15);
+        if (Math.random() < 0.5) { ans = a + b; q = nl ? `Je hebt ${a} ${it} en krijgt er ${b} bij.\nHoeveel ${it}?` : `You have ${a} ${it} and get ${b} more.\nHow many ${it}?`; }
+        else { if (b > a) [a, b] = [b, a]; ans = a - b; q = nl ? `Je hebt ${a} ${it} en geeft er ${b} weg.\nHoeveel ${it} over?` : `You have ${a} ${it} and give ${b} away.\nHow many ${it} left?`; }
         return { q, ans: String(ans), type: 'num' };
       }
+      if (op === '?') { a = rint(1, lvl === 1 ? 10 : 20); ans = rint(1, lvl === 1 ? 10 : 20); const c = a + ans; return { q: `${a} + ? = ${c}`, ans: String(ans), type: 'num' }; }
       if (op === '+') { a = rint(1, max); b = rint(1, max); ans = a + b; }
       else if (op === '-') { a = rint(1, max); b = rint(1, a); ans = a - b; }
       else if (op === '×') { const m = lvl <= 2 ? 5 : lvl === 3 ? 10 : (lvl === 4 ? 12 : 20); a = rint(2, m); b = rint(2, m); ans = a * b; }
@@ -6284,6 +6439,42 @@
         color: '#3a8a6a', accent: '#1a4a30',
         powerDrop: 70, lootChance: 0.5, lootTable: { wood: 2 }
       },
+      rat: {
+        name: 'Rat', emoji: '🐀',
+        hp: 5, speed: 2.4, damage: 2, attackRate: 35, range: 22,
+        visionRange: 320, attackType: 'lunge',
+        color: '#6a6a6a', accent: '#3a3a3a',
+        powerDrop: 25, lootChance: 0.3, lootTable: { wood: 1 }
+      },
+      spider: {
+        name: 'Spider', emoji: '🕷️',
+        hp: 16, speed: 1.9, damage: 6, attackRate: 50, range: 26,
+        visionRange: 360, attackType: 'lunge',
+        color: '#2a2a3a', accent: '#5a1a4a',
+        powerDrop: 55, lootChance: 0.4, lootTable: { wood: 2 }
+      },
+      ogre: {
+        name: 'Ogre', emoji: '👹',
+        hp: 90, speed: 0.55, damage: 16, attackRate: 95, range: 40,
+        visionRange: 300, attackType: 'melee',
+        color: '#5a7a2a', accent: '#2a3a10',
+        powerDrop: 150, lootChance: 0.75, lootTable: { stone: 5 }
+      },
+      witch: {
+        name: 'Witch', emoji: '🧙‍♀️',
+        hp: 40, speed: 0.9, damage: 11, attackRate: 80, range: 220,
+        visionRange: 420, attackType: 'fireball',
+        color: '#7a2a8a', accent: '#3a103a',
+        powerDrop: 130, lootChance: 0.5, lootTable: { wood: 3 },
+        summon: 'rat', summonRate: 280
+      },
+      knightling: {
+        name: 'Dark Knight', emoji: '🗡️',
+        hp: 70, speed: 1.1, damage: 13, attackRate: 60, range: 34,
+        visionRange: 340, attackType: 'melee',
+        color: '#3a3a4a', accent: '#1a1a2a',
+        powerDrop: 140, lootChance: 0.6, lootTable: { stone: 4 }
+      },
       boss: {
         name: 'Warlord', emoji: '👺',
         hp: 300, speed: 0.5, damage: 16, attackRate: 70, range: 42,
@@ -6307,9 +6498,25 @@
         color: '#5a3a8a', accent: '#2a1a4a',
         powerDrop: 450, lootChance: 1.0, lootTable: { wood: 16, stone: 8 },
         gemDrop: 3, scale: 2.2, boss: true
+      },
+      demon: {
+        name: 'Demon Lord', emoji: '😈',
+        hp: 420, speed: 0.8, damage: 20, attackRate: 60, range: 240,
+        visionRange: 560, attackType: 'fireball',
+        color: '#a02020', accent: '#4a0a0a',
+        powerDrop: 600, lootChance: 1.0, lootTable: { stone: 16, wood: 16 },
+        gemDrop: 5, scale: 2.6, boss: true, summon: 'spider', summonRate: 200
+      },
+      lich: {
+        name: 'Lich', emoji: '💀',
+        hp: 380, speed: 0.7, damage: 18, attackRate: 70, range: 250,
+        visionRange: 560, attackType: 'fireball',
+        color: '#3a6a4a', accent: '#0a2a1a',
+        powerDrop: 650, lootChance: 1.0, lootTable: { stone: 20 },
+        gemDrop: 5, scale: 2.5, boss: true, summon: 'knightling', summonRate: 240
       }
     };
-    const BOSS_TYPES = ['boss', 'golem', 'wraith'];
+    const BOSS_TYPES = ['boss', 'golem', 'wraith', 'demon', 'lich'];
 
     function spawnPool() {
       const pool = [];
@@ -6391,6 +6598,7 @@
       let pool = spawnPool(), density = 0.18;
       if (sec.terrain === 'mountain') { pool = MOUNTAIN_POOL; density = 0.32; }
       else if (sec.terrain === 'river') { rebuildRiverSet(); return; } // rivers are open water you must bridge
+      else if (sec.terrain === 'cave') { density = 0.10; } // sparse — the treasure is the reward on entry
       for (let r = 0; r < 3; r++) {
         for (let c = 0; c < 3; c++) {
           const tx = sx + c * ts + ts / 2 + (Math.random() - 0.5) * 12;
@@ -7790,7 +7998,8 @@
           if ((p.x - rd.x) ** 2 + (p.y - rd.y) ** 2 < 900) { p.onRoad = true; break; }
         }
       }
-      const boost = p.onRoad ? 2.3 : 1;
+      const haste = (p.hasteUntil && world.time < p.hasteUntil) ? 1.8 : 1;
+      const boost = (p.onRoad ? 2.3 : 1) * haste;
       p.vx = dx * p.speed * boost;
       p.vy = dy * p.speed * boost;
 
@@ -7803,6 +8012,21 @@
       if (!collidesAt(nx, p.y)) p.x = nx;
       let ny = p.y + p.vy;
       if (!collidesAt(p.x, ny)) p.y = ny;
+
+      // Entering an unexplored cave reveals treasure
+      const sp = world.tileSize * 3;
+      const col = Math.floor((p.x - world.originX) / sp), row = Math.floor((p.y - world.originY) / sp);
+      const sec = exState.sections.find(s => s.row === row && s.col === col);
+      if (sec && sec.terrain === 'cave' && !sec.explored) {
+        sec.explored = true;
+        const gems = rint(1, 3), pow = rint(40, 120);
+        const gk = ['gemGreen', 'gemRed', 'gemBlue'][rint(0, 2)];
+        playerInventory[gk] = (playerInventory[gk] || 0) + gems;
+        playerInventory.power = (playerInventory.power || 0) + pow;
+        updateResourceBars();
+        SFX.coin();
+        world.floatingText.push({ x: p.x, y: p.y - 30, vy: -0.6, life: 90, text: `🕳️ Cave treasure! +${gems}◆ +${pow}⚡`, color: '#c084fc' });
+      }
     }
 
     function updateCamera() {
@@ -7859,6 +8083,17 @@
             }
             ctx.stroke();
           }
+        } else if (sec.terrain === 'cave') {
+          ctx.fillStyle = sec.explored ? 'rgba(30, 25, 35, 0.45)' : 'rgba(20, 16, 26, 0.6)';
+          ctx.fillRect(sx, sy, sp, sp);
+          // cave mouth
+          const cxp = sx + sp / 2, cyp = sy + sp / 2;
+          ctx.fillStyle = '#0a0610';
+          ctx.beginPath(); ctx.ellipse(cxp, cyp, 34, 26, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#2a2233';
+          ctx.beginPath(); ctx.ellipse(cxp, cyp + 6, 40, 16, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.font = '20px sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText(sec.explored ? '🕳️' : '✨🕳️', cxp, cyp + 6);
         }
       });
     }
@@ -7879,6 +8114,42 @@
         ctx.beginPath(); ctx.moveTo(rd.x - 18, rd.y + 4); ctx.lineTo(rd.x + 18, rd.y + 4); ctx.stroke();
       });
     }
+
+    // ===== HERO ABILITIES =====
+    const ABILITY_CD = { haste: 16000, summon: 28000, surge: 18000 };
+    function activateAbility(key) {
+      if (!world || mp.role === 'guest' || world.gameOver) return;
+      const a = world.abilities; if (!a) return;
+      if (world.time < (a[key] || 0)) return; // on cooldown
+      a[key] = world.time + ABILITY_CD[key];
+      const p = world.player;
+      if (key === 'haste') { p.hasteUntil = world.time + 6000; world.floatingText.push({ x: p.x, y: p.y - 36, vy: -0.6, life: 50, text: '💨 Haste!', color: '#7df9ff' }); }
+      else if (key === 'surge') { p.surgeUntil = world.time + 6000; world.floatingText.push({ x: p.x, y: p.y - 36, vy: -0.6, life: 50, text: '💥 Surge!', color: '#ffcf40' }); }
+      else if (key === 'summon') {
+        const ally = { kind: 'fighter', home: null, ally: true, expireAt: world.time + 25000, x: p.x + rint(-20, 20), y: p.y + 24, facing: 1, target: null, attackCooldown: 0, swing: 0, hitFlash: 0 };
+        ally.maxHp = 90; ally.hp = 90;
+        world.helpers.push(ally);
+        world.floatingText.push({ x: p.x, y: p.y - 36, vy: -0.6, life: 50, text: '🆘 Ally!', color: '#7bed9f' });
+      }
+      SFX.upgrade();
+    }
+    function updateAbilityUI() {
+      const bar = document.getElementById('abilityBar');
+      if (!bar) return;
+      if (!world || mp.role === 'guest') { bar.style.display = 'none'; return; }
+      bar.style.display = 'flex';
+      const a = world.abilities || {};
+      [['haste', 'cdHaste', 'abHaste'], ['summon', 'cdSummon', 'abSummon'], ['surge', 'cdSurge', 'abSurge']].forEach(([k, cdId, btnId]) => {
+        const left = Math.max(0, ((a[k] || 0) - world.time) / 1000);
+        const cd = document.getElementById(cdId), btn = document.getElementById(btnId);
+        if (cd) cd.textContent = left > 0 ? Math.ceil(left) : '';
+        if (btn) btn.classList.toggle('cooling', left > 0);
+      });
+    }
+    (function wireAbilities() {
+      const m = { abHaste: 'haste', abSummon: 'summon', abSurge: 'surge' };
+      Object.keys(m).forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('click', (e) => { e.preventDefault(); activateAbility(m[id]); }); });
+    })();
 
     function drawDayNight() {
       const amt = nightAmount();
@@ -7933,6 +8204,7 @@
         if (world.player.hitFlash > 0) world.player.hitFlash--;
         if (world.player.invuln > 0) world.player.invuln--;
         handleDeaths();
+        updateAbilityUI();
         updateCamera();
         renderWorld();
       } catch (err) {
@@ -8129,12 +8401,13 @@
           const dc = c < bb.minCol ? bb.minCol - c : (c > bb.maxCol ? c - bb.maxCol : 0);
           const tier = Math.max(1, Math.max(dr, dc));
 
-          // Special terrain: mountains (stone+gems) or rivers — biased per land
+          // Special terrain: mountains (stone+gems), rivers, or caves (treasure)
           const cfg = mapCfg();
           let terrain = 'plain';
           const tr = Math.random();
           if (tr < cfg.mountainPct) terrain = 'mountain';
           else if (tr < cfg.mountainPct + cfg.riverPct) terrain = 'river';
+          else if (tr < cfg.mountainPct + cfg.riverPct + 0.08) terrain = 'cave';
 
           // Quest chance grows with tier: 8% at tier 1, +8% per tier, capped 50%
           const questChance = Math.min(0.5, 0.08 + (tier - 1) * 0.08);
@@ -8603,6 +8876,7 @@
             const cost = scaledCost('track');
             if (canAffordBuild(cost)) { payCost(cost); world.tracks.push({ x1: d.x1, y1: d.y1, x2: d.x2, y2: d.y2, cx: d.x1, cy: d.y1, t: 0, dir: 1, speed: 0.004 }); SFX.build(); updateResourceBars(); }
           }
+          else if (d.t === 'chat') { addChatMsg(d.who, d.text); }
         });
         c.on('close', () => { console.log('[MP] guest left'); mp.connected = false; world && (world.player2 = null); mpStatus('Player 2 left.'); });
         c.on('error', (e) => console.error('[MP] conn error', e));
@@ -8616,6 +8890,7 @@
       if (!world) return;
       world.player2 = { x: world.house.x + 34, y: world.house.y + 60, facing: 1, speed: 3.0, hp: 130, maxHp: 130, attackCooldown: 0, invuln: 0 };
       mpStatus('Player 2 joined! 🎉');
+      const ct = document.getElementById('chatToggle'); if (ct) ct.style.display = 'block';
     }
 
     function mpJoin(code) {
@@ -8641,13 +8916,39 @@
         const c = mp.peer.connect(cleanCode, { reliable: true });
         mp.conn = c;
         c.on('open', () => { console.log('[MP] connected to host'); mp.connected = true; if (mp.connectTimer) clearTimeout(mp.connectTimer); mpGuestOverlay(null); mpStartGuest(); });
-        c.on('data', (d) => { if (d && d.t === 'snap') { mp.lastSnapshot = d; mpApplySnapshot(d); } });
+        c.on('data', (d) => { if (!d) return; if (d.t === 'snap') { mp.lastSnapshot = d; mpApplySnapshot(d); } else if (d.t === 'chat') { addChatMsg(d.who, d.text); } });
         c.on('close', () => { if (mp.role === 'guest') { mpGuestOverlay(null); alert('Disconnected from host.'); mpLeave(); } });
         c.on('error', (e) => { console.error('[MP] conn error', e); mpGuestOverlay('Connection error: ' + (e && e.type ? e.type : e) + ' — tap to close.'); const el = document.getElementById('mpConnecting'); if (el) el.onclick = () => mpLeave(); });
       });
       mp.peer.on('error', (e) => { console.error('[MP] guest peer error', e); mpGuestOverlay('Join failed: ' + (e && e.type ? e.type : e) + '. Check the code & internet. Tap to close.'); const el = document.getElementById('mpConnecting'); if (el) el.onclick = () => mpLeave(); });
     }
     function mpSend(obj) { try { if (mp.conn && mp.conn.open) mp.conn.send(obj); } catch (e) {} }
+    function addChatMsg(who, text) {
+      const log = document.getElementById('chatLog');
+      if (!log) return;
+      const d = document.createElement('div');
+      d.innerHTML = `<span class="cm-who">${who}:</span> ${String(text).replace(/[<>&]/g, '')}`;
+      log.appendChild(d);
+      log.scrollTop = log.scrollHeight;
+      while (log.children.length > 40) log.removeChild(log.firstChild);
+      // flash the toggle if the box is closed
+      const box = document.getElementById('chatBox');
+      if (box && !box.classList.contains('show')) { const t = document.getElementById('chatToggle'); if (t) t.style.borderColor = '#fbbf24'; }
+    }
+    function chatSend() {
+      const inp = document.getElementById('chatInput');
+      const txt = inp.value.trim(); if (!txt) return;
+      const who = mp.role === 'host' ? 'Host' : 'P2';
+      addChatMsg(who, txt);
+      mpSend({ t: 'chat', who, text: txt });
+      inp.value = '';
+    }
+    (function wireChat() {
+      const t = document.getElementById('chatToggle');
+      if (t) t.addEventListener('click', () => { const b = document.getElementById('chatBox'); b.classList.toggle('show'); t.style.borderColor = '#8b6f47'; if (b.classList.contains('show')) document.getElementById('chatInput').focus(); });
+      const send = document.getElementById('chatSend'); if (send) send.addEventListener('click', chatSend);
+      const inp = document.getElementById('chatInput'); if (inp) inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); chatSend(); } });
+    })();
     // Guest lays a cart track with two taps, then sends both points to the host
     function placeTrackPointGuest(x, y) {
       if (!trackStart) {
@@ -8681,6 +8982,7 @@
       canvas.focus();
       if (mp.inputTimer) clearInterval(mp.inputTimer);
       mp.inputTimer = setInterval(mpGuestSendInput, 60);
+      const ct = document.getElementById('chatToggle'); if (ct) ct.style.display = 'block';
       mpGuestLoop();
     }
     function mpGuestSendInput() {
@@ -8819,6 +9121,8 @@
       if (world) world.player2 = null;
       const box = mpJoinCodeBox(); if (box) box.classList.remove('show');
       mpGuestOverlay(null);
+      const ct = document.getElementById('chatToggle'); if (ct) ct.style.display = 'none';
+      const cb = document.getElementById('chatBox'); if (cb) cb.classList.remove('show');
     }
 
     // Wire co-op buttons
