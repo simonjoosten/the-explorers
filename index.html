@@ -2497,12 +2497,8 @@
     <button class="build-btn" id="buildBtn">🔨</button>
     <button class="mute-btn" id="muteBtn" title="Toggle sound">🔊</button>
 
-    <!-- Hero abilities -->
-    <div class="ability-bar" id="abilityBar">
-      <button class="ability-btn" id="abHaste" title="Haste — move faster">💨<span class="ab-cd" id="cdHaste"></span></button>
-      <button class="ability-btn" id="abSummon" title="Summon ally">🆘<span class="ab-cd" id="cdSummon"></span></button>
-      <button class="ability-btn" id="abSurge" title="Power Surge — attack faster">💥<span class="ab-cd" id="cdSurge"></span></button>
-    </div>
+    <!-- Hero abilities (built per chosen hero) -->
+    <div class="ability-bar" id="abilityBar"></div>
 
     <!-- Co-op chat -->
     <button class="chat-toggle" id="chatToggle" style="display:none">💬</button>
@@ -3478,7 +3474,8 @@
       world.stats = { kills: 0, waves: 0, built: 0, startTime: world.time };
       world.gameOver = false;
       world.player.invuln = 0;
-      world.abilities = { haste: 0, summon: 0, surge: 0 }; // readyAt timestamps
+      world.abilities = {}; // per-ability readyAt timestamps
+      buildAbilityBar();
       // Make sure a leftover game-over screen is hidden on (re)start
       const goScreen = document.getElementById('gameOverScreen');
       if (goScreen) goScreen.classList.remove('show');
@@ -5963,7 +5960,8 @@
       world.structures = data.structures.map(s => ({ type: s.type, x: s.x, y: s.y, up: s.up, timer: s.timer || 0, passiveTimer: 0, childDeco: null }));
       world.buildings = data.buildings.map(b => ({ type: b.type, x: b.x, y: b.y, hp: b.hp, maxHp: b.maxHp, up: b.up, charges: b.charges || 0, cooldown: 0, hitFlash: 0, aimAngle: -Math.PI / 2 }));
       world.helpers = data.helpers.map(h => ({ kind: h.kind, x: h.x, y: h.y, hp: h.hp, maxHp: h.maxHp, home: (h.homeIndex >= 0 ? world.buildings[h.homeIndex] : null), facing: 1, target: null, attackCooldown: 0, swing: 0, hitFlash: 0 }));
-      world.abilities = { haste: 0, summon: 0, surge: 0 };
+      world.abilities = {};
+      buildAbilityBar();
       rebuildRiverSet();
       recomputeFieldBBox();
       world.camera.x = world.player.x - canvas.width / 2;
@@ -8126,16 +8124,52 @@
       });
     }
 
-    // ===== HERO ABILITIES =====
-    const ABILITY_CD = { haste: 16000, summon: 28000, surge: 18000 };
+    // ===== HERO ABILITIES (each hero has its own power-ups) =====
+    const ABILITY_META = {
+      haste:  { icon: '💨', name: 'Haste',  cd: 16000 },
+      surge:  { icon: '💥', name: 'Surge',  cd: 18000 },
+      summon: { icon: '🆘', name: 'Summon', cd: 28000 },
+      shield: { icon: '🛡️', name: 'Shield', cd: 22000 },
+      heal:   { icon: '💚', name: 'Heal',   cd: 24000 }
+    };
+    // Which power-up(s) each hero gets
+    const HERO_ABILITIES = {
+      knight: ['surge'], archer: ['haste'], mage: ['summon'], berserker: ['surge'],
+      ranger: ['haste', 'summon'], paladin: ['heal', 'shield'], assassin: ['haste', 'surge'],
+      pyromancer: ['surge'], druid: ['summon', 'heal'], samurai: ['haste', 'surge'],
+      gladiator: ['shield'], monk: ['haste'], sniper: ['surge'], warlock: ['summon'],
+      valkyrie: ['haste', 'shield'], titan: ['shield', 'surge']
+    };
+    function heroAbilities() {
+      return (world && world.warrior && HERO_ABILITIES[world.warrior.id]) || ['haste'];
+    }
+    function buildAbilityBar() {
+      const bar = document.getElementById('abilityBar');
+      if (!bar) return;
+      bar.innerHTML = '';
+      if (mp.role === 'guest') { bar.style.display = 'none'; return; }
+      bar.style.display = 'flex';
+      heroAbilities().forEach(key => {
+        const meta = ABILITY_META[key]; if (!meta) return;
+        const btn = document.createElement('button');
+        btn.className = 'ability-btn'; btn.dataset.key = key;
+        btn.title = meta.name;
+        btn.innerHTML = `${meta.icon}<span class="ab-cd"></span>`;
+        btn.addEventListener('click', (e) => { e.preventDefault(); activateAbility(key); });
+        bar.appendChild(btn);
+      });
+    }
     function activateAbility(key) {
       if (!world || mp.role === 'guest' || world.gameOver) return;
+      if (!heroAbilities().includes(key)) return; // only this hero's powers
       const a = world.abilities; if (!a) return;
       if (world.time < (a[key] || 0)) return; // on cooldown
-      a[key] = world.time + ABILITY_CD[key];
+      a[key] = world.time + (ABILITY_META[key] ? ABILITY_META[key].cd : 18000);
       const p = world.player;
       if (key === 'haste') { p.hasteUntil = world.time + 6000; world.floatingText.push({ x: p.x, y: p.y - 36, vy: -0.6, life: 50, text: '💨 Haste!', color: '#7df9ff' }); }
       else if (key === 'surge') { p.surgeUntil = world.time + 6000; world.floatingText.push({ x: p.x, y: p.y - 36, vy: -0.6, life: 50, text: '💥 Surge!', color: '#ffcf40' }); }
+      else if (key === 'shield') { p.invuln = Math.max(p.invuln || 0, 300); world.floatingText.push({ x: p.x, y: p.y - 36, vy: -0.6, life: 50, text: '🛡️ Shield!', color: '#bfeaff' }); }
+      else if (key === 'heal') { p.hp = Math.min(p.maxHp, p.hp + Math.ceil(p.maxHp * 0.5)); world.floatingText.push({ x: p.x, y: p.y - 36, vy: -0.6, life: 50, text: '💚 Heal!', color: '#7bed9f' }); }
       else if (key === 'summon') {
         const ally = { kind: 'fighter', home: null, ally: true, expireAt: world.time + 25000, x: p.x + rint(-20, 20), y: p.y + 24, facing: 1, target: null, attackCooldown: 0, swing: 0, hitFlash: 0 };
         ally.maxHp = 90; ally.hp = 90;
@@ -8150,17 +8184,14 @@
       if (!world || mp.role === 'guest') { bar.style.display = 'none'; return; }
       bar.style.display = 'flex';
       const a = world.abilities || {};
-      [['haste', 'cdHaste', 'abHaste'], ['summon', 'cdSummon', 'abSummon'], ['surge', 'cdSurge', 'abSurge']].forEach(([k, cdId, btnId]) => {
+      bar.querySelectorAll('.ability-btn').forEach(btn => {
+        const k = btn.dataset.key;
         const left = Math.max(0, ((a[k] || 0) - world.time) / 1000);
-        const cd = document.getElementById(cdId), btn = document.getElementById(btnId);
+        const cd = btn.querySelector('.ab-cd');
         if (cd) cd.textContent = left > 0 ? Math.ceil(left) : '';
-        if (btn) btn.classList.toggle('cooling', left > 0);
+        btn.classList.toggle('cooling', left > 0);
       });
     }
-    (function wireAbilities() {
-      const m = { abHaste: 'haste', abSummon: 'summon', abSurge: 'surge' };
-      Object.keys(m).forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('click', (e) => { e.preventDefault(); activateAbility(m[id]); }); });
-    })();
 
     function drawDayNight() {
       const amt = nightAmount();
