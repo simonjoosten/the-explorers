@@ -8977,6 +8977,7 @@
       world.player2 = { x: world.house.x + 34, y: world.house.y + 60, facing: 1, speed: 3.0, hp: 130, maxHp: 130, attackCooldown: 0, invuln: 0 };
       mpStatus('Player 2 joined! 🎉');
       const ct = document.getElementById('chatToggle'); if (ct) ct.style.display = 'block';
+      addChatMsg('System', 'Player 2 joined — tap 💬 to chat!');
     }
 
     function mpJoin(code) {
@@ -9069,6 +9070,7 @@
       if (mp.inputTimer) clearInterval(mp.inputTimer);
       mp.inputTimer = setInterval(mpGuestSendInput, 60);
       const ct = document.getElementById('chatToggle'); if (ct) ct.style.display = 'block';
+      addChatMsg('System', 'Connected! Tap 💬 (top-right) to chat.');
       mpGuestLoop();
     }
     function mpGuestSendInput() {
