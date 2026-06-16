@@ -3264,11 +3264,23 @@
             document.querySelectorAll('.warrior-card').forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
             selectedWarriorId = w.id;
+            profile.lastHero = w.id; saveProfile(); // remember chosen hero
             document.getElementById('warriorGoBtn').disabled = false;
           });
         }
         grid.appendChild(card);
       });
+
+      // Pre-select the last hero you played (if still owned)
+      if (profile.lastHero) {
+        const w = warriors.find(x => x.id === profile.lastHero);
+        if (w && warriorUnlocked(w)) {
+          selectedWarriorId = w.id;
+          const card = grid.querySelector('.warrior-card[data-id="' + w.id + '"]');
+          if (card) card.classList.add('selected');
+          document.getElementById('warriorGoBtn').disabled = false;
+        }
+      }
 
       document.getElementById('warriorSelect').style.display = 'flex';
     }
@@ -8177,11 +8189,13 @@
     // Power-ups are a perk of the UNLOCKABLE heroes — the free starters
     // (Knight & Archer) have none, so powers are a reason to buy a new hero.
     const HERO_ABILITIES = {
-      mage: ['summon'], berserker: ['surge'],
-      ranger: ['haste', 'summon'], paladin: ['heal', 'shield'], assassin: ['haste', 'surge'],
-      pyromancer: ['surge'], druid: ['summon', 'heal'], samurai: ['haste', 'surge'],
-      gladiator: ['shield'], monk: ['haste'], sniper: ['surge'], warlock: ['summon'],
-      valkyrie: ['haste', 'shield'], titan: ['shield', 'surge']
+      // Only the newest premium heroes have power-ups
+      gladiator: ['shield', 'surge'],
+      monk: ['haste', 'heal'],
+      sniper: ['surge'],
+      warlock: ['summon'],
+      valkyrie: ['haste', 'shield'],
+      titan: ['shield', 'heal']
     };
     function heroAbilities() {
       return (world && world.warrior && HERO_ABILITIES[world.warrior.id]) || [];
