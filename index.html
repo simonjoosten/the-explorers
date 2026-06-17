@@ -2646,6 +2646,7 @@
         <div class="set-opts">
           <button class="set-opt" id="cloudSaveBtn">⬆️ Save</button>
           <button class="set-opt" id="cloudLoadBtn">⬇️ Load</button>
+          <button class="set-opt" id="cloudDisconnectBtn" style="display:none">✕ Disconnect</button>
         </div>
         <p class="set-hint" id="cloudStatus"></p>
       </div>
@@ -2801,7 +2802,7 @@
     }
     function updateHomeCoins() {
       const el = document.getElementById('homeCoins');
-      if (el) el.textContent = '💰 ' + (profile.coins || 0);
+      if (el) el.textContent = '💰 ' + (profile.coins || 0) + (profile.cloudCode ? '  ·  ☁️ ' + profile.cloudCode : '');
     }
 
     // ===== MAP SELECTION =====
@@ -3202,7 +3203,7 @@
       try { const p = JSON.parse(localStorage.getItem(PROFILE_KEY)); if (p) return Object.assign(base, p); } catch (e) {}
       return base;
     }
-    function saveProfile() { try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch (e) {} }
+    function saveProfile() { try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch (e) {} if (typeof scheduleCloudPush === 'function') scheduleCloudPush(); }
     let profile = loadProfile();
     // Shop prices (only locked items are purchasable)
     const WARRIOR_PRICE = { mage: 200, berserker: 250, ranger: 250, paladin: 300, assassin: 300, pyromancer: 350, druid: 400, samurai: 450, gladiator: 500, monk: 550, sniper: 650, warlock: 750, valkyrie: 850, titan: 1000 };
@@ -6145,6 +6146,7 @@
       markOpts('setMusic', 'music', SFX.musicEnabled() ? 'on' : 'off');
       markOpts('setEdu', 'edu', profile.edu);
       markOpts('setLevel', 'level', profile.eduLevel);
+      if (typeof updateCloudUI === 'function') updateCloudUI();
     }
     (function wireSettings() {
       const open = document.getElementById('settingsBtn'); if (open) open.addEventListener('click', openSettings);
@@ -6156,6 +6158,7 @@
       document.querySelectorAll('#setLevel .set-opt').forEach(b => b.addEventListener('click', () => { profile.eduLevel = parseInt(b.dataset.level, 10); saveProfile(); renderSettings(); }));
       const cs = document.getElementById('cloudSaveBtn'); if (cs) cs.addEventListener('click', cloudSave);
       const cl = document.getElementById('cloudLoadBtn'); if (cl) cl.addEventListener('click', cloudLoad);
+      const cdis = document.getElementById('cloudDisconnectBtn'); if (cdis) cdis.addEventListener('click', cloudDisconnect);
     })();
 
     // ===== CLOUD SAVE (Firebase Firestore via REST — sync across devices) =====
@@ -6171,36 +6174,79 @@
     function fbDocUrl(code) {
       return `https://firestore.googleapis.com/v1/projects/${FB.pid}/databases/(default)/documents/saves/${code}?key=${FB.key}`;
     }
+    // Raw upload of the current profile to a code (also stamps "updated")
+    async function cloudUpload(code, silent) {
+      if (!code) return false;
+      try {
+        const toSave = Object.assign({}, profile); delete toSave.cloudCode; // don't store the code inside itself
+        const body = { fields: { profile: { stringValue: JSON.stringify(toSave) }, updated: { integerValue: String(Date.now()) } } };
+        const r = await fetch(fbDocUrl(code), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        if (!silent) cloudStatus(r.ok ? '✓ Synced as "' + code + '"' : 'Save failed (' + r.status + ').', r.ok);
+        return r.ok;
+      } catch (e) { if (!silent) cloudStatus('Save failed — check your internet.', false); return false; }
+    }
+    // Auto-sync: debounced push whenever the profile changes (if connected)
+    let cloudPushTimer = null;
+    function scheduleCloudPush() {
+      if (!profile.cloudCode) return;
+      clearTimeout(cloudPushTimer);
+      cloudPushTimer = setTimeout(() => cloudUpload(profile.cloudCode, true), 1500);
+    }
+    // "Save" button: connect this device to a code + upload immediately
     async function cloudSave() {
       const code = cloudCodeValue();
       if (code.length < 3) { cloudStatus('Pick a code of 3+ letters/numbers.', false); return; }
+      profile.cloudCode = code; saveProfile();
       cloudStatus('Saving…');
-      try {
-        const body = { fields: { profile: { stringValue: JSON.stringify(profile) }, updated: { integerValue: String(Date.now()) } } };
-        const r = await fetch(fbDocUrl(code), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-        if (r.ok) cloudStatus('✓ Saved to cloud as "' + code + '"', true);
-        else cloudStatus('Save failed (' + r.status + ').', false);
-      } catch (e) { cloudStatus('Save failed — check your internet.', false); }
+      await cloudUpload(code);
+      updateCloudUI();
     }
     async function cloudLoad() {
       const code = cloudCodeValue();
       if (code.length < 3) { cloudStatus('Enter your code first.', false); return; }
       cloudStatus('Loading…');
+      const ok = await cloudPull(code, false);
+      if (ok) { profile.cloudCode = code; saveProfile(); updateCloudUI(); }
+    }
+    // Pull a profile from a code and merge it in
+    async function cloudPull(code, silent) {
       try {
         const r = await fetch(fbDocUrl(code));
-        if (r.status === 404) { cloudStatus('No cloud save found for "' + code + '".', false); return; }
-        if (!r.ok) { cloudStatus('Load failed (' + r.status + ').', false); return; }
+        if (r.status === 404) { if (!silent) cloudStatus('No cloud save found for "' + code + '".', false); return false; }
+        if (!r.ok) { if (!silent) cloudStatus('Load failed (' + r.status + ').', false); return false; }
         const data = await r.json();
         const str = data.fields && data.fields.profile && data.fields.profile.stringValue;
-        if (!str) { cloudStatus('No data in that code.', false); return; }
+        if (!str) { if (!silent) cloudStatus('No data in that code.', false); return false; }
         const loaded = JSON.parse(str);
-        profile = Object.assign(profile, loaded);
+        const code0 = profile.cloudCode;
+        Object.assign(profile, loaded);
+        profile.cloudCode = code0 || code;
         saveProfile();
         applyLang(); updateHomeCoins(); renderSettings();
         SFX.setSfx(profile.sfx !== false); SFX.setMusic(profile.music !== false);
-        cloudStatus('✓ Loaded! Coins & heroes restored.', true);
-      } catch (e) { cloudStatus('Load failed — check your internet.', false); }
+        if (!silent) cloudStatus('✓ Loaded! Coins & heroes restored.', true);
+        return true;
+      } catch (e) { if (!silent) cloudStatus('Load failed — check your internet.', false); return false; }
     }
+    function cloudDisconnect() {
+      profile.cloudCode = null; saveProfile(); updateCloudUI();
+      cloudStatus('Cloud sync turned off on this device.');
+    }
+    function updateCloudUI() {
+      const label = document.getElementById('setCloudLabel');
+      const inp = document.getElementById('cloudCode');
+      const dis = document.getElementById('cloudDisconnectBtn');
+      if (profile.cloudCode) {
+        if (label) label.textContent = '☁️ Synced as "' + profile.cloudCode + '" (auto-saves)';
+        if (inp) inp.value = profile.cloudCode;
+        if (dis) dis.style.display = '';
+      } else {
+        if (label) label.textContent = '☁️ Cloud save (sync across devices)';
+        if (dis) dis.style.display = 'none';
+      }
+    }
+    // On startup: if this device is connected to a code, pull the latest
+    if (profile.cloudCode) { setTimeout(() => cloudPull(profile.cloudCode, true), 400); }
     // ===== TUTORIAL =====
     const TUTORIAL = [
       { icon: '🧭', en: ['Welcome, Explorer!', 'Claim land, gather resources, build defenses and survive the waves. Tap Next to learn the basics.'],
