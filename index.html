@@ -1887,6 +1887,12 @@
     .set-opt:hover { border-color: #8b6f47; }
     .set-opt.active { border-color: #fbbf24; background: rgba(80, 55, 30, 0.85); color: #fbbf24; }
     .set-hint { font-size: 0.74rem; color: #b89968; font-style: italic; margin: 0.4rem 0 1rem; }
+    .cloud-code {
+      width: 100%; padding: 0.6rem; border-radius: 8px; margin: 0.3rem 0 0.5rem;
+      background: rgba(10,8,5,0.8); border: 2px solid #6a523a; color: #fff5d6; font-family: inherit; font-size: 0.9rem; outline: none;
+    }
+    .cloud-code:focus { border-color: #7dd3fc; }
+    #cloudStatus { min-height: 1.1em; }
     .settings-close {
       width: 100%; padding: 0.8rem; border-radius: 10px; font-family: inherit; font-size: 0.9rem; font-weight: 700;
       letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; background: linear-gradient(180deg, #fbbf24, #d97706); border: 2px solid #fde68a; color: #1a1408;
@@ -2634,6 +2640,15 @@
         </div>
       </div>
       <p class="set-hint" id="setEduHint">When learning mode is on, you solve a quick puzzle before each attack and build.</p>
+      <div class="set-row">
+        <div class="set-label" id="setCloudLabel">☁️ Cloud save (sync across devices)</div>
+        <input class="cloud-code" id="cloudCode" type="text" maxlength="20" placeholder="your sync code, e.g. simon123" autocomplete="off" autocapitalize="off" />
+        <div class="set-opts">
+          <button class="set-opt" id="cloudSaveBtn">⬆️ Save</button>
+          <button class="set-opt" id="cloudLoadBtn">⬇️ Load</button>
+        </div>
+        <p class="set-hint" id="cloudStatus"></p>
+      </div>
       <button class="settings-close" id="settingsCloseBtn">Close</button>
     </div>
   </div>
@@ -6139,7 +6154,53 @@
       document.querySelectorAll('#setMusic .set-opt').forEach(b => b.addEventListener('click', () => { SFX.setMusic(b.dataset.music === 'on'); profile.music = b.dataset.music === 'on'; saveProfile(); renderSettings(); }));
       document.querySelectorAll('#setEdu .set-opt').forEach(b => b.addEventListener('click', () => { profile.edu = b.dataset.edu; saveProfile(); renderSettings(); }));
       document.querySelectorAll('#setLevel .set-opt').forEach(b => b.addEventListener('click', () => { profile.eduLevel = parseInt(b.dataset.level, 10); saveProfile(); renderSettings(); }));
+      const cs = document.getElementById('cloudSaveBtn'); if (cs) cs.addEventListener('click', cloudSave);
+      const cl = document.getElementById('cloudLoadBtn'); if (cl) cl.addEventListener('click', cloudLoad);
     })();
+
+    // ===== CLOUD SAVE (Firebase Firestore via REST — sync across devices) =====
+    const FB = { pid: 'the-explorers-ojjss', key: 'AIzaSyC2FGOPBJKdsxD0tmy8Cq7Nas0HUeTQU14' };
+    function cloudStatus(msg, ok) {
+      const el = document.getElementById('cloudStatus');
+      if (el) { el.textContent = msg; el.style.color = ok === true ? '#7bed9f' : ok === false ? '#e74c3c' : '#b89968'; }
+    }
+    function cloudCodeValue() {
+      const raw = (document.getElementById('cloudCode').value || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      return raw;
+    }
+    function fbDocUrl(code) {
+      return `https://firestore.googleapis.com/v1/projects/${FB.pid}/databases/(default)/documents/saves/${code}?key=${FB.key}`;
+    }
+    async function cloudSave() {
+      const code = cloudCodeValue();
+      if (code.length < 3) { cloudStatus('Pick a code of 3+ letters/numbers.', false); return; }
+      cloudStatus('Saving…');
+      try {
+        const body = { fields: { profile: { stringValue: JSON.stringify(profile) }, updated: { integerValue: String(Date.now()) } } };
+        const r = await fetch(fbDocUrl(code), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        if (r.ok) cloudStatus('✓ Saved to cloud as "' + code + '"', true);
+        else cloudStatus('Save failed (' + r.status + ').', false);
+      } catch (e) { cloudStatus('Save failed — check your internet.', false); }
+    }
+    async function cloudLoad() {
+      const code = cloudCodeValue();
+      if (code.length < 3) { cloudStatus('Enter your code first.', false); return; }
+      cloudStatus('Loading…');
+      try {
+        const r = await fetch(fbDocUrl(code));
+        if (r.status === 404) { cloudStatus('No cloud save found for "' + code + '".', false); return; }
+        if (!r.ok) { cloudStatus('Load failed (' + r.status + ').', false); return; }
+        const data = await r.json();
+        const str = data.fields && data.fields.profile && data.fields.profile.stringValue;
+        if (!str) { cloudStatus('No data in that code.', false); return; }
+        const loaded = JSON.parse(str);
+        profile = Object.assign(profile, loaded);
+        saveProfile();
+        applyLang(); updateHomeCoins(); renderSettings();
+        SFX.setSfx(profile.sfx !== false); SFX.setMusic(profile.music !== false);
+        cloudStatus('✓ Loaded! Coins & heroes restored.', true);
+      } catch (e) { cloudStatus('Load failed — check your internet.', false); }
+    }
     // ===== TUTORIAL =====
     const TUTORIAL = [
       { icon: '🧭', en: ['Welcome, Explorer!', 'Claim land, gather resources, build defenses and survive the waves. Tap Next to learn the basics.'],

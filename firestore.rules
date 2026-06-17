@@ -1,0 +1,11 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Cloud saves keyed by a player-chosen sync code (toy game, non-sensitive data)
+    match /saves/{code} {
+      allow read: if true;
+      allow write: if request.resource.data.size() < 50
+                   && request.resource.data.keys().hasOnly(['profile', 'updated']);
+    }
+  }
+}
