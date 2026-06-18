@@ -3558,6 +3558,12 @@
           if (gdef && gdef.kind === 'track') { placeTrackPointGuest(gx, gy); return; }
           mpSend({ t: 'build', bt: buildMode, x: gx, y: gy });
           cancelPlacing();
+          return;
+        }
+        // Tap-to-move for the guest: route our own hero there
+        if (world.player2 && world.player2.x !== undefined) {
+          const path = findPath(world.player2.x, world.player2.y, gx, gy);
+          if (path && path.length > 1) { world.player2.path = path; world.player2.moveTarget = { x: gx, y: gy }; }
         }
         return;
       }
@@ -5911,7 +5917,7 @@
         .map(([k, v]) => `<div class="gameover-stat"><span class="gs-label">${k}</span><span class="gs-val">${v}</span></div>`)
         .join('');
       document.getElementById('gameOverScreen').classList.add('show');
-      if (mp.role === 'host' && mp.connected) { try { mpSend({ t: 'gameover', reason: reason }); } catch (e) {} }
+      if (mp.role === 'host' && mp.connected) { try { mpSend({ t: 'gameover', reason: reason, score: r.score }); } catch (e) {} }
     }
 
     (function wireGameOver() {
@@ -9105,7 +9111,10 @@
           else if (d.t === 'hello' && world && world.player2) {
             const w = warriors.find(x => x.id === d.hero);
             world.player2.hero = d.hero || 'knight';
-            if (w) { world.player2.maxHp = w.hp; world.player2.hp = w.hp; world.player2.speed = Math.max(2.4, w.speed * 0.9); }
+            if (w) {
+              world.player2.maxHp = w.hp; world.player2.hp = w.hp; world.player2.speed = Math.max(2.4, w.speed * 0.9);
+              world.player2.weapon = w.weapon; world.player2.range = w.range; world.player2.damage = w.damage;
+            }
           }
         });
         c.on('close', () => { console.log('[MP] guest left'); mp.connected = false; world && (world.player2 = null); mpStatus('Player 2 left.'); });
@@ -9154,7 +9163,11 @@
           else if (d.t === 'chat') { addChatMsg(d.who, d.text); }
           else if (d.t === 'gameover') {
             SFX.gameover();
-            mpGuestOverlay('💀 Game over — ' + (d.reason || 'the base fell') + '\n\nTap to return to the menu.');
+            const earned = Math.floor((d.score || 0) / 5);
+            if (earned > 0) { profile.coins += earned; }
+            if ((d.score || 0) > (profile.bestScore || 0)) profile.bestScore = d.score;
+            saveProfile();
+            mpGuestOverlay('💀 Game over — ' + (d.reason || 'the base fell') + '\n💰 +' + earned + ' coins\n\nTap to return to the menu.');
             const el = document.getElementById('mpConnecting');
             if (el) el.onclick = () => { mpLeave(); document.getElementById('gameScreen').style.display = 'none'; showMainScreen(); };
           }
@@ -9228,15 +9241,30 @@
       addChatMsg('System', 'Connected! Tap 💬 (top-right) to chat.');
       mpGuestLoop();
     }
-    function mpGuestSendInput() {
-      if (!mp.conn || !mp.conn.open) return;
+    // Guest desired movement: keys, or following a tap-to-move path (advances it)
+    function guestMoveVec() {
       let dx = 0, dy = 0;
       if (keysPressed.has('ArrowLeft')) dx -= 1;
       if (keysPressed.has('ArrowRight')) dx += 1;
       if (keysPressed.has('ArrowUp')) dy -= 1;
       if (keysPressed.has('ArrowDown')) dy += 1;
+      const p2 = world && world.player2;
+      if ((dx || dy) && p2) p2.path = null; // manual input cancels the route
+      if (!dx && !dy && p2 && p2.path && p2.path.length) {
+        let wp = p2.path[0];
+        while (p2.path.length && Math.hypot(wp.x - p2.x, wp.y - p2.y) < 7) { p2.path.shift(); wp = p2.path[0]; }
+        if (!p2.path.length) p2.path = null;
+        else { dx = wp.x - p2.x; dy = wp.y - p2.y; }
+      }
+      const m = Math.hypot(dx, dy);
+      if (m > 0) { dx /= m; dy /= m; }
+      return { dx, dy };
+    }
+    function mpGuestSendInput() {
+      if (!mp.conn || !mp.conn.open) return;
+      const v = mp.guestVec || { dx: 0, dy: 0 };
       const atk = mp.guestAttack; mp.guestAttack = false;
-      try { mp.conn.send({ t: 'input', dx, dy, attack: atk }); } catch (e) {}
+      try { mp.conn.send({ t: 'input', dx: v.dx, dy: v.dy, attack: atk }); } catch (e) {}
     }
     function mpGuestLoop() {
       if (mp.role !== 'guest') return;
@@ -9244,21 +9272,15 @@
         world.time += 16; // keep animations/day-night advancing between snapshots
         // Local prediction: move our own hero immediately for responsiveness
         if (world.player2 && world.player2.x !== undefined) {
-          let dx = 0, dy = 0;
-          if (keysPressed.has('ArrowLeft')) dx -= 1;
-          if (keysPressed.has('ArrowRight')) dx += 1;
-          if (keysPressed.has('ArrowUp')) dy -= 1;
-          if (keysPressed.has('ArrowDown')) dy += 1;
-          const m = Math.hypot(dx, dy);
-          if (m > 0) {
-            dx /= m; dy /= m;
+          const v = guestMoveVec();
+          mp.guestVec = v; // what we send to the host
+          if (v.dx || v.dy) {
             const p2 = world.player2, sp = 3.0;
-            // Respect walls/water just like the host does
             let canCollide = true; try { collidesAt(p2.x, p2.y); } catch (e) { canCollide = false; }
-            const nx = p2.x + dx * sp, ny = p2.y + dy * sp;
+            const nx = p2.x + v.dx * sp, ny = p2.y + v.dy * sp;
             if (!canCollide || !collidesAt(nx, p2.y)) p2.x = nx;
             if (!canCollide || !collidesAt(p2.x, ny)) p2.y = ny;
-            p2.facing = dx >= 0 ? 1 : -1;
+            p2.facing = v.dx >= 0 ? 1 : -1;
           }
           world.camera = { x: world.player2.x - canvas.width / 2, y: world.player2.y - canvas.height / 2 };
         }
@@ -9321,15 +9343,32 @@
     }
     function mpPlayer2Attack() {
       const p2 = world.player2; if (!p2 || p2.attackCooldown > 0) return;
-      let nearest = null, nd = 60, nt = null;
+      const weapon = p2.weapon || 'sword';
+      const dmg = p2.damage || 9;
+      const range = p2.range || 50;
+      const melee = ['sword', 'axe', 'hammer', 'daggers', 'katana'].includes(weapon);
+      // Enemies first (within weapon range), else a nearby resource to harvest
+      let nearest = null, nd = range, nt = null;
       world.enemies.forEach(e => { const d = Math.hypot(e.x - p2.x, e.y - p2.y); if (d < nd) { nd = d; nearest = e; nt = 'enemy'; } });
-      if (!nearest) world.decorations.forEach(d => { const dd = Math.hypot(d.x - p2.x, d.y - p2.y); if (dd < nd) { nd = dd; nearest = d; nt = 'deco'; } });
+      if (!nearest) { let dr = Math.max(range, 50); world.decorations.forEach(d => { const dd = Math.hypot(d.x - p2.x, d.y - p2.y); if (dd < dr) { dr = dd; nearest = d; nt = 'deco'; } }); }
       if (nearest) {
-        if (nt === 'enemy') hitEnemy(nearest, 9); else hitDecoration(nearest, 1);
-        world.swingArc = { x: p2.x, y: p2.y, target: nearest, life: 12, totalLife: 12, mode: 'swing' };
+        p2.facing = nearest.x >= p2.x ? 1 : -1;
+        if (melee) {
+          if (nt === 'enemy') hitEnemy(nearest, dmg); else hitDecoration(nearest, 1);
+          world.swingArc = { x: p2.x, y: p2.y, target: nearest, life: 12, totalLife: 12, mode: weapon === 'daggers' ? 'stab' : 'swing' };
+        } else {
+          // Ranged: fire a projectile (host renders it; enemy/resource takes damage on hit)
+          const dx = nearest.x - p2.x, dy = nearest.y - (p2.y - 4), dist = Math.hypot(dx, dy) || 1, speed = 9;
+          world.projectiles.push({
+            x: p2.x + p2.facing * 8, y: p2.y - 4,
+            vx: dx / dist * speed, vy: dy / dist * speed,
+            target: nearest, targetType: nt === 'enemy' ? 'enemy' : 'decoration',
+            weapon: weapon, damage: dmg, life: 90
+          });
+        }
         SFX.attack();
       }
-      p2.attackCooldown = 22;
+      p2.attackCooldown = melee ? (weapon === 'daggers' ? 16 : 22) : 26;
     }
 
     function mpBuildSnapshot() {
