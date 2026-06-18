@@ -5926,11 +5926,13 @@
       const retry = document.getElementById('gameOverRetryBtn');
       const menu = document.getElementById('gameOverMenuBtn');
       if (retry) retry.addEventListener('click', () => {
+        if (typeof mpLeave === 'function') mpLeave(); // end any co-op session cleanly
         document.getElementById('gameOverScreen').classList.remove('show');
         document.getElementById('gameScreen').style.display = 'block';
         startGame(maps[currentMapIndex].id);
       });
       if (menu) menu.addEventListener('click', () => {
+        if (typeof mpLeave === 'function') mpLeave();
         document.getElementById('gameOverScreen').classList.remove('show');
         document.getElementById('gameScreen').style.display = 'none';
         showMainScreen();
@@ -9090,7 +9092,13 @@
         const box = mpJoinCodeBox(); if (box) { box.classList.add('show'); box.innerHTML = '<div class="jc-status">Multiplayer needs an internet connection.</div>'; }
         return;
       }
-      if (mp.peer && mp.role === 'host') { mpShowCode(); return; }
+      // Already actively hosting with a connected guest → just show the code
+      if (mp.peer && mp.role === 'host' && mp.connected) { mpShowCode(); return; }
+      // Otherwise start a fresh session (clean up any stale peer/connection)
+      try { if (mp.conn) mp.conn.close(); } catch (e) {}
+      try { if (mp.peer) mp.peer.destroy(); } catch (e) {}
+      if (mp.hostTimer) clearInterval(mp.hostTimer);
+      mp.conn = null; mp.connected = false; mp.lastSnap = 0; mp.lastLite = 0;
       mp.role = 'host';
       mp.joinCode = 'EXPL' + Math.random().toString(36).slice(2, 7).toUpperCase();
       mpShowCode();
@@ -9138,6 +9146,12 @@
     function mpJoin(code) {
       if (typeof Peer === 'undefined') { alert('Multiplayer needs an internet connection.'); return; }
       if (!code) return;
+      // Clean up any previous session so you can join again
+      try { if (mp.conn) mp.conn.close(); } catch (e) {}
+      try { if (mp.peer) mp.peer.destroy(); } catch (e) {}
+      if (mp.inputTimer) clearInterval(mp.inputTimer);
+      if (mp.guestRAF) cancelAnimationFrame(mp.guestRAF);
+      mp.conn = null; mp.connected = false; mp.lastSnapshot = null; mp.guestRAF = null;
       mp.role = 'guest';
       const cleanCode = String(code).trim().toUpperCase();
       mpGuestOverlay('Connecting to server…');
