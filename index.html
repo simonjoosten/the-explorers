@@ -3301,14 +3301,21 @@
       document.getElementById('warriorSelect').style.display = 'flex';
     }
 
+    let coopJoining = false; // picking a hero before joining a co-op game
     document.getElementById('warriorBackBtn').addEventListener('click', () => {
       document.getElementById('warriorSelect').style.display = 'none';
-      renderMap();
+      if (coopJoining) { coopJoining = false; showMainScreen(); } else { renderMap(); }
     });
 
     document.getElementById('warriorGoBtn').addEventListener('click', () => {
       if (!selectedWarriorId) return;
       document.getElementById('warriorSelect').style.display = 'none';
+      if (coopJoining) {
+        coopJoining = false;
+        const code = prompt('Enter the host\'s join code:');
+        if (code) mpJoin(code); else showMainScreen();
+        return;
+      }
       showGameLoading();
     });
 
@@ -3520,6 +3527,7 @@
       world.gameOver = false;
       world.player.invuln = 0;
       world.abilities = {}; // per-ability readyAt timestamps
+      world.player.hero = warrior.id; // for co-op skin broadcast
       buildAbilityBar();
       // Make sure a leftover game-over screen is hidden on (re)start
       const goScreen = document.getElementById('gameOverScreen');
@@ -3627,8 +3635,14 @@
     }
 
     function attemptAttack() {
-      // Co-op guest: forward the attack to the host instead of simulating locally
-      if (mp.role === 'guest') { mp.guestAttack = true; SFX.attack(); return; }
+      // Co-op guest: forward the attack to the host (rate-limited so X can't be spammed)
+      if (mp.role === 'guest') {
+        const now = Date.now();
+        if (now - (mp.guestAtkAt || 0) < 350) return;
+        mp.guestAtkAt = now;
+        mp.guestAttack = true; SFX.attack();
+        return;
+      }
       if (!world || !world.player) return;
       const p = world.player;
       if (p.attackCooldown > 0) return;
@@ -5897,6 +5911,7 @@
         .map(([k, v]) => `<div class="gameover-stat"><span class="gs-label">${k}</span><span class="gs-val">${v}</span></div>`)
         .join('');
       document.getElementById('gameOverScreen').classList.add('show');
+      if (mp.role === 'host' && mp.connected) { try { mpSend({ t: 'gameover', reason: reason }); } catch (e) {} }
     }
 
     (function wireGameOver() {
@@ -7920,26 +7935,28 @@
     function drawPlayer2(p) {
       const t = world.time;
       const bob = Math.sin(t * 0.012) * 1.2;
+      const hero = p.hero && warriors.find(w => w.id === p.hero);
+      const tunic = hero ? hero.color : '#a83a3a';
       ctx.fillStyle = 'rgba(0,0,0,0.4)';
       ctx.beginPath(); ctx.ellipse(p.x, p.y + 17, 9, 3, 0, 0, Math.PI * 2); ctx.fill();
       // Legs
       ctx.fillStyle = '#2a1a0a';
       ctx.fillRect(p.x - 5, p.y + 11 + bob, 4, 7);
       ctx.fillRect(p.x + 1, p.y + 11 + bob, 4, 7);
-      // Tunic (red)
-      ctx.fillStyle = '#a83a3a';
+      // Tunic (chosen hero's colour)
+      ctx.fillStyle = tunic;
       ctx.fillRect(p.x - 7, p.y - 1 + bob, 14, 13);
-      ctx.fillStyle = '#7a2020';
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
       ctx.fillRect(p.x + 3, p.y - 1 + bob, 4, 13);
       // Belt
       ctx.fillStyle = '#3a2010'; ctx.fillRect(p.x - 7, p.y + 8 + bob, 14, 3);
       // Head
       ctx.fillStyle = '#f0d0a8';
       ctx.beginPath(); ctx.arc(p.x, p.y - 6 + bob, 6, 0, Math.PI * 2); ctx.fill();
-      // Name tag
-      ctx.font = 'bold 8px sans-serif'; ctx.textAlign = 'center';
+      // Name tag / hero emoji
+      ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
       ctx.fillStyle = '#ff9090';
-      ctx.fillText('P2', p.x, p.y - 16 + bob);
+      ctx.fillText(hero ? hero.emoji : 'P2', p.x, p.y - 16 + bob);
       // HP bar if hurt
       if (p.hp < p.maxHp) {
         const r = Math.max(0, p.hp / p.maxHp);
@@ -9085,6 +9102,11 @@
             if (canAffordBuild(cost)) { payCost(cost); world.tracks.push({ x1: d.x1, y1: d.y1, x2: d.x2, y2: d.y2, cx: d.x1, cy: d.y1, t: 0, dir: 1, speed: 0.004 }); SFX.build(); updateResourceBars(); }
           }
           else if (d.t === 'chat') { addChatMsg(d.who, d.text); }
+          else if (d.t === 'hello' && world && world.player2) {
+            const w = warriors.find(x => x.id === d.hero);
+            world.player2.hero = d.hero || 'knight';
+            if (w) { world.player2.maxHp = w.hp; world.player2.hp = w.hp; world.player2.speed = Math.max(2.4, w.speed * 0.9); }
+          }
         });
         c.on('close', () => { console.log('[MP] guest left'); mp.connected = false; world && (world.player2 = null); mpStatus('Player 2 left.'); });
         c.on('error', (e) => console.error('[MP] conn error', e));
@@ -9124,12 +9146,18 @@
         mpGuestOverlay('Connecting to host…');
         const c = mp.peer.connect(cleanCode, { reliable: true });
         mp.conn = c;
-        c.on('open', () => { console.log('[MP] connected to host'); mp.connected = true; if (mp.connectTimer) clearTimeout(mp.connectTimer); mpGuestOverlay(null); mpStartGuest(); });
+        c.on('open', () => { console.log('[MP] connected to host'); mp.connected = true; if (mp.connectTimer) clearTimeout(mp.connectTimer); mpGuestOverlay(null); mpStartGuest(); try { mpSend({ t: 'hello', hero: selectedWarriorId }); } catch (e) {} });
         c.on('data', (d) => {
           if (!d) return;
           if (d.t === 'snap') { mp.lastSnapshot = d; mpApplySnapshot(d); }
           else if (d.t === 'lite') { mpApplyLite(d); }
           else if (d.t === 'chat') { addChatMsg(d.who, d.text); }
+          else if (d.t === 'gameover') {
+            SFX.gameover();
+            mpGuestOverlay('💀 Game over — ' + (d.reason || 'the base fell') + '\n\nTap to return to the menu.');
+            const el = document.getElementById('mpConnecting');
+            if (el) el.onclick = () => { mpLeave(); document.getElementById('gameScreen').style.display = 'none'; showMainScreen(); };
+          }
         });
         c.on('close', () => { if (mp.role === 'guest') { mpGuestOverlay(null); alert('Disconnected from host.'); mpLeave(); } });
         c.on('error', (e) => { console.error('[MP] conn error', e); mpGuestOverlay('Connection error: ' + (e && e.type ? e.type : e) + ' — tap to close.'); const el = document.getElementById('mpConnecting'); if (el) el.onclick = () => mpLeave(); });
@@ -9266,8 +9294,8 @@
     function mpHostTick() {
       if (mp.role !== 'host' || !mp.connected || !world) return;
       if (!mp.conn || !mp.conn.open) return;
-      // Heavy/full snapshot occasionally; light position snapshot often (smoother)
-      if (world.time - mp.lastSnap >= 400) {
+      // Heavy/full snapshot rarely (static world data); light snapshot often
+      if (world.time - mp.lastSnap >= 900) {
         mp.lastSnap = world.time; mp.lastLite = world.time;
         try { mp.conn.send(mpBuildSnapshot()); } catch (e) {}
       } else if (world.time - (mp.lastLite || 0) >= 50) {
@@ -9275,14 +9303,20 @@
         try { mp.conn.send(mpBuildLite()); } catch (e) {}
       }
     }
-    function mpPackHero(p) { return { x: p.x | 0, y: p.y | 0, facing: p.facing, hp: p.hp, maxHp: p.maxHp, onRoad: !!p.onRoad }; }
+    function mpPackHero(p) { return { x: p.x | 0, y: p.y | 0, facing: p.facing, hp: p.hp, maxHp: p.maxHp, onRoad: !!p.onRoad, hero: p.hero || null }; }
     function mpBuildLite() {
+      const lite = (arr, f) => (arr || []).map(f);
       return {
         t: 'lite', time: world.time,
         p1: mpPackHero(world.player), p2: world.player2 ? mpPackHero(world.player2) : null,
         house: { hp: world.house.hp, maxHp: world.house.maxHp, hitFlash: world.house.hitFlash || 0 },
         wave: { waveNumber: world.waveNumber, waveActive: world.waveActive, timeToNextWave: world.timeToNextWave, waveTotalTime: world.waveTotalTime },
-        enemies: (world.enemies || []).map(e => ({ x: e.x | 0, y: e.y | 0, type: e.type, hp: e.hp, maxHp: e.maxHp, facing: e.facing, bobOffset: e.bobOffset, hitFlash: e.hitFlash || 0 }))
+        enemies: lite(world.enemies, e => ({ x: e.x | 0, y: e.y | 0, type: e.type, hp: e.hp, maxHp: e.maxHp, facing: e.facing, bobOffset: e.bobOffset, hitFlash: e.hitFlash || 0 })),
+        // Gameplay things that change often → keep responsive
+        buildings: lite(world.buildings, b => ({ x: b.x, y: b.y, type: b.type, hp: b.hp, maxHp: b.maxHp, up: b.up, charges: b.charges || 0, aimAngle: b.aimAngle || 0, hitFlash: b.hitFlash || 0 })),
+        helpers: lite(world.helpers, h => ({ x: h.x | 0, y: h.y | 0, kind: h.kind, hp: h.hp, maxHp: h.maxHp, facing: h.facing, swing: h.swing || 0, hitFlash: h.hitFlash || 0 })),
+        tracks: lite(world.tracks, t => ({ x1: t.x1, y1: t.y1, x2: t.x2, y2: t.y2, cx: t.cx, cy: t.cy })),
+        inv: { power: playerInventory.power, wood: playerInventory.wood, stone: playerInventory.stone, gemGreen: playerInventory.gemGreen, gemRed: playerInventory.gemRed, gemBlue: playerInventory.gemBlue }
       };
     }
     function mpPlayer2Attack() {
@@ -9332,12 +9366,12 @@
         const P = world.player = world.player || {};
         if (P.x === undefined) { P.x = s.p1.x; P.y = s.p1.y; }
         P.tx = s.p1.x; P.ty = s.p1.y;
-        P.facing = s.p1.facing; P.hp = s.p1.hp; P.maxHp = s.p1.maxHp; P.onRoad = s.p1.onRoad;
+        P.facing = s.p1.facing; P.hp = s.p1.hp; P.maxHp = s.p1.maxHp; P.onRoad = s.p1.onRoad; P.hero = s.p1.hero;
       }
       // Own hero (p2): trust local prediction; only snap if it drifted far
       if (s.p2) {
         const P2 = world.player2 = world.player2 || {};
-        P2.hp = s.p2.hp; P2.maxHp = s.p2.maxHp; P2.facing = s.p2.facing;
+        P2.hp = s.p2.hp; P2.maxHp = s.p2.maxHp; P2.facing = s.p2.facing; P2.hero = s.p2.hero;
         if (P2.x === undefined || Math.hypot((P2.x || 0) - s.p2.x, (P2.y || 0) - s.p2.y) > 120) { P2.x = s.p2.x; P2.y = s.p2.y; }
       } else { world.player2 = null; }
       // Enemies: carry render position by index, set new targets
@@ -9347,6 +9381,11 @@
         return Object.assign({}, e, { tx: e.x, ty: e.y, x: o ? o.x : e.x, y: o ? o.y : e.y });
       });
       if (s.house) { world.house = world.house || {}; Object.assign(world.house, s.house); }
+      // Frequently-changing gameplay things (also sent in light snapshots)
+      if (s.buildings) world.buildings = s.buildings;
+      if (s.helpers) world.helpers = s.helpers;
+      if (s.tracks) world.tracks = s.tracks;
+      if (s.inv) { Object.assign(playerInventory, s.inv); updateResourceBars(); }
       const wv = s.wave; world.waveNumber = wv.waveNumber; world.waveActive = wv.waveActive; world.timeToNextWave = wv.timeToNextWave; world.waveTotalTime = wv.waveTotalTime;
       const me = world.player2 && world.player2.x !== undefined ? world.player2 : world.player;
       if (me && me.x !== undefined) world.camera = { x: me.x - canvas.width / 2, y: me.y - canvas.height / 2 };
@@ -9359,12 +9398,8 @@
       world.originX = s.ox; world.originY = s.oy; world.tileSize = s.ts;
       world.ownedBBox = s.bb; world.fieldX = s.fx; world.fieldY = s.fy; world.fieldW = s.fw; world.fieldH = s.fh; world.mapId = s.mapId;
       applyMovers(s);
-      if (s.inv) { Object.assign(playerInventory, s.inv); updateResourceBars(); }
-      world.buildings = s.buildings;
-      world.helpers = s.helpers;
       world.structures = s.structures.map(st => ({ ...st, childDeco: null }));
       world.roads = s.roads;
-      world.tracks = s.tracks || [];
       world.bridges = s.bridges || [];
       world.buildCounts = s.bc || {};
       if (s.secs) exState.sections = s.secs; // so the ground renders on the guest
@@ -9394,8 +9429,10 @@
     (function wireCoop() {
       const join = document.getElementById('joinCoopBtn');
       if (join) join.addEventListener('click', () => {
-        const code = prompt('Enter the host\'s join code:');
-        if (code) mpJoin(code);
+        // Pick your hero/skin first, then enter the code (handled by warriorGoBtn)
+        coopJoining = true;
+        document.getElementById('homeScreen').style.display = 'none';
+        openWarriorSelect();
       });
       const viewCode = document.getElementById('viewCodeBtn');
       if (viewCode) viewCode.addEventListener('click', () => { if (mp.role === 'guest') return; mpHost(); });
