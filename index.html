@@ -8396,6 +8396,7 @@
       try {
         world.time += 16;
         updatePlayer();
+        if (mp.role === 'host') updatePlayer2();
         updateStructures();
         updateBuildings();
         updateHelpers();
@@ -9124,7 +9125,12 @@
         const c = mp.peer.connect(cleanCode, { reliable: true });
         mp.conn = c;
         c.on('open', () => { console.log('[MP] connected to host'); mp.connected = true; if (mp.connectTimer) clearTimeout(mp.connectTimer); mpGuestOverlay(null); mpStartGuest(); });
-        c.on('data', (d) => { if (!d) return; if (d.t === 'snap') { mp.lastSnapshot = d; mpApplySnapshot(d); } else if (d.t === 'chat') { addChatMsg(d.who, d.text); } });
+        c.on('data', (d) => {
+          if (!d) return;
+          if (d.t === 'snap') { mp.lastSnapshot = d; mpApplySnapshot(d); }
+          else if (d.t === 'lite') { mpApplyLite(d); }
+          else if (d.t === 'chat') { addChatMsg(d.who, d.text); }
+        });
         c.on('close', () => { if (mp.role === 'guest') { mpGuestOverlay(null); alert('Disconnected from host.'); mpLeave(); } });
         c.on('error', (e) => { console.error('[MP] conn error', e); mpGuestOverlay('Connection error: ' + (e && e.type ? e.type : e) + ' — tap to close.'); const el = document.getElementById('mpConnecting'); if (el) el.onclick = () => mpLeave(); });
       });
@@ -9207,8 +9213,9 @@
     function mpGuestLoop() {
       if (mp.role !== 'guest') return;
       if (world && mp.lastSnapshot) {
+        world.time += 16; // keep animations/day-night advancing between snapshots
         // Local prediction: move our own hero immediately for responsiveness
-        if (world.player2) {
+        if (world.player2 && world.player2.x !== undefined) {
           let dx = 0, dy = 0;
           if (keysPressed.has('ArrowLeft')) dx -= 1;
           if (keysPressed.has('ArrowRight')) dx += 1;
@@ -9221,37 +9228,58 @@
             world.player2.y += dy * 3.0;
             world.player2.facing = dx >= 0 ? 1 : -1;
           }
-          world.time += 16; // keep animations/day-night advancing between snapshots
           world.camera = { x: world.player2.x - canvas.width / 2, y: world.player2.y - canvas.height / 2 };
         }
+        // Smoothly interpolate the remote hero & enemies toward their targets
+        const L = 0.25;
+        const P = world.player;
+        if (P && P.tx !== undefined) { P.x += (P.tx - P.x) * L; P.y += (P.ty - P.y) * L; }
+        (world.enemies || []).forEach(e => { if (e.tx !== undefined) { e.x += (e.tx - e.x) * L; e.y += (e.ty - e.y) * L; } });
         try { renderWorld(); } catch (e) { console.error('guest render', e); }
       }
       mp.guestRAF = requestAnimationFrame(mpGuestLoop);
     }
 
     // Host: drive Player 2 from guest input + broadcast snapshots
+    // Host: drive Player 2 every frame (matches the guest's 60fps prediction)
+    function updatePlayer2() {
+      if (mp.role !== 'host' || !mp.connected || !world) return;
+      const p2 = world.player2; if (!p2) return;
+      if (p2.attackCooldown > 0) p2.attackCooldown--;
+      if (p2.invuln > 0) p2.invuln--;
+      let dx = mp.guestInput.dx, dy = mp.guestInput.dy;
+      const m = Math.hypot(dx, dy);
+      if (m > 0) {
+        dx /= m; dy /= m;
+        const sp = p2.speed; // 3.0 — same as guest prediction
+        const nx = p2.x + dx * sp; if (!collidesAt(nx, p2.y)) p2.x = nx;
+        const ny = p2.y + dy * sp; if (!collidesAt(p2.x, ny)) p2.y = ny;
+        p2.facing = dx >= 0 ? 1 : -1;
+      }
+      if (mp.guestAttackQueued) { mp.guestAttackQueued = false; mpPlayer2Attack(); }
+      if (p2.hp <= 0) { p2.hp = Math.ceil(p2.maxHp * 0.6); p2.x = world.house.x; p2.y = world.house.y + 60; p2.invuln = 120; }
+    }
     function mpHostTick() {
       if (mp.role !== 'host' || !mp.connected || !world) return;
-      const p2 = world.player2;
-      if (p2) {
-        if (p2.attackCooldown > 0) p2.attackCooldown--;
-        if (p2.invuln > 0) p2.invuln--;
-        let dx = mp.guestInput.dx, dy = mp.guestInput.dy;
-        const m = Math.hypot(dx, dy);
-        if (m > 0) {
-          dx /= m; dy /= m;
-          const sp = p2.speed;
-          const nx = p2.x + dx * sp; if (!collidesAt(nx, p2.y)) p2.x = nx;
-          const ny = p2.y + dy * sp; if (!collidesAt(p2.x, ny)) p2.y = ny;
-          p2.facing = dx >= 0 ? 1 : -1;
-        }
-        if (mp.guestAttackQueued) { mp.guestAttackQueued = false; mpPlayer2Attack(); }
-        if (p2.hp <= 0) { p2.hp = Math.ceil(p2.maxHp * 0.6); p2.x = world.house.x; p2.y = world.house.y + 60; p2.invuln = 120; }
-      }
-      if (world.time - mp.lastSnap >= 80 && mp.conn && mp.conn.open) {
-        mp.lastSnap = world.time;
+      if (!mp.conn || !mp.conn.open) return;
+      // Heavy/full snapshot occasionally; light position snapshot often (smoother)
+      if (world.time - mp.lastSnap >= 400) {
+        mp.lastSnap = world.time; mp.lastLite = world.time;
         try { mp.conn.send(mpBuildSnapshot()); } catch (e) {}
+      } else if (world.time - (mp.lastLite || 0) >= 50) {
+        mp.lastLite = world.time;
+        try { mp.conn.send(mpBuildLite()); } catch (e) {}
       }
+    }
+    function mpPackHero(p) { return { x: p.x | 0, y: p.y | 0, facing: p.facing, hp: p.hp, maxHp: p.maxHp, onRoad: !!p.onRoad }; }
+    function mpBuildLite() {
+      return {
+        t: 'lite', time: world.time,
+        p1: mpPackHero(world.player), p2: world.player2 ? mpPackHero(world.player2) : null,
+        house: { hp: world.house.hp, maxHp: world.house.maxHp, hitFlash: world.house.hitFlash || 0 },
+        wave: { waveNumber: world.waveNumber, waveActive: world.waveActive, timeToNextWave: world.timeToNextWave, waveTotalTime: world.waveTotalTime },
+        enemies: (world.enemies || []).map(e => ({ x: e.x | 0, y: e.y | 0, type: e.type, hp: e.hp, maxHp: e.maxHp, facing: e.facing, bobOffset: e.bobOffset, hitFlash: e.hitFlash || 0 }))
+      };
     }
     function mpPlayer2Attack() {
       const p2 = world.player2; if (!p2 || p2.attackCooldown > 0) return;
@@ -9267,7 +9295,7 @@
     }
 
     function mpBuildSnapshot() {
-      const pPack = p => ({ x: p.x | 0, y: p.y | 0, facing: p.facing, hp: p.hp, maxHp: p.maxHp, onRoad: !!p.onRoad });
+      const pPack = mpPackHero;
       const lite = (arr, f) => (arr || []).map(f);
       return {
         t: 'snap', time: world.time,
@@ -9289,17 +9317,45 @@
         decos: lite(world.decorations, d => ({ x: d.x | 0, y: d.y | 0, type: d.type, hp: d.hp, maxHp: d.maxHp }))
       };
     }
-    function mpApplySnapshot(s) {
+    // Apply the moving things (heroes, enemies, house hp, wave) — used by both
+    // light and full snapshots. Positions become interpolation TARGETS so the
+    // guest renders smoothly between updates.
+    function applyMovers(s) {
       if (!world) world = {};
       world.time = s.time;
+      // Remote host hero (p1): smooth toward target
+      if (s.p1) {
+        const P = world.player = world.player || {};
+        if (P.x === undefined) { P.x = s.p1.x; P.y = s.p1.y; }
+        P.tx = s.p1.x; P.ty = s.p1.y;
+        P.facing = s.p1.facing; P.hp = s.p1.hp; P.maxHp = s.p1.maxHp; P.onRoad = s.p1.onRoad;
+      }
+      // Own hero (p2): trust local prediction; only snap if it drifted far
+      if (s.p2) {
+        const P2 = world.player2 = world.player2 || {};
+        P2.hp = s.p2.hp; P2.maxHp = s.p2.maxHp; P2.facing = s.p2.facing;
+        if (P2.x === undefined || Math.hypot((P2.x || 0) - s.p2.x, (P2.y || 0) - s.p2.y) > 120) { P2.x = s.p2.x; P2.y = s.p2.y; }
+      } else { world.player2 = null; }
+      // Enemies: carry render position by index, set new targets
+      const old = world.enemies || [];
+      world.enemies = (s.enemies || []).map((e, i) => {
+        const o = old[i];
+        return Object.assign({}, e, { tx: e.x, ty: e.y, x: o ? o.x : e.x, y: o ? o.y : e.y });
+      });
+      if (s.house) { world.house = world.house || {}; Object.assign(world.house, s.house); }
+      const wv = s.wave; world.waveNumber = wv.waveNumber; world.waveActive = wv.waveActive; world.timeToNextWave = wv.timeToNextWave; world.waveTotalTime = wv.waveTotalTime;
+      const me = world.player2 && world.player2.x !== undefined ? world.player2 : world.player;
+      if (me && me.x !== undefined) world.camera = { x: me.x - canvas.width / 2, y: me.y - canvas.height / 2 };
+      const label = document.getElementById('waveBarLabel'), status = document.getElementById('waveBarStatus'), bar = document.getElementById('waveBarFill');
+      if (world.waveActive) { if (label) label.textContent = `Wave ${world.waveNumber}`; if (status) status.textContent = `${world.enemies.length} left`; if (bar) { bar.style.width = '100%'; bar.className = 'wave-bar-fill active'; } }
+    }
+    function mpApplyLite(s) { if (!world || !mp.lastSnapshot) return; applyMovers(s); }
+    function mpApplySnapshot(s) {
+      if (!world) world = {};
       world.originX = s.ox; world.originY = s.oy; world.tileSize = s.ts;
       world.ownedBBox = s.bb; world.fieldX = s.fx; world.fieldY = s.fy; world.fieldW = s.fw; world.fieldH = s.fh; world.mapId = s.mapId;
-      world.player = Object.assign(world.player || {}, s.p1);
-      world.player2 = s.p2 ? Object.assign(world.player2 || {}, s.p2) : null;
-      world.house = s.house;
+      applyMovers(s);
       if (s.inv) { Object.assign(playerInventory, s.inv); updateResourceBars(); }
-      world.waveNumber = s.wave.waveNumber; world.waveActive = s.wave.waveActive; world.timeToNextWave = s.wave.timeToNextWave; world.waveTotalTime = s.wave.waveTotalTime;
-      world.enemies = s.enemies;
       world.buildings = s.buildings;
       world.helpers = s.helpers;
       world.structures = s.structures.map(st => ({ ...st, childDeco: null }));
@@ -9311,11 +9367,6 @@
       world.decorations = s.decos;
       world.projectiles = []; world.beams = []; world.explosions = []; world.healPulses = []; world.floatingText = []; world.swingArc = null;
       world.paused = false; world.gameOver = false;
-      const me = world.player2 || world.player;
-      world.camera = { x: me.x - canvas.width / 2, y: me.y - canvas.height / 2 };
-      // Update wave HUD on guest
-      const label = document.getElementById('waveBarLabel'), status = document.getElementById('waveBarStatus'), bar = document.getElementById('waveBarFill');
-      if (world.waveActive) { if (label) label.textContent = `Wave ${world.waveNumber}`; if (status) status.textContent = `${world.enemies.length} left`; if (bar) { bar.style.width = '100%'; bar.className = 'wave-bar-fill active'; } }
     }
 
     function mpLeave() {
