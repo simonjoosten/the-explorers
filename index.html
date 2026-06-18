@@ -9224,9 +9224,13 @@
           const m = Math.hypot(dx, dy);
           if (m > 0) {
             dx /= m; dy /= m;
-            world.player2.x += dx * 3.0;
-            world.player2.y += dy * 3.0;
-            world.player2.facing = dx >= 0 ? 1 : -1;
+            const p2 = world.player2, sp = 3.0;
+            // Respect walls/water just like the host does
+            let canCollide = true; try { collidesAt(p2.x, p2.y); } catch (e) { canCollide = false; }
+            const nx = p2.x + dx * sp, ny = p2.y + dy * sp;
+            if (!canCollide || !collidesAt(nx, p2.y)) p2.x = nx;
+            if (!canCollide || !collidesAt(p2.x, ny)) p2.y = ny;
+            p2.facing = dx >= 0 ? 1 : -1;
           }
           world.camera = { x: world.player2.x - canvas.width / 2, y: world.player2.y - canvas.height / 2 };
         }
@@ -9367,6 +9371,7 @@
       world.decorations = s.decos;
       world.projectiles = []; world.beams = []; world.explosions = []; world.healPulses = []; world.floatingText = []; world.swingArc = null;
       world.paused = false; world.gameOver = false;
+      rebuildRiverSet(); // so guest movement respects rivers
     }
 
     function mpLeave() {
